@@ -11,7 +11,7 @@ Apresentação dos **três wireframes** para a nova vitrine da **Lynch Store**
 
 Publicado via GitHub Pages:
 
-**https://agenciakamino.github.io/site-lynch-store/**
+**https://rochamaatheus.github.io/site-lynch-store/**
 
 A página inicial apresenta os três wireframes. Clique em cada card para abrir o
 wireframe completo (com página de produto navegável).
