@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wireframes · Lynch Store</title>
+  <meta name="description" content="Três wireframes para a nova vitrine da Lynch Store — moda geek e cosplay. Desenvolvido pela Agência Kamino." />
+  <meta name="robots" content="noindex, nofollow" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Wireframes · Lynch Store" />
+  <meta property="og:description" content="Três caminhos de estrutura para a nova vitrine. Escolha um e monte o seu." />
+  <meta property="og:type" content="website" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .reveal { opacity: 0; animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .d-1 { animation-delay: 0.05s; } .d-2 { animation-delay: 0.15s; }
+    .d-3 { animation-delay: 0.25s; } .d-4 { animation-delay: 0.35s; }
+    .d-5 { animation-delay: 0.45s; } .d-6 { animation-delay: 0.55s; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { animation: none; opacity: 1; }
+    }
+  </style>
+</head>
+
+<body class="bg-stone-50 text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
+
+  <!-- ============================ HEADER ============================ -->
+  <header class="border-b border-stone-200">
+    <div class="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div class="text-base tracking-[0.22em] uppercase font-medium text-stone-900 flex items-center gap-2.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+        Lynch&nbsp;Store
+        <span class="hidden sm:block text-[10px] tracking-[0.3em] text-stone-400 font-normal">Vitrine · geek &amp; cosplay</span>
+      </div>
+      <div class="flex items-center gap-2.5 text-xs tracking-[0.2em] uppercase text-stone-400">
+        <span class="hidden sm:inline">Apresentação por</span>
+        <span class="font-medium text-stone-700">Agência Kamino</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ HERO ============================ -->
+  <section class="max-w-3xl mx-auto px-6 pt-20 pb-14 md:pt-28 md:pb-16 text-center">
+    <p class="reveal d-1 text-xs tracking-[0.35em] uppercase text-stone-500 mb-8">Wireframes · proposta de estrutura · 2026</p>
+    <h1 class="reveal d-2 text-4xl md:text-6xl leading-[1.08] font-light text-stone-900">
+      Três caminhos para a<br class="hidden md:block" /> vitrine da Lynch&nbsp;Store.
+    </h1>
+    <p class="reveal d-3 mt-8 text-lg text-stone-600 max-w-xl mx-auto font-light leading-relaxed">
+      Montamos três <strong class="font-medium text-stone-800">wireframes</strong> — o esqueleto do site, onde
+      definimos a <em class="not-italic font-medium text-stone-800">estrutura</em> e a sensação de cada página.
+      Todos buscam o clima <span class="text-stone-800 font-medium">leve e aconchegante</span> ("cozy") que conversa
+      com o público, e foram pensados primeiro no <span class="text-stone-800 font-medium">celular</span>.
+    </p>
+    <div class="reveal d-4 mt-9 inline-flex items-center gap-2 text-xs tracking-wider uppercase text-stone-500 border border-stone-200 bg-white rounded-full px-4 py-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+      Cinza de propósito — cores e fontes entram na próxima etapa
+    </div>
+  </section>
+
+  <!-- ============================ CONCEITOS ============================ -->
+  <main class="max-w-5xl mx-auto px-6 pb-8">
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <!-- Wireframe 1 -->
+      <a href="site-1-aconchego.html" target="_blank" rel="noopener"
+         class="reveal d-3 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
+        <div class="flex items-baseline justify-between mb-8">
+          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">01</span>
+          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Loja · Prático</span>
+        </div>
+        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Aconchego</h2>
+        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
+          A loja completa e fofa. Banner grande de impacto, filtros como uma "prateleira aconchegante",
+          botão <em class="not-italic font-medium text-stone-700">Comprar</em> em cada peça e selos de desconto.
+          A página de produto traz tudo à mão — estoque, tabela de medidas e cálculo de frete.
+        </p>
+        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
+          Ver wireframe <span aria-hidden="true">&rarr;</span>
+        </span>
+      </a>
+
+      <!-- Wireframe 2 -->
+      <a href="site-2-drop.html" target="_blank" rel="noopener"
+         class="reveal d-4 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
+        <div class="flex items-baseline justify-between mb-8">
+          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">02</span>
+          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Lúdico · Mobile</span>
+        </div>
+        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Drop</h2>
+        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
+          O mais jovem e divertido. Boas-vindas com mascote, categorias grandes com foto de quem usa,
+          e produtos que <em class="not-italic font-medium text-stone-700">deslizam na horizontal</em> (clima de app/stories).
+          Página de produto enxuta e direta. Pensado para brilhar no celular.
+        </p>
+        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
+          Ver wireframe <span aria-hidden="true">&rarr;</span>
+        </span>
+      </a>
+
+      <!-- Wireframe 3 -->
+      <a href="site-3-organico.html" target="_blank" rel="noopener"
+         class="reveal d-5 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
+        <div class="flex items-baseline justify-between mb-8">
+          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">03</span>
+          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Editorial</span>
+        </div>
+        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Orgânico</h2>
+        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
+          O mais autoral, com cara de revista. Tipografia grande de impacto, categorias com o nome na
+          <em class="not-italic font-medium text-stone-700">vertical</em> sobre a foto, muito espaço pra respirar.
+          Valoriza cada peça como uma marca de moda — sofisticado, mas quente.
+        </p>
+        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
+          Ver wireframe <span aria-hidden="true">&rarr;</span>
+        </span>
+      </a>
+
+    </div>
+  </main>
+
+  <!-- ============================ MONTE O SEU (modular) ============================ -->
+  <section class="max-w-5xl mx-auto px-6 pb-24">
+    <div class="reveal d-4 bg-white border border-stone-200 rounded-3xl p-8 md:p-12 relative overflow-hidden">
+      <span class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-400/10" aria-hidden="true"></span>
+      <div class="relative">
+        <div class="inline-flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 mb-5">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> A escolha não é fechada
+        </div>
+        <h2 class="text-2xl md:text-3xl font-light text-stone-900 leading-snug max-w-2xl">
+          Escolha uma base — e traga o que você gostou dos outros.
+        </h2>
+        <p class="mt-4 text-stone-600 leading-relaxed max-w-2xl font-light">
+          Estes três caminhos são <strong class="font-medium text-stone-800">modulares</strong>. Você não precisa
+          casar com tudo de um só. O comum é escolher um como <em class="not-italic font-medium text-stone-800">base</em>
+          e pedir pra trocar peças específicas pelas de outro que te chamaram atenção. A gente monta a versão final com as partes que você curtiu.
+        </p>
+
+        <!-- Exemplo de combinação -->
+        <div class="mt-8 grid sm:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-stone-200 p-5">
+            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">Exemplo</span>
+            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
+              "Quero a <strong class="font-medium">base do Orgânico (03)</strong>…"
+            </p>
+          </div>
+          <div class="rounded-2xl border border-stone-200 p-5">
+            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">+ elemento</span>
+            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
+              "…mas com o <strong class="font-medium">botão Comprar no card</strong> do Aconchego (01)…"
+            </p>
+          </div>
+          <div class="rounded-2xl border border-stone-200 p-5">
+            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">+ elemento</span>
+            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
+              "…e os <strong class="font-medium">produtos deslizando</strong> do Drop (02)."
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-6 text-sm text-stone-500 leading-relaxed">
+          Elementos que viajam bem entre os três: o <span class="text-stone-700">banner</span>, o
+          <span class="text-stone-700">menu/filtros</span>, o jeito de mostrar <span class="text-stone-700">categorias</span> e
+          <span class="text-stone-700">coleções</span>, o <span class="text-stone-700">card de produto</span> e a
+          <span class="text-stone-700">página de produto</span>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ RODAPÉ ============================ -->
+  <footer class="border-t border-stone-200">
+    <div class="max-w-5xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-400">
+      <span class="tracking-wider uppercase">Lynch Store · vitrine geek &amp; cosplay</span>
+      <span class="tracking-wider uppercase">Concepção &amp; design · <span class="text-stone-600 font-medium">Agência Kamino</span></span>
+    </div>
+  </footer>
+
+</body>
+</html>

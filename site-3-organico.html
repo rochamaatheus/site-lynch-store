@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lynch Store — Wireframe 3 (Editorial · cozy)</title>
+<style>
+/* ===== WIREFRAME MONOCROMÁTICO · COZY/ORGÂNICO · LAYOUT 3: EDITORIAL =====
+   Sem cor e sem fonte definida. Camada orgânica = forma: cantos macios, manchas de
+   fundo, número de categoria em círculo torto, selos adesivados, slot de modelo/
+   lifestyle, sublinhado desenhado à mão e divisores ondulados. */
+:root{
+  --ink:#2E2E2E; --ink2:#767676; --ink3:#A6A6A6;
+  --line:#E4E4E4; --line2:#CFCFCF; --box:#ECECEC; --boxline:#D4D4D4; --fill:#333333;
+  --paper:#FAF8F3;
+  --max:1200px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper);line-height:1.55}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px;position:relative}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.015em;line-height:1.12}
+.kick{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.img{position:relative;background:
+  linear-gradient(45deg,transparent calc(50% - .7px),var(--boxline) 50%,transparent calc(50% + .7px)),
+  linear-gradient(-45deg,transparent calc(50% - .7px),var(--boxline) 50%,transparent calc(50% + .7px)),
+  var(--box);
+  border:1px solid var(--boxline);display:grid;place-items:center;overflow:hidden}
+.img .lb{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;background:var(--box);padding:3px 8px;border-radius:6px;position:relative}
+
+/* ===== KIT ORGÂNICO (monocromático) ===== */
+.blob{position:absolute;z-index:0;pointer-events:none;opacity:.55;border:1px dashed var(--boxline);
+  background:repeating-linear-gradient(45deg,var(--box),var(--box) 7px,#F3F2EF 7px,#F3F2EF 14px)}
+.blob.b1{width:360px;height:330px;top:0;right:-110px;border-radius:54% 46% 57% 43%/52% 44% 56% 48%}
+.blob.b2{width:300px;height:280px;bottom:30px;left:-120px;border-radius:46% 54% 42% 58%/56% 48% 52% 44%}
+.container>*{position:relative;z-index:1}
+.seal{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--ink2);
+  border:1px solid var(--ink2);border-radius:16px 18px 14px 17px;padding:6px 12px;background:#fff;transform:rotate(-3deg)}
+.seal.alt{transform:rotate(2.5deg)}
+.seal .ic{width:14px;height:14px;border:1px dashed var(--ink3);border-radius:50%;display:block}
+.doodle{border:1.5px dashed var(--line2);border-radius:50%;display:grid;place-items:center;text-align:center;
+  color:var(--ink3);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px;background:#fff}
+.wave{display:block;width:100%;height:26px;color:var(--line2)}
+.scribble{display:block;height:11px;color:var(--ink3);margin-top:8px}
+
+/* ===== ROTULOS DE PLACEHOLDER DE FONTE (simulacao, [fonte a definir]) ===== */
+.lb-font{display:inline-block;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;gap:18px;height:70px}
+/* logo manuscrita (script) simulada + wordmark condensado — [logo script a definir] */
+.logo{display:inline-flex;flex-direction:column;line-height:1}
+.logo-script{font-weight:400;font-style:italic;font-size:clamp(22px,5vw,26px);letter-spacing:-.02em;transform:rotate(-3deg);transform-origin:left center;display:inline-block}
+.logo-mark{display:block;font-weight:700;letter-spacing:.22em;text-transform:uppercase;font-size:11px;color:var(--ink2);margin-top:4px}
+.logo small{display:block;font-size:9px;color:var(--ink3);letter-spacing:.16em;font-weight:400;margin-top:2px}
+.logo .lb-font{margin-top:2px}
+@media(max-width:380px){.logo .lb-font{display:none}}
+nav{display:none;gap:26px;margin-left:auto}
+nav a{font-size:13px;letter-spacing:.02em;color:var(--ink2)}nav a:hover{color:var(--ink)}
+.hd .ic{margin-left:auto;width:40px;height:40px;border:1px solid var(--line2);border-radius:50% 50% 46% 54%;display:grid;place-items:center;color:var(--ink2)}
+.hd .ic svg{width:18px;height:18px}
+@media(min-width:900px){nav{display:flex}.hd .ic{display:none}}
+
+/* BARRA DE CONFIANCA tipo Mazulli — faixa fina de garantias */
+.trustbar{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}
+.tb{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;padding:12px 24px;font-size:12px;color:var(--ink2);letter-spacing:.02em}
+.tbi{display:inline-flex;align-items:center;gap:8px}
+.tb-ic{width:20px;height:20px;font-size:10px;padding:0;flex:0 0 auto;line-height:1}
+
+/* HERO dividido — display condensado gigante + blob atrás da imagem + selo + sublinhado desenhado */
+.hero{padding:48px 0;display:grid;grid-template-columns:1fr;gap:34px;align-items:center}
+@media(min-width:860px){.hero{grid-template-columns:1fr 1fr;gap:48px}}
+.hero .tx .kick{display:block;margin-bottom:16px}
+/* display condensado GIGANTE simulado — [fonte display condensada a definir] */
+.hero .tx h1{font-size:clamp(48px,12vw,120px);font-weight:800;letter-spacing:-.05em;text-transform:uppercase;line-height:.86;transform:scaleY(1.08);transform-origin:left top;overflow-wrap:break-word;margin-bottom:14px}
+.hero .tx h1 .lo{color:var(--ink3)}
+.hero .tx .lb-font{display:block;margin-bottom:18px}
+.hero .tx .scribble{width:200px;margin-bottom:18px}
+.hero .tx .l{height:11px;background:#E0E0E0;border-radius:6px;margin-bottom:9px}
+.hero .tx .l.w1{width:92%}.hero .tx .l.w2{width:64%}
+.hero .tx .bs{display:flex;gap:12px;margin-top:24px}
+.hero .tx .b{border:1px solid var(--ink);background:#fff;border-radius:22px;padding:12px 22px;font-size:14px;font-weight:600}
+.hero .tx .b.fill{background:var(--fill);color:#fff;border-color:var(--fill)}
+.hero .fig{position:relative}
+.hero .fig .img{aspect-ratio:4/5;border-radius:36px 32px 40px 30px}
+.hero .fig .seal{position:absolute;top:18px;left:-8px}
+.hero .fig .doodle{position:absolute;width:64px;height:64px;bottom:-14px;right:18px}
+
+/* categorias: CARDS ALTOS com TEXTO VERTICAL sobre foto de modelo (Acqua MACACOES/TOPS) */
+.ccards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:8px}
+@media(min-width:680px){.ccards{grid-template-columns:repeat(4,1fr)}}
+.ccard{position:relative;aspect-ratio:3/5;border-radius:28px;overflow:hidden;border:1px solid var(--boxline);text-align:left;width:100%;transition:.18s}
+.ccard:hover{filter:brightness(.98)}
+.ccard .img{position:absolute;inset:0;border:none}
+.ccard .vtext{position:absolute;left:10px;bottom:14px;writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;letter-spacing:-.02em;text-transform:uppercase;font-size:clamp(20px,4vw,34px);line-height:1;color:var(--ink);background:rgba(255,255,255,.85);padding:6px 4px;border-radius:6px}
+.ccard .ccount{position:absolute;top:10px;right:10px;font-size:11px;color:var(--ink2);background:#fff;border:1px solid var(--line2);border-radius:14px;padding:2px 8px}
+.csub{display:flex;align-items:center;gap:12px;margin:6px 0 16px}
+
+/* categorias: lista editorial full-width com número em círculo torto (indice complementar) */
+.clist{border-top:1px solid var(--ink2)}
+.crow{display:flex;align-items:center;gap:18px;padding:24px 4px;border-bottom:1px dashed var(--line);width:100%;text-align:left;transition:.18s}
+.crow:hover{padding-left:16px;background:#fff}
+.crow .num{flex:0 0 auto;width:40px;height:40px;border:1px solid var(--line2);border-radius:50% 50% 46% 54%;display:grid;place-items:center;font-size:13px;color:var(--ink3)}
+.crow .nm{font-size:clamp(24px,4vw,40px);font-weight:600;flex:1}
+.crow .ct{font-size:13px;color:var(--ink3)}
+.crow .ar{width:40px;height:40px;border:1px solid var(--line2);border-radius:50%;display:grid;place-items:center;color:var(--ink2)}
+.crow .ar svg{width:16px;height:16px}
+
+/* section */
+.section{padding:48px 0 0}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;gap:16px}
+/* editorial — headings de impacto display condensado simulado */
+.sh h2{font-size:clamp(26px,5vw,44px);font-weight:800;letter-spacing:-.03em;text-transform:uppercase;line-height:1}
+.sh a{font-size:13px;color:var(--ink2);flex:0 0 auto;white-space:nowrap}
+
+/* coleções: banners grandes macios com selo */
+.cbanners{display:flex;flex-direction:column;gap:18px}
+.cbn{position:relative;border-radius:32px;overflow:hidden;text-align:left}
+.cbn:nth-child(even){border-radius:36px 30px 34px 30px}
+.cbn .img{aspect-ratio:21/9}
+@media(max-width:560px){.cbn .img{aspect-ratio:16/10}}
+.cbn .ov{position:absolute;left:24px;bottom:24px;right:24px}
+.cbn .ov .tg{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);background:#fff;border:1px solid var(--line2);border-radius:20px;padding:4px 11px;display:inline-block;margin-bottom:10px}
+.cbn .ov b{font-size:clamp(22px,4vw,30px);font-weight:800;letter-spacing:-.03em;text-transform:uppercase;background:#fff;border:1px solid var(--line2);border-radius:18px;padding:8px 16px;display:inline-block}
+.cbn .seal{position:absolute;top:18px;right:18px}
+
+/* produtos: grid amplo macio */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+@media(min-width:680px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(4,1fr)}}
+.pc{text-align:left;width:100%;display:block}
+.pc .imw{position:relative;border-radius:26px;overflow:hidden}
+.pc:nth-child(even) .imw{border-radius:28px 24px 30px 24px}
+.pc .img{aspect-ratio:3/4}
+.pc:hover .img{filter:brightness(.97)}
+.pc .bd{position:absolute;top:10px;left:10px}
+.pc .av{position:absolute;bottom:10px;left:10px;display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--ink2);background:#fff;border:1px solid var(--line2);border-radius:14px;padding:3px 9px}
+.pc .av i{width:10px;height:10px;border:1px dashed var(--ink3);border-radius:50%}
+.pc .nm{font-size:15px;font-weight:600;margin:11px 0 5px}
+.pc .pr{font-size:16px;font-weight:600}
+.pc .pr s{font-size:12px;color:var(--ink3);font-weight:400;margin-left:6px}
+
+/* QUEBRA LIFESTYLE — slot de foto de modelo (NOVO) */
+.life{margin-top:52px;display:grid;grid-template-columns:1fr;border-radius:36px;overflow:hidden;border:1px solid var(--ink2);position:relative}
+@media(min-width:760px){.life{grid-template-columns:1.2fr 1fr}}
+.life .ph{position:relative;min-height:340px}
+.life .ph .img{position:absolute;inset:0;border:none}
+.life .ph .seal{position:absolute;top:20px;left:20px}
+.life .tx{padding:36px;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.life .tx .doodle{width:60px;height:60px}
+.life .tx h3{font-size:26px}
+.life .tx p{font-size:15px;color:var(--ink2);margin:0;max-width:40ch}
+
+/* material editorial */
+.mat{margin-top:52px;border:1px solid var(--ink2);border-radius:36px;padding:40px;display:grid;gap:26px}
+@media(min-width:760px){.mat{grid-template-columns:1.5fr 1fr;align-items:center}}
+.mat .hdr{display:flex;align-items:center;gap:16px}
+.mat .hdr .doodle{width:60px;height:60px;flex:0 0 auto}
+.mat h3{font-size:24px;margin:10px 0}
+.mat p{font-size:15px;color:var(--ink2);margin:0}
+.mat .stats{display:flex;gap:24px}
+.mat .stats b{font-size:24px;display:block}.mat .stats span{font-size:11px;color:var(--ink3)}
+.mat .stats div{border-left:1px dashed var(--line);padding-left:16px}
+.mat .stats div:first-child{border-left:none;padding-left:0}
+
+/* footer */
+footer{margin-top:30px;padding:46px 0}
+footer .container::before{content:"";position:absolute;top:-18px;left:24px;right:24px;height:1px;background:var(--line)}
+.fbrand{font-size:24px;font-weight:600;margin-bottom:8px}
+.fg{display:grid;grid-template-columns:1fr;gap:26px}
+@media(min-width:760px){.fg{grid-template-columns:1.6fr 1fr 1fr}}
+footer h5{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
+footer a{display:block;font-size:14px;color:var(--ink2);padding:5px 0}
+footer p{color:var(--ink2);font-size:14px;max-width:36ch;margin:0}
+footer .lg{margin-top:30px;border-top:1px dashed var(--line);padding-top:18px;font-size:12px;color:var(--ink3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+/* ===== PRODUTO ===== */
+#product{display:none;padding:24px 0 60px}
+.pback{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);margin-bottom:16px}
+.pback svg{width:16px;height:16px}
+.pcrumb{font-size:12px;color:var(--ink3);margin-bottom:14px}
+.pdt{display:grid;grid-template-columns:1fr;gap:34px}
+@media(min-width:900px){.pdt{grid-template-columns:1fr 1fr;align-items:start}}
+.gal .img{aspect-ratio:3/4;border-radius:32px}
+.gthumbs{display:flex;gap:10px;margin-top:12px}
+.gthumbs .img{width:72px;height:88px;border-radius:16px}
+.gthumbs .img.on{border:2px solid var(--ink)}
+@media(min-width:900px){.pinfo{position:sticky;top:90px}}
+.pinfo .col{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+/* titulo de produto editorial condensado */
+.pinfo h1{font-size:clamp(30px,5vw,46px);font-weight:800;letter-spacing:-.03em;text-transform:uppercase;line-height:.92;margin:8px 0 14px}
+/* barra frete/Pix tipo Mazulli dentro do produto */
+.pstrip{display:flex;flex-wrap:wrap;gap:14px;border:1px solid var(--line);border-radius:18px;background:#fff;padding:12px 16px;margin:0 0 18px;font-size:12px;color:var(--ink2)}
+.pstrip .si{display:inline-flex;align-items:center;gap:8px}
+.pstrip .si .doodle{width:20px;height:20px;font-size:10px;padding:0;flex:0 0 auto;line-height:1}
+/* stepper de quantidade */
+.qty{display:flex;align-items:center;gap:14px;margin:0 0 16px}
+.qty .lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:18px;overflow:hidden}
+.stepper button{width:42px;height:42px;display:grid;place-items:center;font-size:18px;color:var(--ink2);transition:.15s}
+.stepper button:hover{background:var(--box);color:var(--ink)}
+.stepper .val{min-width:40px;text-align:center;font-weight:600;font-size:15px}
+.pinfo .price{font-size:32px;font-weight:600;margin-bottom:16px}
+.pinfo .price s{font-size:18px;color:var(--ink3);font-weight:400;margin-left:10px}
+.modes{display:flex;gap:12px;margin-bottom:16px}
+.modes .m{flex:1;border:1px solid var(--line2);border-radius:18px;padding:14px;text-align:center;font-size:12px;color:var(--ink2)}
+.modes .m.on{border-color:var(--ink);color:var(--ink)}
+.modes .m b{display:block;font-size:13px;color:var(--ink)}
+.tbl{border-top:1px solid var(--line);margin-top:6px}
+.tbl .h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 0 6px}
+.tbl .r{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.tbl .r span{color:var(--ink2)}.tbl .r b{font-weight:600}
+.ptags{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.ptags span{font-size:12px;color:var(--ink2);border:1px solid var(--line2);border-radius:20px;padding:6px 12px}
+.pdesc{font-size:14px;color:var(--ink2);margin:8px 0 20px}
+.pcta{display:flex;gap:12px}
+.pcta .b{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--fill);color:#fff;font-weight:700;letter-spacing:.01em;font-size:16px;padding:18px;border-radius:22px;transition:.18s}
+.pcta .b:hover{background:var(--ink)}
+.pcta .b svg{width:18px;height:18px}
+.pcta .ml{width:56px;border:1px solid var(--line2);border-radius:18px;display:grid;place-items:center;color:var(--ink2)}
+.pcta .ml svg{width:18px;height:18px}
+
+/* drawer nav */
+.nav-d{position:fixed;inset:0;z-index:70;background:rgba(40,40,40,.4);opacity:0;pointer-events:none;transition:.22s}
+.nav-d.open{opacity:1;pointer-events:auto}
+.nav-d .pan{position:absolute;top:0;right:0;bottom:0;width:78%;max-width:320px;background:var(--paper);padding:18px 22px;transform:translateX(100%);transition:.26s;border-radius:28px 0 0 28px}
+.nav-d.open .pan{transform:none}
+.nav-d a{display:block;font-size:18px;padding:13px 0;border-bottom:1px dashed var(--line)}
+.nav-d .x{margin-left:auto;display:block;font-size:26px;color:var(--ink2)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="container hd">
+    <a class="logo" href="#" onclick="goHome(event)" aria-label="Lynch Store — início">
+      <span class="logo-script">Lynch</span>
+      <span class="logo-mark">Store</span>
+      <small>VITRINE · WIREFRAME 3</small>
+      <span class="lb-font" aria-hidden="true">[logo script a definir]</span>
+    </a>
+    <nav><a>Categorias</a><a>Coleções</a><a>Novidades</a><a>Brechó</a><a>Contato</a></nav>
+    <button class="ic" onclick="navOpen(true)" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</header>
+
+<div class="trustbar">
+  <div class="container tb">
+    <span class="tbi"><span class="doodle tb-ic" aria-hidden="true">✓</span> Frete grátis acima de R$000</span>
+    <span class="tbi"><span class="doodle tb-ic" aria-hidden="true">%</span> 00% off no Pix</span>
+    <span class="tbi"><span class="doodle tb-ic" aria-hidden="true">✎</span> Sob encomenda</span>
+  </div>
+</div>
+
+<main id="home">
+  <div class="container">
+    <span class="blob b1"></span>
+    <section class="hero">
+      <div class="tx">
+        <span class="kick">Moda autoral · cosplay · geek</span>
+        <h1>Moda<br>que veste<br><span class="lo">personagem</span></h1>
+        <span class="lb-font" aria-hidden="true">[fonte display condensada a definir]</span>
+        <svg class="scribble" viewBox="0 0 200 11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7 Q 34 1 66 6 T 130 6 T 197 5"/></svg>
+        <div class="l w1"></div><div class="l w2"></div>
+        <div class="bs"><span class="b fill">Ver coleções</span><span class="b">Novidades</span></div>
+      </div>
+      <div class="fig">
+        <div class="img"><span class="lb">Foto de modelo / editorial — corpo inteiro</span></div>
+        <span class="seal"><span class="ic"></span> feito à mão</span>
+        <div class="doodle">girassol / café</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sh"><h2>Categorias</h2><a href="#grid">ver peças ›</a></div>
+      <div class="ccards" id="ccards"></div>
+      <div class="csub">
+        <span class="lb-font" aria-hidden="true">[fonte display condensada a definir]</span>
+        <span class="kick">índice completo abaixo</span>
+      </div>
+      <div class="clist" id="clist"></div>
+    </section>
+
+    <section class="section">
+      <div class="sh"><h2>Coleções</h2><a>ver todas ›</a></div>
+      <div class="cbanners" id="cbanners"></div>
+    </section>
+
+    <section class="section">
+      <div class="sh"><h2>Novidades</h2><a>ver tudo ›</a></div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <!-- QUEBRA LIFESTYLE (nova) -->
+    <section class="life">
+      <div class="ph"><div class="img"><span class="lb">Foto de modelo vestindo a peça</span></div><span class="seal"><span class="ic"></span> brechó cosplay</span></div>
+      <div class="tx">
+        <div class="doodle">ícone desenhado</div>
+        <span class="kick">Quem veste, conta</span>
+        <h3>Espaço pra pessoa real usando a peça</h3>
+        <p>Bloco de lifestyle — modelo, ambiente aconchegante, clima de cafezinho. Reforça o lado humano e jovem da loja.</p>
+      </div>
+    </section>
+
+    <svg class="wave" style="margin-top:44px" viewBox="0 0 1200 26" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 13 Q 75 0 150 13 T 300 13 T 450 13 T 600 13 T 750 13 T 900 13 T 1050 13 T 1200 13"/></svg>
+
+    <section class="mat">
+      <div>
+        <div class="hdr"><div class="doodle">girassol / café</div><span class="kick">Qualidade do material</span></div>
+        <h3>Texto sobre tecido e acabamento</h3>
+        <p>Bloco editorial reforçando qualidade, modelagem autoral e o brechó de cosplay (diferencial da loja).</p>
+      </div>
+      <div class="stats"><div><b>—</b><span>material</span></div><div><b>—</b><span>acervo</span></div><div><b>—</b><span>prazo</span></div></div>
+    </section>
+  </div>
+
+  <footer><div class="container">
+    <span class="blob b2"></span>
+    <div class="fbrand"><span class="logo-script">Lynch</span> <span class="logo-mark" style="display:inline-block;margin:0">Store</span> <span class="lb-font" aria-hidden="true">[logo script a definir]</span></div>
+    <div class="fg">
+      <div><p>Um mundo sob medida pra você. Descrição curta da loja (texto). Vitrine digital — vendas pelo WhatsApp.</p></div>
+      <div><h5>Navegar</h5><a>Categorias</a><a>Coleções</a><a>Brechó</a></div>
+      <div><h5>Contato</h5><a>WhatsApp</a><a>E-mail</a><a>Instagram</a></div>
+    </div>
+    <div class="lg"><span>© Lynch Store</span><span>Vitrine · vendas no WhatsApp</span></div>
+  </div></footer>
+</main>
+
+<div id="product" class="container"></div>
+
+<div class="nav-d" id="navd" onclick="if(event.target===this)navOpen(false)"><div class="pan">
+  <button class="x" onclick="navOpen(false)">&times;</button>
+  <a>Categorias</a><a>Coleções</a><a>Novidades</a><a>Brechó de Cosplay</a><a>Contato</a>
+</div></div>
+
+<script>
+const ICO={ar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+ back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>',
+ wa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"/></svg>',
+ ml:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14"/><path d="M4 7l8 6 8-6"/></svg>'};
+const CATS=[{nm:'Camisas',n:42},{nm:'Vestidos',n:27},{nm:'Calças',n:15},{nm:'Acessórios',n:53}];
+const COLS=[{nm:'One Piece',ds:'Anime'},{nm:'Moda Lolita',ds:'Kawaii'},{nm:'Medieval',ds:'Fantasia'}];
+const PRO=Array.from({length:8},(_,i)=>({id:i+1,nm:`Peça / produto ${String(i+1).padStart(2,'0')}`,pr:'R$ 000',
+ old:[2,6].includes(i+1)?'R$ 000':null,col:COLS[i%3].nm,mode:i%3===1?'encomenda':'pronta',
+ bd:i===0?'Novo':i===1?'Promo':i===3?'Sob medida':null}));
+function pc(p){const enc=p.mode==='encomenda';
+ return `<a class="pc" onclick="openP(${p.id})"><div class="imw"><div class="img"><span class="lb">Foto</span></div>${p.bd?`<span class="seal bd"><span class="ic"></span>${p.bd}</span>`:''}<span class="av"><i></i>${enc?'Sob encomenda':'Pronta entrega'}</span></div>
+  <div class="nm">${p.nm}</div>
+  <div class="pr">${p.pr}${p.old?`<s>${p.old}</s>`:''}</div></a>`;}
+
+ccards.innerHTML=CATS.map(c=>`<button class="ccard" onclick="document.querySelector('#grid').scrollIntoView()" aria-label="Ver categoria ${c.nm} (${c.n} peças)"><div class="img"><span class="lb">Foto de modelo</span></div><span class="ccount">${c.n}</span><span class="vtext" aria-hidden="true">${c.nm}</span></button>`).join('');
+clist.innerHTML=CATS.map((c,i)=>`<button class="crow" onclick="document.querySelector('#grid').scrollIntoView()"><span class="num">0${i+1}</span><span class="nm">${c.nm}</span><span class="ct">${c.n} peças</span><span class="ar">${ICO.ar}</span></button>`).join('');
+cbanners.innerHTML=COLS.map(c=>`<a class="cbn" onclick="document.querySelector('#grid').scrollIntoView()"><div class="img"><span class="lb">Foto da coleção</span></div><span class="seal alt"><span class="ic"></span> ilustração</span><div class="ov"><span class="tg">${c.ds}</span><br><b>${c.nm}</b></div></a>`).join('');
+grid.innerHTML=PRO.map(pc).join('');
+
+function openP(id){const p=PRO.find(x=>x.id===id);const enc=p.mode==='encomenda';qty=1;
+ document.getElementById('product').innerHTML=`
+  <button class="pback" onclick="goHome()">${ICO.back} Voltar à loja</button>
+  <div class="pcrumb">Início › ${p.col} › ${p.nm}</div>
+  <div class="pdt">
+   <div class="gal"><div class="img"><span class="lb">Foto principal</span></div>
+     <div class="gthumbs">${[0,1,2,3].map(i=>`<div class="img ${i?'':'on'}"><span class="lb">●</span></div>`).join('')}</div></div>
+   <div class="pinfo">
+     <div class="col">${p.col} · ${enc?'Sob encomenda':'Pronta entrega'}</div>
+     <h1>${p.nm}</h1>
+     <div class="price">${p.pr}${p.old?`<s>${p.old}</s>`:''}</div>
+     <div class="pstrip">
+       <span class="si"><span class="doodle" aria-hidden="true">✓</span> Frete grátis acima de R$000</span>
+       <span class="si"><span class="doodle" aria-hidden="true">%</span> 00% off no Pix</span>
+     </div>
+     <div class="modes"><div class="m ${!enc?'on':''}"><b>Pronta entrega</b>envio imediato</div><div class="m ${enc?'on':''}"><b>Sob encomenda</b>${enc?'feito sob medida':'—'}</div></div>
+     <div class="qty">
+       <span class="lab" id="qtylab">Quantidade</span>
+       <div class="stepper" role="group" aria-labelledby="qtylab">
+         <button type="button" onclick="stepQty(-1)" aria-label="Diminuir quantidade">−</button>
+         <span class="val" id="qtyval" aria-live="polite">1</span>
+         <button type="button" onclick="stepQty(1)" aria-label="Aumentar quantidade">+</button>
+       </div>
+     </div>
+     ${enc?`<div class="tbl"><div class="h">Tabela de medidas</div><div class="r"><span>Busto</span><b>00–00 cm</b></div><div class="r"><span>Cintura</span><b>00–00 cm</b></div><div class="r"><span>Comprimento</span><b>00 cm</b></div><div class="r"><span>Produção</span><b>00 dias</b></div></div>`:''}
+     <div class="tbl"><div class="h">Ficha do produto</div><div class="r"><span>Material</span><b>—</b></div><div class="r"><span>Modelagem</span><b>—</b></div><div class="r"><span>Tamanhos</span><b>P · M · G · GG</b></div><div class="r"><span>Cuidados</span><b>—</b></div></div>
+     <div class="ptags"><span>#tag</span><span>#tag</span><span>#tag</span></div>
+     <p class="pdesc">Descrição completa (texto) — composição, caimento e instruções, modelo tabela tipo Mercado Livre.</p>
+     <div class="pcta"><button class="b">${ICO.wa} Comprar no WhatsApp</button><button class="ml" aria-label="Enviar por e-mail">${ICO.ml}</button></div>
+   </div>
+  </div>
+  <section class="section">
+    <div class="sh"><h2>Você também vai gostar</h2><a href="#" onclick="goHome(event)">ver tudo ›</a></div>
+    <div class="grid">${PRO.filter(x=>x.id!==id).slice(0,4).map(pc).join('')}</div>
+  </section>`;
+ home.style.display='none';product.style.display='block';window.scrollTo(0,0);}
+let qty=1;
+function stepQty(d){qty=Math.max(1,qty+d);const el=document.getElementById('qtyval');if(el)el.textContent=qty;}
+function goHome(e){if(e)e.preventDefault();product.style.display='none';home.style.display='block';window.scrollTo(0,0);}
+function navOpen(o){navd.classList.toggle('open',o)}
+</script>
+</body>
+</html>

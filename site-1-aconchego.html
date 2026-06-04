@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lynch Store — Wireframe 1 (Loja com filtros · cozy)</title>
+<style>
+/* ===== WIREFRAME MONOCROMÁTICO · COZY/ORGÂNICO · LAYOUT 1: LOJA + SIDEBAR =====
+   Continua sem cor e sem fonte definida (a definir). A camada "orgânica" mexe só
+   em FORMA: cantos macios, manchas de fundo, divisores ondulados, selos adesivados,
+   slot de foto de modelo/lifestyle e marcações de ilustração desenhada.
+   DNA W1 "Aconchego" (Pri & Cats Pixel, lado utilitário): loja/marketplace prática
+   e fofa — sidebar-prateleira, selo CIRCULAR de % adesivado torto, pill COMPRAR no
+   card, página de produto utilitária (estoque + frete + medidas + carrossel).
+   OBS de tipografia: todo look "display condensado / lúdico / script" é SIMULADO via
+   font-weight + letter-spacing + text-transform + escala clamp() — [fonte a definir].
+   font-family permanece ui-sans-serif,system-ui,... e NENHUMA cor real é introduzida. */
+:root{
+  --ink:#2E2E2E; --ink2:#767676; --ink3:#A6A6A6;
+  --line:#E4E4E4; --line2:#CFCFCF; --box:#ECECEC; --boxline:#D4D4D4; --fill:#333333;
+  --paper:#FAF8F3; /* base levemente quente — sugere aconchego, cor real a definir */
+  --max:1240px;
+  /* tokens auxiliares de forma (sem cor) — reuso de selos/pills da prateleira */
+  --r-pill:999px; --r-soft:22px; --r-softer:28px;
+}
+/* selos circulares "adesivados torto" estilo Pri & Cats */
+.rot-a{transform:rotate(-8deg)} .rot-b{transform:rotate(6deg)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink);background:var(--paper);line-height:1.55}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.container{max-width:var(--max);margin:0 auto;padding:0 24px;position:relative}
+h1,h2,h3,h4{margin:0;font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+
+/* placeholder de imagem (wireframe) — cantos macios */
+.img{position:relative;background:
+  linear-gradient(45deg,transparent calc(50% - .7px),var(--boxline) 50%,transparent calc(50% + .7px)),
+  linear-gradient(-45deg,transparent calc(50% - .7px),var(--boxline) 50%,transparent calc(50% + .7px)),
+  var(--box);
+  border:1px solid var(--boxline);display:grid;place-items:center;overflow:hidden}
+.img .lb{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#9a9a9a;background:var(--box);padding:3px 8px;border-radius:6px;position:relative}
+
+/* ===== KIT ORGÂNICO (monocromático) ===== */
+/* mancha/blob de fundo — sensação de textura sem cor */
+.blob{position:absolute;z-index:0;pointer-events:none;opacity:.55;
+  border:1px dashed var(--boxline);
+  background:repeating-linear-gradient(45deg,var(--box),var(--box) 7px,#F3F2EF 7px,#F3F2EF 14px)}
+.blob.b1{width:340px;height:300px;top:-40px;right:-80px;border-radius:54% 46% 57% 43%/52% 44% 56% 48%}
+.blob.b2{width:280px;height:260px;bottom:60px;left:-110px;border-radius:46% 54% 42% 58%/56% 48% 52% 44%}
+.container>*{position:relative;z-index:1}
+/* selo/adesivo levemente torto — base pra "ícone desenhado" */
+.seal{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--ink2);
+  border:1px solid var(--ink2);border-radius:16px 18px 14px 17px;padding:6px 12px;background:#fff;transform:rotate(-3deg)}
+.seal.alt{transform:rotate(2.5deg)}
+.seal .ic{width:14px;height:14px;border:1px dashed var(--ink3);border-radius:50%;display:block}
+/* placeholder de ilustração desenhada à mão */
+.doodle{border:1.5px dashed var(--line2);border-radius:50%;display:grid;place-items:center;text-align:center;
+  color:var(--ink3);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px;background:#fff}
+/* divisor ondulado entre seções (no lugar de linha reta) */
+.wave{display:block;width:100%;height:26px;color:var(--line2)}
+/* sublinhado desenhado à mão sob títulos */
+.scribble{display:block;width:130px;height:9px;color:var(--ink3);margin-top:7px}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1px solid var(--line)}
+.hd{display:flex;align-items:center;gap:18px;height:66px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo .mk{width:38px;height:38px;border:1px dashed var(--line2);border-radius:50% 50% 48% 52%;display:grid;place-items:center;font-size:9px;color:var(--ink2)}
+.logo b{font-weight:600;font-size:17px;letter-spacing:.01em}
+.logo small{display:block;font-size:9px;color:var(--ink3);letter-spacing:.12em;font-weight:400}
+.hd nav{display:none;gap:22px;margin-left:8px}
+.hd nav a{font-size:14px;color:var(--ink2)}.hd nav a:hover{color:var(--ink)}
+.search{display:none;flex:1;max-width:340px;margin-left:auto;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:22px;padding:9px 14px;color:var(--ink3);font-size:13px}
+.search svg{width:16px;height:16px}
+.hd .ic{width:40px;height:40px;border:1px solid var(--line2);border-radius:50% 50% 46% 54%;display:grid;place-items:center;color:var(--ink2)}
+.hd .ic svg{width:18px;height:18px}
+.hd .menu{margin-left:auto}
+.wa{display:none;align-items:center;gap:8px;border:1px solid var(--fill);background:var(--fill);color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:22px}
+.wa svg{width:16px;height:16px}
+@media(min-width:760px){.search{display:flex}}
+@media(min-width:1000px){.hd nav{display:flex}.hd .menu{display:none}.wa{display:inline-flex;margin-left:6px}.search{margin-left:0}}
+
+/* HERO — BANNER FULL-BLEED 100% (estilo Acqua Mires): edge-to-edge, flush com o header, sem cantos */
+.hero{padding:0;margin:0}
+/* altura do banner controlada pela ALTURA da viewport (vh), clampada — telas altas não esticam */
+.hero .box{position:relative;border-radius:0;overflow:hidden;height:clamp(360px,55vh,540px)}
+.hero .img{position:absolute;inset:0;border:none}
+@media(max-width:560px){
+  /* mobile: volta ao banner por proporção (vh não faz sentido com teclado/barra) */
+  .hero .box{height:auto}
+  .hero .img{position:relative;inset:auto;aspect-ratio:4/3}
+}
+/* overlay ocupa o banner inteiro, mas o texto fica alinhado à coluna central (não cola na borda da tela) */
+.hero .ov{position:absolute;inset:0;display:flex;align-items:flex-end}
+.hero .ovwrap{width:100%;max-width:var(--max);margin:0 auto;padding:0 24px 28px}
+.hero .ovwrap>*{max-width:520px}
+/* H1 da home — placeholder de título; "display condensado" SIMULADO via weight/spacing/clamp [fonte a definir] */
+.hero .htitle{font-size:clamp(20px,3.4vw,34px);font-weight:700;letter-spacing:-.02em;line-height:1.08;
+  text-transform:uppercase;color:var(--ink);margin:0 0 10px;max-width:18ch;
+  background:rgba(255,255,255,.78);border-radius:12px;padding:6px 12px;display:inline-block}
+.hero .htitle .fnote{display:block;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+.hero .l2{height:11px;width:40%;background:#E0E0E0;border-radius:6px;margin-bottom:16px}
+.hero .bs{display:flex;gap:10px}
+.hero .b{border:1px solid var(--ink);background:#fff;border-radius:20px;padding:10px 18px;font-size:13px;font-weight:600}
+.hero .b.fill{background:var(--fill);color:#fff;border-color:var(--fill)}
+.hero .tag{position:absolute;top:18px;left:18px}
+/* SELO CIRCULAR DE DESCONTO (Pri & Cats) — círculo adesivado torto no canto do banner */
+.hero .disc-seal{position:absolute;top:14px;right:14px;width:clamp(84px,11vw,104px);aspect-ratio:1;
+  border-radius:50%;border:2px solid var(--ink);background:#fff;display:grid;place-items:center;
+  text-align:center;transform:rotate(-8deg);box-shadow:0 2px 0 var(--boxline);z-index:2;line-height:1.05}
+.hero .disc-seal::before{content:"";position:absolute;inset:6px;border:1px dashed var(--ink3);border-radius:50%;pointer-events:none}
+.hero .disc-seal b{display:block;font-weight:700;font-size:clamp(20px,3.2vw,26px);letter-spacing:-.02em;color:var(--ink)} /* simula display condensado [fonte a definir] */
+.hero .disc-seal span{display:block;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2)}
+@media(max-width:560px){
+  .hero .ovwrap{padding:0 16px 18px}
+  .hero .disc-seal{top:10px;right:10px;width:84px} /* encolhe e sobe pra não cobrir o overlay */}
+
+/* LAYOUT LOJA: sidebar + grid */
+.shop{display:grid;grid-template-columns:1fr;gap:26px;padding-bottom:10px}
+@media(min-width:1000px){.shop{grid-template-columns:250px 1fr;gap:34px;align-items:start}}
+/* sidebar = "prateleira aconchegante" enxuta, bem arredondada */
+aside{border:1px solid var(--line2);border-radius:var(--r-softer);padding:20px;background:#fff}
+@media(min-width:1000px){aside{position:sticky;top:84px}}
+aside .grp{margin-bottom:18px}
+aside .grp:last-child{margin-bottom:0}
+aside h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+/* itens de categoria viram "pills de prateleira" com cantos macios */
+aside .it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;font-size:14px;border-radius:12px;width:100%;text-align:left;transition:background .16s}
+aside .it:hover{background:var(--box)}
+aside .it span{font-size:12px;color:var(--ink3)}
+/* disponibilidade = chips/pílulas selecionáveis arredondadas */
+aside .chk{display:flex;align-items:center;gap:9px;font-size:14px;border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 12px;margin-bottom:8px;cursor:pointer;transition:background .16s}
+aside .chk:hover{background:var(--box)}
+/* input real, acessível por teclado, escondido visualmente (mas não display:none, p/ continuar focável) */
+aside .chk input{position:absolute;width:1px;height:1px;opacity:0;margin:0;pointer-events:none}
+aside .chk i{position:relative;width:18px;height:18px;border:1px solid var(--line2);border-radius:7px;display:grid;place-items:center;flex:0 0 auto;transition:background .16s,border-color .16s}
+/* marca de "check" simulada (monocromática) quando o input está marcado */
+aside .chk i::after{content:"";width:9px;height:9px;border-radius:3px;background:var(--fill);opacity:0;transform:scale(.4);transition:opacity .16s,transform .16s}
+aside .chk input:checked + i{border-color:var(--ink)}
+aside .chk input:checked + i::after{opacity:1;transform:scale(1)}
+/* foco visível replicado no quadradinho, já que o input nativo está escondido */
+aside .chk input:focus-visible + i{outline:2px solid var(--ink);outline-offset:2px}
+/* Preço — faixa estática de wireframe (sem JS) */
+.price-range{display:flex;align-items:center;gap:8px}
+.price-range .pin{font-size:12px;border:1px solid var(--line2);border-radius:var(--r-pill);padding:4px 10px;color:var(--ink2)}
+.price-range .track{flex:1;height:4px;border-radius:999px;background:var(--box);position:relative}
+.price-range .track::after{content:'';position:absolute;left:20%;right:25%;top:0;bottom:0;border-radius:999px;background:var(--line2)}
+.filtbtn{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:22px;padding:10px 16px;font-size:13px;font-weight:600;color:var(--ink2);background:#fff}
+.filtbtn svg{width:16px;height:16px}
+@media(min-width:1000px){.filtbtn,.scrim{display:none!important}}
+@media(max-width:999px){
+  aside{position:fixed;top:0;left:0;bottom:0;width:286px;max-width:84%;z-index:60;border-radius:0 28px 28px 0;border:none;border-right:1px solid var(--line2);background:#fff;transform:translateX(-100%);transition:.26s;overflow-y:auto}
+  aside.open{transform:none}
+}
+.scrim{position:fixed;inset:0;background:rgba(40,40,40,.4);z-index:55;opacity:0;pointer-events:none;transition:.22s}
+.scrim.open{opacity:1;pointer-events:auto}
+aside .x{display:none}
+@media(max-width:999px){aside .x{display:block;margin:-4px -4px 10px auto;font-size:24px;color:var(--ink2)}}
+
+/* toolbar produtos */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .ttl{display:flex;flex-direction:column}
+.toolbar h2{font-size:20px}
+.toolbar .right{display:flex;gap:10px;align-items:center}
+.toolbar .sort{font-size:13px;color:var(--ink2);border:1px solid var(--line2);border-radius:20px;padding:8px 14px}
+
+/* GRID PRODUTOS — cards macios, badge adesivado */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1180px){.grid{grid-template-columns:repeat(4,1fr)}}
+.pc{text-align:left;width:100%;display:block;padding:0;font:inherit;color:inherit}
+.pc .imw{position:relative;border-radius:22px;overflow:hidden}
+.pc .img{aspect-ratio:4/5}
+.pc:hover .img{filter:brightness(.97)}
+.pc:nth-child(even) .imw{border-radius:24px 22px 26px 20px} /* assimetria leve */
+.pc .bd{position:absolute;top:10px;left:10px}
+.pc .av{position:absolute;bottom:10px;left:10px;font-size:10px;background:#fff;border:1px solid var(--line2);border-radius:14px;padding:3px 9px;color:var(--ink2);display:inline-flex;align-items:center;gap:5px}
+.pc .av i{width:10px;height:10px;border:1px dashed var(--ink3);border-radius:50%}
+/* SELO CIRCULAR DE % no canto (quando em promo) — Pri & Cats, adesivado torto */
+.pc .pc-disc{position:absolute;top:8px;right:8px;width:46px;height:46px;border-radius:50%;background:#fff;
+  border:1.5px solid var(--ink);display:grid;place-items:center;font-size:12px;font-weight:700;
+  letter-spacing:-.02em;transform:rotate(-6deg);color:var(--ink);z-index:2}
+/* PILL "COMPRAR" no card — hover no desktop, sempre visível no mobile */
+.pc .buy{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:center;justify-content:center;
+  gap:6px;background:var(--fill);color:#fff;font-size:13px;font-weight:600;padding:9px 14px;border-radius:var(--r-pill);
+  box-shadow:0 2px 0 var(--boxline)}
+.pc .buy::before{content:"";width:13px;height:13px;border:1.6px solid currentColor;border-radius:3px} /* sacolinha simulada */
+@media(min-width:760px){
+  .pc .buy{opacity:0;transform:translateY(8px);transition:opacity .2s, transform .2s}
+  .pc:hover .buy,.pc:focus-visible .buy{opacity:1;transform:none}
+}
+/* no mobile a pill é sempre visível; o .av sobe pra ficar acima dela (sem colidir com .bd/.pc-disc no topo) */
+@media(max-width:759px){.pc .av{bottom:54px}}
+.pc .nm{font-size:14px;font-weight:600;margin:10px 0 5px}
+.pc .pr{font-size:15px;font-weight:600}
+.pc .pr s{font-size:12px;color:var(--ink3);font-weight:400;margin-left:6px}
+
+/* coleções */
+.section{padding:40px 0 0}
+.sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.sh h2{font-size:22px}.sh a{font-size:13px;color:var(--ink2)}
+.colrow{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(min-width:760px){.colrow{grid-template-columns:repeat(4,1fr)}}
+.colc{position:relative;border-radius:24px;overflow:hidden;display:block;width:100%;padding:0;text-align:left}
+.colc:nth-child(odd){border-radius:28px 22px 26px 24px}
+.colc .img{aspect-ratio:3/4}
+.colc .ov{position:absolute;left:12px;bottom:12px}
+.colc .ov b{font-size:15px;background:#fff;border:1px solid var(--line2);border-radius:16px;padding:6px 13px;display:inline-block}
+
+/* QUEBRA LIFESTYLE — slot de foto de modelo (NOVO) */
+.life{margin-top:44px;display:grid;grid-template-columns:1fr;gap:0;border-radius:32px;overflow:hidden;border:1px solid var(--line2);position:relative}
+@media(min-width:760px){.life{grid-template-columns:1.2fr 1fr}}
+.life .ph{position:relative;min-height:300px}
+.life .ph .img{position:absolute;inset:0;border:none}
+.life .ph .seal{position:absolute;top:18px;left:18px}
+.life .tx{padding:30px;display:flex;flex-direction:column;justify-content:center;gap:10px;background:#fff}
+.life .tx h3{font-size:22px}
+.life .tx p{font-size:14px;color:var(--ink2);margin:0;max-width:40ch}
+.life .tx .doodle{width:54px;height:54px}
+
+/* material */
+.mat{margin-top:40px;border:1px dashed var(--line2);border-radius:28px;padding:28px;display:grid;gap:22px;background:#fff}
+@media(min-width:760px){.mat{grid-template-columns:1.4fr 1fr;align-items:center}}
+.mat .hdr{display:flex;align-items:center;gap:14px}
+.mat .hdr .doodle{width:56px;height:56px;flex:0 0 auto}
+.mat h3{font-size:20px;margin:8px 0}
+.mat p{font-size:14px;color:var(--ink2);margin:0}
+.mat .stats{display:flex;gap:16px}
+.mat .stats div{flex:1;border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center}
+.mat .stats b{font-size:20px;display:block}.mat .stats span{font-size:11px;color:var(--ink3)}
+
+/* footer */
+footer{margin-top:18px;padding:40px 0}
+footer .container::before{content:"";position:absolute;top:-14px;left:24px;right:24px;height:1px;background:var(--line)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+@media(min-width:760px){.fg{grid-template-columns:2fr 1fr 1fr}}
+footer h5{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
+footer a{display:block;font-size:14px;color:var(--ink2);padding:5px 0}
+footer .lg{margin-top:28px;border-top:1px dashed var(--line);padding-top:18px;font-size:12px;color:var(--ink3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+/* ===== PRODUTO ===== */
+#product{display:none;padding:24px 0 60px}
+.pback{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink2);margin-bottom:16px}
+.pback svg{width:16px;height:16px}
+.pcrumb{font-size:12px;color:var(--ink3);margin-bottom:14px}
+.pdt{display:grid;grid-template-columns:1fr;gap:30px}
+@media(min-width:900px){.pdt{grid-template-columns:1.1fr .9fr;align-items:start}}
+.gal .img{aspect-ratio:4/5;border-radius:28px}
+.gthumbs{display:flex;gap:10px;margin-top:12px}
+.gthumbs .img{width:72px;height:84px;border-radius:16px}
+.gthumbs .img.on{border:2px solid var(--ink)}
+@media(min-width:900px){.pinfo{position:sticky;top:84px}}
+.pinfo .col{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.pinfo h1{font-size:30px;margin:8px 0 12px}
+.pinfo .price{font-size:30px;font-weight:600;margin-bottom:16px}
+.pinfo .price s{font-size:18px;color:var(--ink3);font-weight:400;margin-left:10px}
+.modes{display:flex;gap:12px;margin-bottom:16px}
+.modes .m{flex:1;border:1px solid var(--line2);border-radius:18px;padding:14px;text-align:center;font-size:12px;color:var(--ink2)}
+.modes .m.on{border-color:var(--ink);color:var(--ink)}
+.modes .m b{display:block;font-size:13px;color:var(--ink)}
+.tbl{border-top:1px solid var(--line);margin-top:6px}
+.tbl .h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:14px 0 6px}
+.tbl .r{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.tbl .r span{color:var(--ink2)}.tbl .r b{font-weight:600}
+.ptags{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.ptags span{font-size:12px;color:var(--ink2);border:1px solid var(--line2);border-radius:20px;padding:6px 12px}
+.pdesc{font-size:14px;color:var(--ink2);margin:8px 0 18px}
+.pcta{display:flex;gap:12px}
+.pcta .b{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--fill);color:#fff;font-weight:600;font-size:15px;padding:16px;border-radius:22px}
+.pcta .b svg{width:18px;height:18px}
+.pcta .ml{width:56px;border:1px solid var(--line2);border-radius:18px;display:grid;place-items:center;color:var(--ink2)}
+.pcta .ml svg{width:18px;height:18px}
+/* ESTOQUE (Acqua Mires) — destaque de "00 em estoque" */
+.pstock{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);
+  border:1px solid var(--line2);border-radius:var(--r-pill);padding:7px 14px;margin-bottom:16px;background:#fff}
+.pstock i{width:9px;height:9px;border-radius:50%;background:var(--ink);flex:0 0 auto}
+.pstock b{color:var(--ink);font-weight:700}
+/* CÁLCULO DE FRETE por CEP — campo + botão (placeholder, sem submit real) */
+.freight{margin:18px 0;border:1px solid var(--line2);border-radius:var(--r-soft);padding:16px;background:#fff}
+.freight .h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+.freight .row{display:flex;gap:10px}
+.freight .cep{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:var(--r-pill);padding:11px 16px;font-size:14px;color:var(--ink)}
+.freight .cep input{flex:1;border:none;background:transparent;font:inherit;color:inherit;outline:none;min-width:0}
+.freight .cep input::placeholder{color:var(--ink3)}
+.freight .calc{border:1px solid var(--ink);background:#fff;color:var(--ink);font-weight:600;font-size:13px;padding:11px 18px;border-radius:var(--r-pill);white-space:nowrap}
+.freight .calc:hover{background:var(--box)}
+.freight .note{display:block;margin-top:8px;font-size:11px;color:var(--ink3)}
+/* CARROSSEL "Quem viu também" — scroll-snap horizontal */
+.viewed{margin-top:48px}
+.viewed .sh{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.viewed h2{font-size:20px}
+.viewed .hint{font-size:12px;color:var(--ink3)}
+.vrow{display:grid;grid-auto-flow:column;grid-auto-columns:46%;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+@media(min-width:560px){.vrow{grid-auto-columns:30%}}
+@media(min-width:900px){.vrow{grid-auto-columns:22%}}
+.vrow::-webkit-scrollbar{height:6px}.vrow::-webkit-scrollbar-thumb{background:var(--line2);border-radius:999px}
+.vrow .pc{scroll-snap-align:start}
+
+/* drawer menu mobile (nav) */
+.nav-d{position:fixed;inset:0;z-index:70;background:rgba(40,40,40,.4);opacity:0;pointer-events:none;transition:.22s}
+.nav-d.open{opacity:1;pointer-events:auto}
+.nav-d .pan{position:absolute;top:0;right:0;bottom:0;width:78%;max-width:320px;background:var(--paper);padding:18px 22px;transform:translateX(100%);transition:.26s;border-radius:28px 0 0 28px}
+.nav-d.open .pan{transform:none}
+.nav-d a{display:block;font-size:18px;padding:13px 0;border-bottom:1px dashed var(--line)}
+.nav-d .x{margin-left:auto;display:block;font-size:26px;color:var(--ink2)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="container hd">
+    <a class="logo" href="#" onclick="goHome(event)"><span class="mk">LOGO</span><b>Lynch Store<small>VITRINE · WIREFRAME 1</small></b></a>
+    <nav aria-label="Navegação principal"><a href="#">Categorias</a><a href="#">Coleções</a><a href="#">Brechó</a><a href="#">Contato</a></nav>
+    <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg> Buscar…</div>
+    <a class="wa" href="https://wa.me/" aria-label="Fale conosco no WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"/></svg> WhatsApp</a>
+    <button class="ic menu" onclick="navOpen(true)" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</header>
+
+<main id="home">
+  <!-- HERO full-bleed 100% (estilo Acqua): fora do .container, edge-to-edge -->
+  <section class="hero">
+    <div class="box"><div class="img"><span class="lb">Banner · foto de modelo / lifestyle</span></div>
+      <span class="seal tag"><span class="ic"></span> ilustração</span>
+      <span class="disc-seal" role="img" aria-label="Desconto de até 00 por cento"><b>00%</b><span>OFF</span></span>
+      <div class="ov"><div class="ovwrap"><h1 class="htitle">Lynch Store — vitrine de moda geek &amp; cosplay <span class="fnote">[fonte display a definir]</span></h1><div class="l2"></div><div class="bs"><button type="button" class="b fill">Ver coleções</button><button type="button" class="b">Novidades</button></div></div></div>
+    </div>
+  </section>
+
+  <div class="container">
+    <span class="blob b1"></span>
+
+    <section class="shop">
+      <aside id="aside">
+        <button class="x" onclick="filtOpen(false)" aria-label="Fechar filtros">&times;</button>
+        <div class="grp"><h4 id="dispLbl">Disponibilidade</h4>
+          <div role="group" aria-labelledby="dispLbl">
+          <label class="chk"><input type="checkbox" name="disp" value="pronta"><i aria-hidden="true"></i> Pronta entrega</label><label class="chk"><input type="checkbox" name="disp" value="encomenda"><i aria-hidden="true"></i> Sob encomenda</label><label class="chk"><input type="checkbox" name="disp" value="promo"><i aria-hidden="true"></i> Em promoção</label>
+          </div></div>
+        <div class="grp"><h4>Preço</h4>
+          <div class="price-range"><span class="pin">R$ 00</span><span class="track"></span><span class="pin">R$ 000</span></div></div>
+        <div class="grp"><h4>Categorias</h4><div id="asCats"></div></div>
+        <div class="grp"><h4>Coleções</h4><div id="asCols"></div></div>
+      </aside>
+
+      <div>
+        <div class="toolbar">
+          <div class="ttl"><h2>Produtos</h2><svg class="scribble" viewBox="0 0 130 9" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6 Q 22 1 44 5 T 88 5 T 128 4"/></svg></div>
+          <div class="right"><button class="filtbtn" onclick="filtOpen(true)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg> Filtros</button><button type="button" class="sort">Ordenar <span aria-hidden="true">⇅</span></button></div>
+        </div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="sh"><h2>Coleções</h2><a href="#">ver todas ›</a></div>
+      <div class="colrow" id="colrow"></div>
+    </section>
+
+    <!-- QUEBRA LIFESTYLE (nova) — espaço pra mostrar o modelo vestindo -->
+    <section class="life">
+      <div class="ph"><div class="img"><span class="lb">Foto de modelo vestindo a peça</span></div><span class="seal"><span class="ic"></span> feito à mão</span></div>
+      <div class="tx">
+        <div class="doodle">ícone desenhado</div>
+        <span class="kick">Quem veste, conta</span>
+        <h3>Espaço pra pessoa real usando a peça</h3>
+        <p>Bloco de lifestyle — modelo, ambiente aconchegante, clima de cafezinho. Reforça o lado humano e jovem da loja.</p>
+      </div>
+    </section>
+
+    <svg class="wave" style="margin-top:40px" viewBox="0 0 1200 26" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2"><path d="M0 13 Q 75 0 150 13 T 300 13 T 450 13 T 600 13 T 750 13 T 900 13 T 1050 13 T 1200 13"/></svg>
+
+    <section class="mat">
+      <div>
+        <div class="hdr"><div class="doodle">girassol / café</div><span class="kick">Qualidade do material</span></div>
+        <h3>Texto sobre tecido e acabamento</h3>
+        <p>Bloco reforçando qualidade, modelagem autoral e o brechó de cosplay (diferencial da loja).</p>
+      </div>
+      <div class="stats"><div><b>—</b><span>material</span></div><div><b>—</b><span>acervo</span></div><div><b>—</b><span>prazo</span></div></div>
+    </section>
+  </div>
+
+  <footer><div class="container">
+    <span class="blob b2"></span>
+    <div class="fg">
+      <div><div class="logo"><span class="mk">LOGO</span><b>Lynch Store</b></div><p style="color:var(--ink2);font-size:14px;margin-top:12px;max-width:36ch">Descrição curta da loja (texto). Vitrine digital — vendas pelo WhatsApp.</p></div>
+      <div><h5>Navegar</h5><a href="#">Categorias</a><a href="#">Coleções</a><a href="#">Brechó</a><a href="#">Contato</a></div>
+      <div><h5>Contato</h5><a href="https://wa.me/">WhatsApp</a><a href="#">E-mail</a><a href="#">Instagram</a></div>
+    </div>
+    <div class="lg"><span>© Lynch Store</span><span>Vitrine · vendas no WhatsApp</span></div>
+  </div></footer>
+</main>
+
+<div id="product" class="container"></div>
+
+<div class="scrim" id="scrim" onclick="filtOpen(false)"></div>
+<div class="nav-d" id="navd" onclick="if(event.target===this)navOpen(false)"><nav class="pan" aria-label="Menu mobile">
+  <button class="x" onclick="navOpen(false)" aria-label="Fechar menu">&times;</button>
+  <a href="#">Categorias</a><a href="#">Coleções</a><a href="#">Brechó de Cosplay</a><a href="#">Contato</a><a href="https://wa.me/" style="color:var(--ink)">WhatsApp →</a>
+</nav></div>
+
+<script>
+const ICO={back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>',
+ wa:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"/></svg>',
+ ml:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14"/><path d="M4 7l8 6 8-6"/></svg>',
+ pin:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>'};
+const CATS=[{nm:'Camisas',n:42},{nm:'Vestidos',n:27},{nm:'Calças',n:15},{nm:'Acessórios',n:53}];
+const COLS=[{nm:'One Piece',ds:'Anime'},{nm:'Moda Lolita',ds:'Kawaii'},{nm:'Medieval',ds:'Fantasia'},{nm:'Pokémon',ds:'Geek'}];
+const PRO=Array.from({length:8},(_,i)=>({id:i+1,nm:`Peça / produto ${String(i+1).padStart(2,'0')}`,pr:'R$ 000',
+ old:[2,6].includes(i+1)?'R$ 000':null,disc:[2,6].includes(i+1)?'-00%':null,
+ stock:String(((i*7)%30)+3).padStart(2,'0'),col:COLS[i%4].nm,mode:i%3===1?'encomenda':'pronta',
+ bd:i===0?'Novo':i===1?'Promo':i===3?'Sob medida':null}));
+function pc(p){const enc=p.mode==='encomenda';
+ return `<button type="button" class="pc" onclick="openP(${p.id})" aria-label="Abrir produto ${p.nm}"><div class="imw"><div class="img"><span class="lb">Foto</span></div>
+  ${p.bd?`<span class="seal bd"><span class="ic"></span>${p.bd}</span>`:''}
+  ${p.disc?`<span class="pc-disc" aria-label="Em promoção">${p.disc}</span>`:''}
+  <span class="av"><i></i>${enc?'Sob encomenda':'Pronta entrega'}</span>
+  <span class="buy" aria-hidden="true">Comprar</span></div>
+  <div class="nm">${p.nm}</div>
+  <div class="pr">${p.pr}${p.old?`<s>${p.old}</s>`:''}</div></button>`;}
+
+document.getElementById('asCats').innerHTML=CATS.map(c=>`<button type="button" class="it" onclick="filtOpen(false)">${c.nm}<span>${c.n}</span></button>`).join('');
+document.getElementById('asCols').innerHTML=COLS.map(c=>`<button type="button" class="it" onclick="filtOpen(false)">${c.nm}<span>›</span></button>`).join('');
+document.getElementById('grid').innerHTML=PRO.map(pc).join('');
+document.getElementById('colrow').innerHTML=COLS.map(c=>`<button type="button" class="colc" onclick="window.scrollTo(0,0)" aria-label="Ver coleção ${c.nm}"><div class="img"><span class="lb">Foto</span></div><div class="ov"><b>${c.nm}</b></div></button>`).join('');
+
+function openP(id){const p=PRO.find(x=>x.id===id);const enc=p.mode==='encomenda';
+ document.getElementById('product').innerHTML=`
+  <button class="pback" onclick="goHome()">${ICO.back} Voltar à loja</button>
+  <div class="pcrumb">Início › ${p.col} › ${p.nm}</div>
+  <div class="pdt">
+   <div class="gal"><div class="img"><span class="lb">Foto principal</span></div>
+     <div class="gthumbs">${[0,1,2,3].map(i=>`<div class="img ${i?'':'on'}"><span class="lb">●</span></div>`).join('')}</div></div>
+   <div class="pinfo">
+     <div class="col">${p.col} · ${enc?'Sob encomenda':'Pronta entrega'}</div>
+     <h1>${p.nm}</h1>
+     <div class="price">${p.pr}${p.old?`<s>${p.old}</s>`:''}</div>
+     <div class="pstock"><i></i><span><b>${p.stock}</b> em estoque</span></div>
+     <div class="modes"><div class="m ${!enc?'on':''}"><b>Pronta entrega</b>envio imediato</div><div class="m ${enc?'on':''}"><b>Sob encomenda</b>${enc?'feito sob medida':'—'}</div></div>
+     ${enc?`<div class="tbl"><div class="h">Tabela de medidas</div><div class="r"><span>Busto</span><b>00–00 cm</b></div><div class="r"><span>Cintura</span><b>00–00 cm</b></div><div class="r"><span>Comprimento</span><b>00 cm</b></div><div class="r"><span>Produção</span><b>00 dias</b></div></div>`:''}
+     <div class="tbl"><div class="h">Ficha do produto</div><div class="r"><span>Material</span><b>—</b></div><div class="r"><span>Modelagem</span><b>—</b></div><div class="r"><span>Tamanhos</span><b>P · M · G · GG</b></div><div class="r"><span>Cuidados</span><b>—</b></div></div>
+     <div class="ptags"><span>#tag</span><span>#tag</span><span>#tag</span></div>
+     <p class="pdesc">Descrição completa (texto) — composição, caimento e instruções, modelo tabela tipo Mercado Livre.</p>
+     <div class="pcta"><button class="b">${ICO.wa} Comprar no WhatsApp</button><button class="ml" aria-label="Enviar por e-mail">${ICO.ml}</button></div>
+     <div class="freight">
+       <div class="h">Calcular frete e prazo</div>
+       <div class="row">
+         <label class="cep">${ICO.pin}<input type="text" inputmode="numeric" placeholder="Digite seu CEP" aria-label="CEP para cálculo de frete"></label>
+         <button class="calc" type="button">Calcular</button>
+       </div>
+       <span class="note">Wireframe — cálculo de frete (placeholder, sem integração).</span>
+     </div>
+   </div>
+  </div>
+  <section class="viewed">
+   <div class="sh"><h2>Quem viu também</h2><span class="hint">arraste ›</span></div>
+   <div class="vrow">${PRO.filter(x=>x.id!==id).slice(0,6).map(pc).join('')}</div>
+  </section>`;
+ document.getElementById('home').style.display='none';document.getElementById('product').style.display='block';window.scrollTo(0,0);}
+function goHome(e){if(e)e.preventDefault();document.getElementById('product').style.display='none';document.getElementById('home').style.display='block';window.scrollTo(0,0);}
+function filtOpen(o){document.getElementById('aside').classList.toggle('open',o);document.getElementById('scrim').classList.toggle('open',o)}
+function navOpen(o){document.getElementById('navd').classList.toggle('open',o)}
+</script>
+</body>
+</html>

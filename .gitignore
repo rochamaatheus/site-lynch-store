@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs / temporários
+*.log
+.cache/
+node_modules/
+
+# Artefatos de trabalho (estudo de concorrentes, screenshots, automação de browser)
+*.png
+.playwright-mcp/
