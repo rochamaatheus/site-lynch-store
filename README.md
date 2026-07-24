@@ -1,11 +1,8 @@
-# Lynch Store — Wireframes da Vitrine
+# Lynch Store — Vitrine Digital
 
-Apresentação dos **três wireframes** para a nova vitrine da **Lynch Store**
-(moda geek & cosplay), desenvolvidos pela **Agência Kamino**.
-
-> Nesta etapa o foco é validar a **estrutura, o tom e a sensação** de cada
-> caminho. Os wireframes são propositalmente em **cinza** — paleta de cores
-> (girassol + tons aconchegantes) e tipografia entram na próxima fase.
+Site estático da **Lynch Store** (moda geek & cosplay), desenvolvido pela
+**Agência Kamino**. Vitrine digital com fotos reais da loja — as vendas
+acontecem pelo WhatsApp.
 
 ## 🔗 Ver online
 
@@ -13,36 +10,30 @@ Publicado via GitHub Pages:
 
 **https://rochamaatheus.github.io/site-lynch-store/**
 
-A página inicial apresenta os três wireframes. Clique em cada card para abrir o
-wireframe completo (com página de produto navegável).
-
-## 📐 Os três wireframes
-
-| # | Wireframe | Direção |
-|---|-----------|---------|
-| 01 | **Aconchego** — `site-1-aconchego.html` | Loja prática e fofa: banner full-bleed, filtros "prateleira", botão Comprar no card, produto utilitário (estoque/medidas/frete) |
-| 02 | **Drop** — `site-2-drop.html` | Lúdico e mobile-first: boas-vindas com mascote, categorias lifestyle, produtos em scroll horizontal |
-| 03 | **Orgânico** — `site-3-organico.html` | Editorial: tipografia de impacto, categorias na vertical, muito respiro |
-
-> **A escolha é modular.** É possível escolher um como base e trazer elementos
-> dos outros (banner, menu/filtros, card de produto, página de produto, etc).
-
 ## 🛠️ Stack
 
-HTML estático monocromático. A capa (`index.html`) usa
-[Tailwind CSS](https://tailwindcss.com/) via CDN; os wireframes são
-single-file (CSS + JS inline, sem dependências). Sem build — basta abrir os
-arquivos `.html` no navegador.
+HTML estático single-file. Usa [Tailwind CSS](https://tailwindcss.com/) via
+CDN; sem build — basta abrir `index.html` no navegador.
 
 ## 📂 Estrutura
 
 ```
 .
-├── index.html              # Capa — seletor dos três wireframes
-├── site-1-aconchego.html   # Wireframe 01 · Aconchego (loja/prático)
-├── site-2-drop.html        # Wireframe 02 · Drop (lúdico/mobile)
-└── site-3-organico.html    # Wireframe 03 · Orgânico (editorial)
+├── index.html               # Site da Lynch Store
+├── assets/
+│   ├── lynch-logo.webp      # Logo (favicon + header)
+│   ├── seo-banner.webp      # Imagem de compartilhamento (og:image)
+│   └── products/            # Fotos reais dos produtos (product-01..46.webp)
+└── backups/
+    └── 2026-07-07-escolha-cliente/
+        # Arquivo histórico: os 3 mockups originais e a decisão da cliente
+        # que definiu a direção visual usada em index.html. Não editar —
+        # é registro, não parte ativa do site.
 ```
+
+Todas as imagens do site ficam em **WebP** (menor tamanho, mesma qualidade
+visual). Ao adicionar novas fotos de produto, converta para `.webp` antes de
+colocar em `assets/products/`.
 
 ---
 

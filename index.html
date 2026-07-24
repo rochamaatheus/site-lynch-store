@@ -1,188 +1,788 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wireframes · Lynch Store</title>
-  <meta name="description" content="Três wireframes para a nova vitrine da Lynch Store — moda geek e cosplay. Desenvolvido pela Agência Kamino." />
-  <meta name="robots" content="noindex, nofollow" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lynch Store | Moda Geek, Cosplay e Camisetas</title>
+<meta name="description" content="Lynch Store: vitrine com fotos reais de cosplay, fantasia e camisetas geek. Consulte disponibilidade, medidas e valores pelo WhatsApp.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#A64E2E">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lynch Store">
+<meta property="og:title" content="Lynch Store | Moda Geek, Cosplay e Camisetas">
+<meta property="og:description" content="Vitrine da Lynch Store: cosplay, fantasia e camisetas geek com atendimento direto pelo WhatsApp.">
+<meta property="og:image" content="assets/seo-banner.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Lynch Store | Moda Geek, Cosplay e Camisetas">
+<meta name="twitter:description" content="Vitrine com fotos reais de cosplay, fantasia e camisetas geek.">
+<meta name="twitter:image" content="assets/seo-banner.webp">
+<link rel="icon" href="assets/lynch-logo.webp">
+<link rel="apple-touch-icon" href="assets/lynch-logo.webp">
+<link rel="preload" as="image" href="assets/hero/cutout-03.webp" fetchpriority="high">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"Store",
+  "name":"Lynch Store",
+  "description":"Vitrine com fotos reais de cosplay, fantasia e camisetas geek.",
+  "image":"assets/seo-banner.webp",
+  "logo":"assets/lynch-logo.webp",
+  "brand":{"@type":"Brand","name":"Lynch Store"},
+  "hasOfferCatalog":{
+    "@type":"OfferCatalog",
+    "name":"Catálogo Lynch Store",
+    "itemListElement":[
+      {"@type":"OfferCatalog","name":"Cosplay e fantasia"},
+      {"@type":"OfferCatalog","name":"Camisetas geek"}
+    ]
+  }
+}
+</script>
+<style>
+:root{
+  --ink:#171210;
+  --muted:#6E5B4E;
+  --soft:#A48972;
+  --paper:#F7EFE2;
+  --cream:#FFF7EA;
+  --kraft:#B98958;
+  --wood:#8D572A;
+  --cocoa:#4A2815;
+  --rust:#A64E2E;
+  --clay:#D7A878;
+  --black:#0F0F10;
+  --sun:#DDAE35;
+  --moss:#4B5D41;
+  --line:rgba(23,18,16,.15);
+  --line-strong:rgba(23,18,16,.28);
+  --white:#fff;
+  --shadow:0 18px 48px rgba(23,18,16,.15);
+  --max:1180px;
+  --r:24px;
+  --pill:999px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    linear-gradient(180deg,rgba(247,239,226,.96),rgba(255,247,234,.98)),
+    radial-gradient(circle at 14% 10%,rgba(221,174,53,.22),transparent 32%),
+    radial-gradient(circle at 86% 18%,rgba(166,78,46,.18),transparent 30%);
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.5;
+}
+button,input{font:inherit}
+button{border:0;background:none;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--rust);outline-offset:3px}
+.container{max-width:var(--max);margin:0 auto;padding:0 20px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:850;color:var(--rust)}
+.icon{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.logo{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{
+  width:42px;height:42px;border-radius:50%;
+  border:1px solid rgba(74,40,21,.24);
+  background:var(--kraft);
+  display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 3px 0 rgba(23,18,16,.12);
+}
+.mark img{width:100%;height:100%;object-fit:cover}
+.logo b{display:block;font-size:18px;letter-spacing:.01em}
+.logo small{display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:800}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:44px;padding:12px 18px;border-radius:var(--pill);
+  font-weight:850;font-size:14px;border:1px solid var(--line-strong);
+  background:var(--white);
+}
+.btn.primary{background:var(--rust);border-color:var(--rust);color:#fff}
+.btn.sun{background:var(--sun);border-color:rgba(23,18,16,.12);color:var(--ink)}
+.btn:hover{transform:translateY(-1px)}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--line);background:rgba(255,255,255,.72);
+  border-radius:var(--pill);padding:7px 12px;font-size:12px;font-weight:800;color:var(--muted);
+}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 3px rgba(221,174,53,.22)}
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="Wireframes · Lynch Store" />
-  <meta property="og:description" content="Três caminhos de estrutura para a nova vitrine. Escolha um e monte o seu." />
-  <meta property="og:type" content="website" />
+/* Header */
+header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(255,247,234,.90);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
+}
+.head{height:70px;display:flex;align-items:center;gap:18px}
+.desktop-nav{display:none;align-items:center;gap:22px;margin-left:12px}
+.desktop-nav a{font-size:14px;font-weight:750;color:var(--muted)}
+.desktop-nav a:hover{color:var(--rust)}
+.search{
+  display:none;align-items:center;gap:9px;min-width:220px;margin-left:auto;
+  padding:10px 14px;border:1px solid var(--line);border-radius:var(--pill);
+  background:rgba(255,255,255,.7);color:var(--soft);font-size:13px;
+}
+.head-actions{margin-left:auto;display:flex;align-items:center;gap:9px}
+.icon-btn{
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(255,255,255,.72);display:grid;place-items:center;color:var(--ink);
+}
+@media(min-width:900px){
+  .desktop-nav,.search{display:flex}
+  .menu-btn{display:none}
+  .head-actions{margin-left:0}
+}
 
-  <script src="https://cdn.tailwindcss.com"></script>
+/* Hero */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(100deg,var(--cream) 0%,var(--cream) 38%,var(--clay) 62%,var(--kraft) 100%);
+  border-bottom:1px solid rgba(23,18,16,.16);
+}
+.hero-media{
+  position:relative;z-index:1;
+  min-height:min(620px,calc(100svh - 70px));
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,520px);
+  align-items:center;gap:clamp(12px,3vw,32px);
+  padding-top:clamp(34px,6vw,74px);
+  padding-bottom:clamp(30px,5vw,58px);
+}
+.hero-content{min-width:0;position:relative;z-index:2}
+.hero-copy{max-width:620px}
+.hero h1{
+  margin:12px 0 16px;
+  max-width:11ch;
+  font-size:clamp(44px,6.4vw,76px);
+  line-height:.96;letter-spacing:0;font-weight:920;
+}
+.hero p{margin:0;max-width:43ch;font-size:clamp(16px,1.5vw,19px);color:var(--muted);font-weight:650}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
+.hero .chip{background:rgba(255,247,234,.86);color:var(--cocoa);border-color:rgba(141,87,42,.24)}
+.hero-visual{
+  position:relative;height:min(560px,72vh);width:100%;
+  justify-self:stretch;pointer-events:none;
+}
+.hero-visual img{
+  position:absolute;object-fit:contain;object-position:bottom;width:auto;
+  filter:drop-shadow(0 22px 26px rgba(23,18,16,.28));
+  max-width:none;pointer-events:none;
+}
+.hero-visual img:nth-child(1){left:-4%;bottom:-4%;height:30%;transform:rotate(-6deg);z-index:1}
+.hero-visual img:nth-child(2){left:30%;bottom:6%;height:27%;transform:rotate(4deg);z-index:3}
+.hero-visual img:nth-child(3){left:56%;bottom:-6%;height:72%;transform:rotate(-3deg);z-index:2}
+.hero-visual img:nth-child(4){left:78%;bottom:10%;height:48%;transform:rotate(7deg);z-index:4}
 
-  <style>
-    html { scroll-behavior: smooth; }
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .reveal { opacity: 0; animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-    .d-1 { animation-delay: 0.05s; } .d-2 { animation-delay: 0.15s; }
-    .d-3 { animation-delay: 0.25s; } .d-4 { animation-delay: 0.35s; }
-    .d-5 { animation-delay: 0.45s; } .d-6 { animation-delay: 0.55s; }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      .reveal { animation: none; opacity: 1; }
-    }
-  </style>
+/* Trust bar */
+.trust{padding:20px 0;border-bottom:1px solid var(--line);background:rgba(255,247,234,.6)}
+.trust-row{display:flex;flex-wrap:wrap;gap:16px 30px;justify-content:center}
+.trust-item{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--cocoa)}
+.trust-item .icon{width:20px;height:20px;color:var(--rust);flex:0 0 auto}
+@media(max-width:620px){.trust-row{gap:12px 20px;justify-content:flex-start}.trust-item{font-size:12px}}
+
+/* Shop */
+.shop-wrap{padding:42px 0 26px}
+.shop{display:grid;grid-template-columns:1fr;gap:26px}
+.filters{
+  border:1px solid var(--line);border-radius:28px;background:rgba(255,247,234,.84);
+  padding:20px;box-shadow:0 14px 34px rgba(48,39,42,.06);
+}
+.filters h4{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+.filter-group{margin-bottom:18px}
+.filter-group:last-child{margin-bottom:0}
+.filter-link,.check{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 11px;border-radius:16px;font-size:14px;color:var(--muted);text-align:left;
+}
+.filter-link:hover,.check:hover{background:rgba(216,168,120,.28);color:var(--ink)}
+.filter-link span{color:var(--soft);font-size:12px}
+.filter-link.active{background:var(--rust);color:#fff}
+.filter-link.active span{color:rgba(255,255,255,.8)}
+.check{justify-content:flex-start;border:1px solid var(--line);margin-bottom:8px;background:rgba(255,255,255,.55)}
+.check i{width:18px;height:18px;border-radius:7px;border:1px solid var(--line-strong);display:grid;place-items:center}
+.check i::after{content:"";width:8px;height:8px;border-radius:3px;background:var(--rust);opacity:0}
+.check input{position:absolute;opacity:0;pointer-events:none}
+.check input:checked+i::after{opacity:1}
+.toolbar{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:18px}
+.toolbar h2{font-size:clamp(28px,4vw,44px);line-height:1;margin:5px 0 0;letter-spacing:0}
+.toolbar-actions{display:flex;align-items:center;gap:10px}
+.shelves{display:grid;gap:34px}
+.shelf{display:grid;gap:14px}
+.shelf-head{
+  display:flex;align-items:end;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--line);padding-bottom:12px;
+}
+.shelf-head h3{margin:0;font-size:clamp(21px,2.4vw,30px);line-height:1;letter-spacing:0}
+.shelf-head p{margin:5px 0 0;color:var(--muted);font-size:14px;max-width:52ch}
+.shelf-count{
+  flex:0 0 auto;border:1px solid var(--line);border-radius:var(--pill);
+  background:rgba(255,255,255,.64);padding:7px 11px;
+  color:var(--cocoa);font-size:12px;font-weight:900;
+}
+.load-more{
+  justify-self:center;display:inline-flex;align-items:center;gap:8px;
+  margin-top:6px;padding:12px 22px;border-radius:var(--pill);
+  border:1px solid var(--line-strong);background:#fff;
+  font-size:14px;font-weight:850;color:var(--ink);
+}
+.load-more:hover{background:rgba(216,168,120,.28)}
+.load-more span{
+  background:var(--rust);color:#fff;border-radius:var(--pill);
+  padding:2px 9px;font-size:12px;font-weight:900;
+}
+.product-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(16px,2.4vw,24px);align-items:start;grid-auto-flow:dense;
+}
+.card{text-align:left;width:100%;display:block;position:relative}
+.pic{
+  position:relative;aspect-ratio:4/5;border-radius:28px 22px 30px 24px;overflow:hidden;border:1px solid rgba(48,39,42,.11);
+  background:
+    linear-gradient(135deg,rgba(255,247,234,.22),rgba(255,255,255,0)),
+    var(--tone,var(--kraft));
+  background-size:cover;
+  background-position:center;
+  box-shadow:0 12px 28px rgba(48,39,42,.08);
+  isolation:isolate;
+  transition:transform .22s ease,box-shadow .22s ease,border-radius .22s ease;
+}
+.product-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.card:nth-child(4n) .pic{border-radius:22px 34px 24px 30px}
+.card:nth-child(5n+3) .pic{border-radius:34px 24px 32px 22px}
+.card:hover .pic,.card:focus-visible .pic{transform:translateY(-3px);box-shadow:0 18px 36px rgba(48,39,42,.14)}
+.pic::before{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(15,15,16,0) 50%,rgba(15,15,16,.42));
+}
+.off{
+  position:absolute;top:9px;right:9px;z-index:2;width:50px;height:50px;border-radius:50%;
+  display:grid;place-items:center;background:var(--rust);color:#fff;font-size:12px;font-weight:950;
+  transform:rotate(7deg);border:2px solid #fff;
+}
+.buy{
+  position:absolute;left:10px;right:10px;bottom:10px;z-index:2;
+  min-height:40px;background:var(--black);color:#fff;border-radius:var(--pill);
+  display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:900;
+}
+.card-copy{padding:10px 2px 0}
+.card h3{font-size:15px;margin:0 0 4px;line-height:1.25}
+.card-meta{font-size:12px;color:var(--muted);font-weight:750}
+@media(min-width:760px){.product-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){
+  .shop{grid-template-columns:260px 1fr;align-items:start}
+  .filters{position:sticky;top:90px}
+  .filter-mobile{display:none}
+  .product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .buy{opacity:0;transform:translateY(8px);transition:.18s}
+  .card:hover .buy,.card:focus-visible .buy{opacity:1;transform:none}
+}
+@media(max-width:999px){
+  .filters{display:none}
+}
+
+/* Collections and bands */
+.band{padding:48px 0;background:rgba(255,247,234,.52);border-top:1px solid rgba(23,18,16,.08);border-bottom:1px solid rgba(23,18,16,.08)}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:22px}
+.section-head h2{margin:5px 0 0;font-size:clamp(30px,5vw,56px);line-height:1;letter-spacing:0}
+.collections{display:grid;grid-template-columns:1fr;gap:16px}
+.collection{
+  min-height:220px;position:relative;overflow:hidden;border-radius:28px;
+  background:var(--tone,var(--kraft));border:1px solid rgba(23,18,16,.14);
+  background-image:linear-gradient(190deg,rgba(15,15,16,0) 30%,rgba(15,15,16,.74) 92%),var(--photo);
+  background-size:cover;background-position:center;
+  padding:20px;display:flex;align-items:flex-end;
+  box-shadow:0 12px 28px rgba(48,39,42,.10);
+  transition:transform .22s ease,box-shadow .22s ease,background-size .5s ease;
+}
+.collection:hover,.collection:focus-visible{
+  transform:translateY(-5px);box-shadow:0 20px 40px rgba(48,39,42,.20);background-size:112%;
+}
+.collection b{
+  position:relative;font-size:clamp(24px,3vw,32px);line-height:1;letter-spacing:0;
+  font-weight:920;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.35);
+  display:flex;align-items:center;gap:8px;
+}
+.collection b::after{content:"→";font-size:22px;transition:transform .22s ease}
+.collection:hover b::after{transform:translateX(4px)}
+.collection span{
+  position:absolute;top:18px;left:18px;background:rgba(255,247,234,.94);
+  border-radius:var(--pill);padding:6px 12px;font-size:11px;font-weight:900;
+  letter-spacing:.02em;color:var(--cocoa);
+}
+@media(min-width:760px){.collections{grid-template-columns:repeat(4,1fr)}.collection{min-height:270px}}
+.life{
+  display:grid;grid-template-columns:1fr;border-radius:32px;overflow:hidden;
+  background:var(--cocoa);box-shadow:0 26px 56px rgba(23,18,16,.26);
+  margin:38px 0;
+}
+.life-media{
+  min-height:320px;position:relative;
+  background:linear-gradient(180deg,rgba(15,15,16,0) 34%,rgba(15,15,16,.48)),url('assets/products/product-05.webp');
+  background-size:cover;background-position:center;
+}
+.life-text{
+  padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:center;
+  background:linear-gradient(155deg,var(--cocoa),var(--black));
+}
+.life-text .eyebrow{color:var(--sun)}
+.life-text h2{font-size:clamp(30px,4.4vw,48px);line-height:1;margin:10px 0 14px;color:#fff}
+.life-text p{margin:0 0 22px;color:rgba(255,247,234,.72);max-width:48ch}
+.life-cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.life-cta .btn{min-height:54px;padding:0 26px;font-size:15px}
+.life-note{font-size:12px;color:rgba(255,247,234,.58);font-weight:750}
+@media(min-width:820px){.life{grid-template-columns:1.12fr .88fr}}
+
+/* Product page */
+#product{display:none;padding:28px 20px 64px}
+.back{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-weight:850;margin-bottom:18px}
+.pgrid{display:grid;grid-template-columns:1fr;gap:30px}
+.gallery-main{aspect-ratio:4/5;border-radius:32px;background:var(--photo),linear-gradient(135deg,var(--kraft),var(--rust));background-size:cover;background-position:center;position:relative;overflow:hidden;border:1px solid var(--line);cursor:zoom-in;transition:background-size .2s ease}
+@media(hover:none){.gallery-main{cursor:default}}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.thumbs button{
+  aspect-ratio:4/5;border-radius:18px;background:var(--thumb),var(--cream);background-size:cover;background-position:center;
+  border:1px solid var(--line);padding:0;cursor:pointer;transition:transform .16s ease,border-color .16s ease;
+}
+.thumbs button:hover{transform:translateY(-2px)}
+.thumbs button.active{border:2px solid var(--rust)}
+.pinfo{background:rgba(255,247,234,.82);border:1px solid var(--line);border-radius:30px;padding:24px}
+.pinfo h1{font-size:clamp(30px,4vw,48px);line-height:1;margin:8px 0 10px}
+.pinfo .big-price{font-size:30px;font-weight:950;margin:0 0 14px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.mode{border:1px solid var(--line);border-radius:18px;padding:13px;text-align:center;color:var(--muted);font-size:12px}
+.mode.on{border-color:var(--rust);background:rgba(216,168,120,.30);color:var(--ink)}
+.mode b{display:block;color:var(--ink)}
+.facts{border-top:1px solid var(--line);margin-top:14px}
+.fact{display:flex;justify-content:space-between;gap:20px;border-bottom:1px dashed var(--line);padding:12px 0;font-size:14px}
+.fact span{color:var(--muted)}
+.pdesc{color:var(--muted)}
+.pcta{display:flex;gap:10px;margin-top:18px}.pcta .btn{flex:1}
+.freight{margin-top:16px;border:1px solid var(--line);border-radius:22px;padding:15px;background:var(--cream);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.freight p{margin:0;font-size:13px;color:var(--muted);max-width:32ch}
+@media(min-width:900px){.pgrid{grid-template-columns:1.04fr .96fr}.pinfo{position:sticky;top:92px}}
+
+footer{padding:46px 0;color:var(--muted)}
+.foot{display:grid;grid-template-columns:1fr;gap:24px;border-top:1px solid var(--line);padding-top:30px}
+footer h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+footer a{display:block;padding:10px 0;font-weight:650}
+@media(min-width:760px){.foot{grid-template-columns:2fr 1fr 1fr}}
+
+/* Mobile menu from layout 02 */
+.drawer{
+  position:fixed;inset:0;z-index:80;background:rgba(48,39,42,.45);
+  opacity:0;pointer-events:none;transition:.22s;
+}
+.drawer.open{opacity:1;pointer-events:auto}
+.drawer-panel{
+  position:absolute;top:0;right:0;bottom:0;width:min(78vw,340px);
+  background:var(--cream);border-radius:32px 0 0 32px;
+  padding:22px 28px;overflow:auto;
+  transform:translateX(100%);transition:.28s cubic-bezier(.22,1,.36,1);
+  box-shadow:-18px 0 48px rgba(48,39,42,.16);
+}
+.drawer.open .drawer-panel{transform:none}
+.drawer-close{display:grid;place-items:center;margin:0 0 26px auto;width:42px;height:42px;border-radius:50%;color:var(--muted)}
+.drawer h3{margin:24px 0 12px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--rust)}
+.drawer a{
+  min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  border-bottom:1px dashed var(--line);font-size:21px;color:var(--ink);
+}
+.drawer a span{font-size:14px;color:var(--soft)}
+@media(min-width:900px){.drawer{display:none}}
+@media(max-width:520px){
+  .container{padding:0 16px}
+  .head{height:66px}.logo small{display:none}.mark{width:38px;height:38px}
+  .head-actions .btn.primary{width:42px;padding:0}
+  .head-actions .btn.primary span{display:none}
+  .shop-wrap{padding-top:30px}.product-grid{gap:13px}.pic{border-radius:20px}
+  .toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}
+  .shelf-head{flex-direction:column;align-items:flex-start}
+  .section-head{align-items:flex-start}.collections{gap:13px}
+  .drawer-panel{width:78vw;border-radius:30px 0 0 30px;padding:20px 26px}
+}
+@media(max-width:760px){
+  .hero-media{
+    min-height:auto;
+    grid-template-columns:1fr;
+    gap:22px;
+    padding-top:24px;
+    padding-bottom:34px;
+  }
+  .hero h1{
+    max-width:10ch;
+    font-size:clamp(36px,12vw,54px);
+    line-height:.98;
+    margin-bottom:14px;
+  }
+  .hero p{font-size:16px;max-width:34ch}
+  .hero-ctas{gap:10px;margin-top:20px}
+  .hero-ctas .btn{flex:1 1 150px;min-height:46px;padding-inline:14px}
+  .hero-visual{justify-self:stretch;width:100%;height:min(340px,48vh)}
+  .hero-visual img:nth-child(4){display:none}
+  .hero-visual img:nth-child(1){left:-2%;bottom:-2%;height:32%}
+  .hero-visual img:nth-child(2){left:26%;bottom:8%;height:30%}
+  .hero-visual img:nth-child(3){left:50%;bottom:-4%;height:88%}
+}
+@media(max-width:420px){
+  .hero .chip{font-size:11px;line-height:1.2;align-items:flex-start}
+  .hero-media{gap:18px;padding-top:20px;padding-bottom:28px}
+  .hero h1{font-size:clamp(34px,11vw,46px)}
+  .hero p{font-size:15px;line-height:1.48}
+  .hero-ctas{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .hero-ctas .btn{min-height:44px;padding-inline:8px;font-size:13px}
+  .hero-visual{height:min(280px,40vh)}
+  .hero-visual img:nth-child(3){display:none}
+  .hero-visual img:nth-child(1){left:0%;bottom:-2%;height:42%}
+  .hero-visual img:nth-child(2){left:46%;bottom:10%;height:38%}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar-actions{width:100%;display:grid;grid-template-columns:1fr auto}
+  .toolbar-actions .btn{padding-inline:12px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .buy{left:8px;right:8px;bottom:8px;min-height:38px;font-size:12px}
+  .shelf-head{align-items:flex-start}
+  .shelf-head p{font-size:13px}
+}
+</style>
 </head>
+<body>
+<header>
+  <div class="container head">
+    <a class="logo" href="#" onclick="goHome(event)" aria-label="Lynch Store">
+      <span class="mark"><img src="assets/lynch-logo.webp" alt="Lynch Store" width="42" height="42"></span>
+      <span><b>Lynch Store</b><small>geek & cosplay</small></span>
+    </a>
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a href="#produtos">Produtos</a>
+      <a href="#colecoes">Coleções</a>
+      <a href="#brecho">Brechó</a>
+      <a href="#contato">Contato</a>
+    </nav>
+    <div class="search" aria-hidden="true">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      Buscar peça, anime ou coleção
+    </div>
+    <div class="head-actions">
+      <a class="btn primary" href="https://wa.me/" aria-label="Comprar pelo WhatsApp">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
+        <span>WhatsApp</span>
+      </a>
+      <button class="icon-btn menu-btn" type="button" onclick="menuOpen(true)" aria-label="Abrir menu">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </button>
+    </div>
+  </div>
+</header>
 
-<body class="bg-stone-50 text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
-
-  <!-- ============================ HEADER ============================ -->
-  <header class="border-b border-stone-200">
-    <div class="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-      <div class="text-base tracking-[0.22em] uppercase font-medium text-stone-900 flex items-center gap-2.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-amber-400" aria-hidden="true"></span>
-        Lynch&nbsp;Store
-        <span class="hidden sm:block text-[10px] tracking-[0.3em] text-stone-400 font-normal">Vitrine · geek &amp; cosplay</span>
+<main id="home">
+  <section class="hero">
+    <div class="container hero-media">
+      <div class="hero-content">
+        <div class="hero-copy">
+          <span class="chip"><i></i> moda geek, cosplay e peças fofinhas</span>
+          <h1>Um mundo sob medida.</h1>
+          <p>Acessórios, moda kawaii geek e cosplay com clima artesanal, tons terrosos e atendimento direto pelo WhatsApp.</p>
+          <div class="hero-ctas">
+            <a class="btn sun" href="#produtos">Ver novidades</a>
+            <a class="btn" href="#colecoes">Explorar coleções</a>
+          </div>
+        </div>
       </div>
-      <div class="flex items-center gap-2.5 text-xs tracking-[0.2em] uppercase text-stone-400">
-        <span class="hidden sm:inline">Apresentação por</span>
-        <span class="font-medium text-stone-700">Agência Kamino</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- ============================ HERO ============================ -->
-  <section class="max-w-3xl mx-auto px-6 pt-20 pb-14 md:pt-28 md:pb-16 text-center">
-    <p class="reveal d-1 text-xs tracking-[0.35em] uppercase text-stone-500 mb-8">Wireframes · proposta de estrutura · 2026</p>
-    <h1 class="reveal d-2 text-4xl md:text-6xl leading-[1.08] font-light text-stone-900">
-      Três caminhos para a<br class="hidden md:block" /> vitrine da Lynch&nbsp;Store.
-    </h1>
-    <p class="reveal d-3 mt-8 text-lg text-stone-600 max-w-xl mx-auto font-light leading-relaxed">
-      Montamos três <strong class="font-medium text-stone-800">wireframes</strong> — o esqueleto do site, onde
-      definimos a <em class="not-italic font-medium text-stone-800">estrutura</em> e a sensação de cada página.
-      Todos buscam o clima <span class="text-stone-800 font-medium">leve e aconchegante</span> ("cozy") que conversa
-      com o público, e foram pensados primeiro no <span class="text-stone-800 font-medium">celular</span>.
-    </p>
-    <div class="reveal d-4 mt-9 inline-flex items-center gap-2 text-xs tracking-wider uppercase text-stone-500 border border-stone-200 bg-white rounded-full px-4 py-2">
-      <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-      Cinza de propósito — cores e fontes entram na próxima etapa
-    </div>
-  </section>
-
-  <!-- ============================ CONCEITOS ============================ -->
-  <main class="max-w-5xl mx-auto px-6 pb-8">
-    <div class="grid md:grid-cols-3 gap-6">
-
-      <!-- Wireframe 1 -->
-      <a href="site-1-aconchego.html" target="_blank" rel="noopener"
-         class="reveal d-3 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
-        <div class="flex items-baseline justify-between mb-8">
-          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">01</span>
-          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Loja · Prático</span>
-        </div>
-        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Aconchego</h2>
-        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
-          A loja completa e fofa. Banner grande de impacto, filtros como uma "prateleira aconchegante",
-          botão <em class="not-italic font-medium text-stone-700">Comprar</em> em cada peça e selos de desconto.
-          A página de produto traz tudo à mão — estoque, tabela de medidas e cálculo de frete.
-        </p>
-        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
-          Ver wireframe <span aria-hidden="true">&rarr;</span>
-        </span>
-      </a>
-
-      <!-- Wireframe 2 -->
-      <a href="site-2-drop.html" target="_blank" rel="noopener"
-         class="reveal d-4 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
-        <div class="flex items-baseline justify-between mb-8">
-          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">02</span>
-          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Lúdico · Mobile</span>
-        </div>
-        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Drop</h2>
-        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
-          O mais jovem e divertido. Boas-vindas com mascote, categorias grandes com foto de quem usa,
-          e produtos que <em class="not-italic font-medium text-stone-700">deslizam na horizontal</em> (clima de app/stories).
-          Página de produto enxuta e direta. Pensado para brilhar no celular.
-        </p>
-        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
-          Ver wireframe <span aria-hidden="true">&rarr;</span>
-        </span>
-      </a>
-
-      <!-- Wireframe 3 -->
-      <a href="site-3-organico.html" target="_blank" rel="noopener"
-         class="reveal d-5 group flex flex-col bg-white border border-stone-200 rounded-2xl p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-stone-900/5 hover:border-stone-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50">
-        <div class="flex items-baseline justify-between mb-8">
-          <span class="text-5xl font-light text-stone-200 tabular-nums group-hover:text-amber-300 transition-colors">03</span>
-          <span class="text-[10px] tracking-[0.25em] uppercase text-stone-400">Editorial</span>
-        </div>
-        <h2 class="text-2xl font-normal text-stone-900 leading-snug">Orgânico</h2>
-        <p class="mt-3 text-sm text-stone-500 leading-relaxed flex-1">
-          O mais autoral, com cara de revista. Tipografia grande de impacto, categorias com o nome na
-          <em class="not-italic font-medium text-stone-700">vertical</em> sobre a foto, muito espaço pra respirar.
-          Valoriza cada peça como uma marca de moda — sofisticado, mas quente.
-        </p>
-        <span class="mt-8 inline-flex items-center gap-2 text-xs tracking-widest uppercase text-stone-900 border-b border-stone-900 pb-1 self-start group-hover:gap-3 transition-all">
-          Ver wireframe <span aria-hidden="true">&rarr;</span>
-        </span>
-      </a>
-
-    </div>
-  </main>
-
-  <!-- ============================ MONTE O SEU (modular) ============================ -->
-  <section class="max-w-5xl mx-auto px-6 pb-24">
-    <div class="reveal d-4 bg-white border border-stone-200 rounded-3xl p-8 md:p-12 relative overflow-hidden">
-      <span class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-amber-400/10" aria-hidden="true"></span>
-      <div class="relative">
-        <div class="inline-flex items-center gap-2 text-[10px] tracking-[0.25em] uppercase text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 mb-5">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> A escolha não é fechada
-        </div>
-        <h2 class="text-2xl md:text-3xl font-light text-stone-900 leading-snug max-w-2xl">
-          Escolha uma base — e traga o que você gostou dos outros.
-        </h2>
-        <p class="mt-4 text-stone-600 leading-relaxed max-w-2xl font-light">
-          Estes três caminhos são <strong class="font-medium text-stone-800">modulares</strong>. Você não precisa
-          casar com tudo de um só. O comum é escolher um como <em class="not-italic font-medium text-stone-800">base</em>
-          e pedir pra trocar peças específicas pelas de outro que te chamaram atenção. A gente monta a versão final com as partes que você curtiu.
-        </p>
-
-        <!-- Exemplo de combinação -->
-        <div class="mt-8 grid sm:grid-cols-3 gap-4">
-          <div class="rounded-2xl border border-stone-200 p-5">
-            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">Exemplo</span>
-            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
-              "Quero a <strong class="font-medium">base do Orgânico (03)</strong>…"
-            </p>
-          </div>
-          <div class="rounded-2xl border border-stone-200 p-5">
-            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">+ elemento</span>
-            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
-              "…mas com o <strong class="font-medium">botão Comprar no card</strong> do Aconchego (01)…"
-            </p>
-          </div>
-          <div class="rounded-2xl border border-stone-200 p-5">
-            <span class="text-[10px] tracking-[0.22em] uppercase text-stone-400">+ elemento</span>
-            <p class="mt-2 text-sm text-stone-700 leading-relaxed">
-              "…e os <strong class="font-medium">produtos deslizando</strong> do Drop (02)."
-            </p>
-          </div>
-        </div>
-
-        <p class="mt-6 text-sm text-stone-500 leading-relaxed">
-          Elementos que viajam bem entre os três: o <span class="text-stone-700">banner</span>, o
-          <span class="text-stone-700">menu/filtros</span>, o jeito de mostrar <span class="text-stone-700">categorias</span> e
-          <span class="text-stone-700">coleções</span>, o <span class="text-stone-700">card de produto</span> e a
-          <span class="text-stone-700">página de produto</span>.
-        </p>
+      <div class="hero-visual" aria-hidden="true">
+        <img src="assets/hero/cutout-01.webp" alt="" loading="eager" fetchpriority="high" width="698" height="654">
+        <img src="assets/hero/cutout-02.webp" alt="" loading="eager" width="696" height="676">
+        <img src="assets/hero/cutout-03.webp" alt="" loading="eager" fetchpriority="high" width="566" height="1237">
+        <img src="assets/hero/cutout-04.webp" alt="" loading="eager" width="587" height="1212">
       </div>
     </div>
   </section>
 
-  <!-- ============================ RODAPÉ ============================ -->
-  <footer class="border-t border-stone-200">
-    <div class="max-w-5xl mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-400">
-      <span class="tracking-wider uppercase">Lynch Store · vitrine geek &amp; cosplay</span>
-      <span class="tracking-wider uppercase">Concepção &amp; design · <span class="text-stone-600 font-medium">Agência Kamino</span></span>
+  <section class="trust">
+    <div class="container trust-row">
+      <div class="trust-item">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7l1.4-2.6a1 1 0 0 1 .9-.4h3.4a1 1 0 0 1 .9.4L16 7"></path><circle cx="12" cy="13.5" r="3.4"></circle></svg>
+        <span>Fotos reais da loja</span>
+      </div>
+      <div class="trust-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
+        <span>Atendimento direto no WhatsApp</span>
+      </div>
+      <div class="trust-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 11V4a1 1 0 0 1 1-1h7l10 10a1 1 0 0 1 0 1.4l-7 7a1 1 0 0 1-1.4 0L3 11z"></path><circle cx="7.5" cy="7.5" r="1.4"></circle></svg>
+        <span>Peças sob medida</span>
+      </div>
+      <div class="trust-item">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg>
+        <span>Consulta sem compromisso</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="colecoes">
+    <div class="container">
+      <div class="section-head">
+        <div><span class="eyebrow">por universo</span><h2>Coleções</h2></div>
+        <a class="btn" href="#produtos" onclick="setFilter(null,null);return false">Ver tudo</a>
+      </div>
+      <div class="collections" id="collections"></div>
+    </div>
+  </section>
+
+  <section class="shop-wrap" id="produtos">
+    <div class="container shop">
+      <aside class="filters" aria-label="Filtros da loja">
+        <div class="filter-group">
+          <h4>Disponibilidade</h4>
+          <label class="check"><input type="checkbox" checked data-avail="all" onchange="setFilter(null,null)"><i></i> Todos</label>
+          <label class="check"><input type="checkbox" data-avail="Sob encomenda" onchange="setFilter('mode','Sob encomenda')"><i></i> Sob encomenda</label>
+          <label class="check"><input type="checkbox" data-avail="Pronta entrega" onchange="setFilter('mode','Pronta entrega')"><i></i> Pronta entrega</label>
+        </div>
+        <div class="filter-group">
+          <h4>Coleções</h4>
+          <button class="filter-link" data-collection="Cosplay" onclick="setFilter('collection','Cosplay')">Cosplay <span>›</span></button>
+          <button class="filter-link" data-collection="Fantasia" onclick="setFilter('collection','Fantasia')">Fantasia <span>›</span></button>
+          <button class="filter-link" data-collection="Camisetas" onclick="setFilter('collection','Camisetas')">Camisetas <span>›</span></button>
+          <button class="filter-link" data-collection="Novidades" onclick="setFilter('collection','Novidades')">Novidades <span>›</span></button>
+        </div>
+      </aside>
+      <div>
+        <div class="toolbar">
+          <div>
+            <span class="eyebrow">prateleira da loja</span>
+            <h2 id="shop-heading">Prateleira da Lynch</h2>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn filter-mobile" type="button" onclick="menuOpen(true)">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+              Filtros
+            </button>
+          </div>
+        </div>
+        <div class="shelves" id="grid-encomenda"></div>
+        <div class="life" id="brecho">
+          <div class="life-media"></div>
+          <div class="life-text">
+            <span class="eyebrow">brechó de cosplay</span>
+            <h2>Peças com história, prontas para outro arco.</h2>
+            <p>Um espaço especial para cosplay, garimpos e itens únicos, usando as fotos reais da loja para mostrar textura, caimento e acabamento.</p>
+            <div class="life-cta">
+              <a class="btn sun" href="https://wa.me/">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
+                Chamar no WhatsApp
+              </a>
+              <span class="life-note">Resposta rápida, direto com a loja</span>
+            </div>
+          </div>
+        </div>
+        <div class="shelves" id="grid-entrega"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="contato">
+    <div class="container foot">
+      <div>
+        <div class="logo"><span class="mark"><img src="assets/lynch-logo.webp" alt="Lynch Store" width="42" height="42"></span><span><b>Lynch Store</b><small>vendas pelo WhatsApp</small></span></div>
+        <p>Vitrine digital de moda geek, kawaii e cosplay. Visual inspirado na identidade real da loja: girassol, kraft, ferrugem, preto e peças sob medida.</p>
+      </div>
+      <div><h3>Navegar</h3><a href="#produtos">Produtos</a><a href="#colecoes">Coleções</a><a href="#brecho">Brechó</a></div>
+      <div><h3>Contato</h3><a href="https://wa.me/">WhatsApp</a><a href="#">Instagram</a><a href="#">E-mail</a></div>
     </div>
   </footer>
+</main>
 
+<section id="product" class="container"></section>
+
+<div class="drawer" id="drawer" onclick="if(event.target===this)menuOpen(false)">
+  <nav class="drawer-panel" aria-label="Menu mobile">
+    <button class="drawer-close" type="button" onclick="menuOpen(false)" aria-label="Fechar menu">×</button>
+    <h3>Por categoria</h3>
+    <a href="#produtos" onclick="setFilter(null,null);return false">Todos os produtos <span>46</span></a>
+    <a href="#produtos" onclick="setFilter('mode','Sob encomenda');return false">Cosplay e fantasia <span>12</span></a>
+    <a href="#produtos" onclick="setFilter('mode','Pronta entrega');return false">Camisetas geek <span>34</span></a>
+    <h3>Por coleção</h3>
+    <a href="#produtos" onclick="setFilter('collection','Cosplay');return false">Cosplay <span>›</span></a>
+    <a href="#produtos" onclick="setFilter('collection','Fantasia');return false">Fantasia <span>›</span></a>
+    <a href="#produtos" onclick="setFilter('collection','Camisetas');return false">Camisetas <span>›</span></a>
+    <a href="#produtos" onclick="setFilter('collection','Novidades');return false">Novidades <span>›</span></a>
+    <h3>Mais</h3>
+    <a href="#brecho" onclick="menuOpen(false)">Brechó de Cosplay <span>›</span></a>
+    <a href="#contato" onclick="menuOpen(false)">Contato <span>›</span></a>
+  </nav>
+</div>
+
+<script>
+const icons={
+  back:'<svg class="icon" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"></path></svg>',
+  bag:'<svg class="icon" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8z"></path><path d="M9 8a3 3 0 0 1 6 0"></path></svg>',
+  wa:'<svg class="icon" viewBox="0 0 24 24"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>',
+  pin:'<svg class="icon" viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>'
+};
+const productImages=Array.from({length:46},(_,i)=>`assets/products/product-${String(i+1).padStart(2,'0')}.webp`);
+const collectionData=[
+  {nm:'Cosplay',tag:'12 fotos',tone:'#B98958',img:'assets/products/product-03.webp'},
+  {nm:'Fantasia',tag:'peças reais',tone:'#A64E2E',img:'assets/products/product-07.webp'},
+  {nm:'Camisetas',tag:'34 fotos',tone:'#8D572A',img:'assets/products/product-14.webp'},
+  {nm:'Novidades',tag:'catálogo',tone:'#0F0F10',img:'assets/products/product-27.webp'}
+];
+const products=productImages.map((img,i)=>{
+  const id=i+1;
+  const cosplay=id<=12;
+  const collection=cosplay?(id<=6?'Cosplay':'Fantasia'):(id%4===0?'Novidades':'Camisetas');
+  return {
+    id,
+    name:`${cosplay?'Peça de cosplay':'Camiseta geek'} ${String(id).padStart(2,'0')}`,
+    price:'Consultar valor',
+    old:null,
+    mode:cosplay?'Sob encomenda':'Pronta entrega',
+    photoNote:'Foto real',
+    collection,
+    img
+  };
+});
+function productCard(p){
+  return `<button type="button" class="card" onclick="openProduct(${p.id})">
+    <div class="pic">
+      <img class="product-photo" src="${p.img}" alt="${p.name} - foto real da Lynch Store" width="720" height="1280" loading="lazy" decoding="async">
+      ${p.old?'<span class="off">00%<br>OFF</span>':''}
+      <span class="buy">${icons.bag} Comprar</span>
+    </div>
+    <div class="card-copy">
+      <h3>${p.name}</h3>
+      <span class="card-meta">${p.collection} · chamar no WhatsApp</span>
+    </div>
+  </button>`;
+}
+const PAGE_SIZE=8;
+const visibleCounts={'Sob encomenda':PAGE_SIZE,'Pronta entrega':PAGE_SIZE};
+let activeFilter={type:null,value:null};
+function loadMore(title){
+  visibleCounts[title]+=PAGE_SIZE;
+  render();
+}
+function matchesFilter(p){
+  if(!activeFilter.type)return true;
+  if(activeFilter.type==='mode')return p.mode===activeFilter.value;
+  if(activeFilter.type==='collection')return p.collection===activeFilter.value;
+  return true;
+}
+function setFilter(type,value){
+  activeFilter=type?{type,value}:{type:null,value:null};
+  visibleCounts['Sob encomenda']=PAGE_SIZE;
+  visibleCounts['Pronta entrega']=PAGE_SIZE;
+  render();
+  document.querySelectorAll('[data-avail]').forEach(el=>{
+    el.checked=type==='mode'?el.dataset.avail===value:el.dataset.avail==='all';
+  });
+  document.querySelectorAll('[data-collection]').forEach(el=>{
+    el.classList.toggle('active',type==='collection'&&el.dataset.collection===value);
+  });
+  menuOpen(false);
+  document.getElementById('produtos').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function shelfHTML(section){
+  if(section.items.length===0)return'';
+  const shown=Math.min(visibleCounts[section.title],section.items.length);
+  const rest=section.items.length-shown;
+  const slug=section.title.toLowerCase().replaceAll(' ','-');
+  return `<section class="shelf" aria-labelledby="shelf-${slug}">
+    <div class="shelf-head">
+      <div>
+        <h3 id="shelf-${slug}">${section.title}</h3>
+        <p>${section.text}</p>
+      </div>
+      <span class="shelf-count">${section.items.length} itens</span>
+    </div>
+    <div class="product-grid">${section.items.slice(0,shown).map(productCard).join('')}</div>
+    ${rest>0?`<button class="load-more" type="button" onclick="loadMore('${section.title}')">Carregar mais <span>+${Math.min(rest,PAGE_SIZE)}</span></button>`:''}
+  </section>`;
+}
+function render(){
+  const visible=products.filter(matchesFilter);
+  const encomendaItems=visible.filter(p=>p.mode==='Sob encomenda');
+  const entregaItems=visible.filter(p=>p.mode==='Pronta entrega');
+  document.getElementById('grid-encomenda').innerHTML=shelfHTML({
+    title:'Sob encomenda',
+    text:'Peças de cosplay e fantasia para consultar medidas, ajustes e prazo diretamente pelo WhatsApp.',
+    items:encomendaItems
+  });
+  document.getElementById('grid-entrega').innerHTML=shelfHTML({
+    title:'Pronta entrega',
+    text:'Camisetas e itens disponíveis para combinar compra, retirada ou envio.',
+    items:entregaItems
+  });
+  document.getElementById('brecho').style.display=encomendaItems.length?'':'none';
+  document.getElementById('collections').innerHTML=collectionData.map(c=>`<a class="collection" href="#produtos" onclick="setFilter('collection','${c.nm}');return false" style="--tone:${c.tone};--photo:url('${c.img}')"><span>${c.tag}</span><b>${c.nm}</b></a>`).join('');
+}
+function setGalleryImage(src,btn){
+  document.querySelector('.gallery-main').style.setProperty('--photo',`url('${src}')`);
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===btn));
+}
+function zoomMove(e,el){
+  const r=el.getBoundingClientRect();
+  const x=((e.clientX-r.left)/r.width)*100;
+  const y=((e.clientY-r.top)/r.height)*100;
+  el.style.backgroundPosition=`${x}% ${y}%`;
+}
+function zoomIn(el){
+  el.style.backgroundSize='200%';
+}
+function zoomOut(el){
+  el.style.backgroundSize='cover';
+  el.style.backgroundPosition='center';
+}
+function openProduct(id){
+  const p=products.find(item=>item.id===id);
+  const thumbs=[p.img,...products.filter(item=>item.id!==p.id&&item.collection===p.collection).slice(0,3).map(item=>item.img)];
+  product.innerHTML=`<button class="back" onclick="goHome()">${icons.back} Voltar à loja</button>
+  <div class="pgrid">
+    <div>
+      <div class="gallery-main" style="--photo:url('${p.img}')" onmouseenter="zoomIn(this)" onmousemove="zoomMove(event,this)" onmouseleave="zoomOut(this)"></div>
+      <div class="thumbs">${thumbs.map((src,i)=>`<button type="button" class="${i===0?'active':''}" style="--thumb:url('${src}')" onclick="setGalleryImage('${src}',this)" aria-label="Ver foto ${i+1}"></button>`).join('')}</div>
+    </div>
+    <div class="pinfo">
+      <span class="eyebrow">${p.collection} · ${p.mode}</span>
+      <h1>${p.name}</h1>
+      <p class="big-price">${p.price}${p.old?` <s>${p.old}</s>`:''}</p>
+      <span class="chip"><i></i><b>${p.photoNote}</b> da loja</span>
+      <div class="modes">
+        <div class="mode ${p.mode==='Pronta entrega'?'on':''}"><b>Pronta entrega</b>envio rápido</div>
+        <div class="mode ${p.mode==='Sob encomenda'?'on':''}"><b>Sob encomenda</b>medidas combinadas</div>
+      </div>
+      <div class="facts">
+        <div class="fact"><span>Foto</span><b>produto real</b></div>
+        <div class="fact"><span>Tamanhos</span><b>consultar</b></div>
+        <div class="fact"><span>Cuidados</span><b>confirmar na compra</b></div>
+        <div class="fact"><span>Compra</span><b>WhatsApp</b></div>
+      </div>
+      <p class="pdesc">Foto real do acervo da Lynch Store. Consulte medidas, disponibilidade e valor pelo WhatsApp antes de finalizar a compra.</p>
+      <div class="pcta"><a class="btn primary" href="https://wa.me/">${icons.wa} Comprar no WhatsApp</a></div>
+      <div class="freight">
+        <p><span class="eyebrow">frete e prazo</span><br>Calculado e combinado direto no WhatsApp, junto com o valor da peça.</p>
+        <a class="btn" href="https://wa.me/">${icons.pin} Perguntar</a>
+      </div>
+    </div>
+  </div>`;
+  home.style.display='none';
+  product.style.display='block';
+  menuOpen(false);
+  window.scrollTo(0,0);
+}
+function goHome(e){
+  if(e)e.preventDefault();
+  product.style.display='none';
+  home.style.display='block';
+  window.scrollTo(0,0);
+}
+function menuOpen(open){
+  drawer.classList.toggle('open',open);
+  document.body.style.overflow=open?'hidden':'';
+}
+render();
+</script>
 </body>
 </html>

@@ -14,6 +14,6 @@ desktop.ini
 .cache/
 node_modules/
 
-# Artefatos de trabalho (estudo de concorrentes, screenshots, automação de browser)
-*.png
+# Artefatos de trabalho (screenshots de QA, automação de browser) — não os assets do site
+/responsive-shots/
 .playwright-mcp/
