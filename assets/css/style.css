@@ -1,0 +1,864 @@
+/* ---------------------------------------------------------------------------
+   Lynch Store - folha de estilo da vitrine
+   Fase 3: extraida do <style> do index.html estatico, com os ajustes que a
+   estrutura em paginas reais (index.php / produto.php) exigiu:
+     - #product deixou de ser um painel escondido e virou .product-page;
+     - filtros viraram LINKS (navegacao real, funciona sem JS);
+     - galeria do produto usa <img> de verdade (alt/SEO) em vez de background;
+     - novos estados: carrinho no header, flash, vazio, paginacao.
+   Fase 7 (polimento de design): fonte Inter self-hosted, escala fluida com
+   tokens nomeados, container duplo (.container + .inset), header de dois
+   estados, trilho scroll-snap das colecoes, CTA pilula+badge, accordion de FAQ,
+   duotone do brecho e grid com hairline na banda .trust. A paleta da marca
+   NAO mudou: os tokens novos so estendem o :root existente.
+--------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Fase 7 - Inter variavel self-hosted (assets/fonts/, sem CDN de terceiros)
+   Arquivos de @fontsource-variable/inter 5.0.20 (peso 100-900 num unico .woff2).
+   Cada regra declara a MESMA URL duas vezes: 'woff2-variations' para os
+   navegadores antigos que so aceitavam fonte variavel com esse rotulo e
+   'woff2' para todo o resto - o navegador usa a primeira que entender.
+--------------------------------------------------------------------------- */
+@font-face{
+  font-family:'Inter';
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+  src:url('../fonts/Inter-Variable-latin.woff2') format('woff2-variations'),
+      url('../fonts/Inter-Variable-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+    U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,
+    U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:'Inter';
+  font-style:normal;
+  font-weight:100 900;
+  font-display:swap;
+  src:url('../fonts/Inter-Variable-latin-ext.woff2') format('woff2-variations'),
+      url('../fonts/Inter-Variable-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,
+    U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,
+    U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+:root{
+  --ink:#171210;
+  --muted:#6E5B4E;
+  --soft:#A48972;
+  --paper:#F7EFE2;
+  --cream:#FFF7EA;
+  --kraft:#B98958;
+  --wood:#8D572A;
+  --cocoa:#4A2815;
+  --rust:#A64E2E;
+  --clay:#D7A878;
+  --black:#0F0F10;
+  --sun:#DDAE35;
+  --moss:#4B5D41;
+  --white:#fff;
+  /* 1180px deixava ~30% da tela vazia (margem parada) em qualquer monitor de
+     laptop/desktop comum (1440-1920px) - toda secao que usa .container (header,
+     coleçoes, prateleira, footer) lia como uma coluna de mobile flutuando no
+     meio de uma tela larga. 1320px usa o espaco de verdade sem virar uma linha
+     de texto ilegivel nem esticar demais em telas ultra-wide. */
+  --max:1320px;
+  --r:24px;
+  --pill:999px;
+
+  /* --- Fase 7: alfa "muted" formalizado -----------------------------------
+     Em vez de rgba(23,18,16,.NN) literal espalhado pelo arquivo, cada nivel de
+     transparencia do tom de tinta vira um token derivado de --ink. Trocar a
+     tinta da marca passa a atualizar todas as hairlines de uma vez. */
+  --ink-06:color-mix(in srgb,var(--ink) 6%,transparent);
+  --ink-08:color-mix(in srgb,var(--ink) 8%,transparent);
+  --ink-12:color-mix(in srgb,var(--ink) 12%,transparent);
+  --ink-15:color-mix(in srgb,var(--ink) 15%,transparent);
+  --ink-28:color-mix(in srgb,var(--ink) 28%,transparent);
+  --line:var(--ink-15);
+  --line-strong:var(--ink-28);
+  --shadow:0 18px 48px var(--ink-15);
+
+  /* --- Fase 7: escala fluida com tokens nomeados --------------------------
+     Substituem os clamp() soltos que estavam hardcoded em cada seletor. */
+  --fs-h1:clamp(36px, 5vw + 1rem, 76px);
+  --fs-h2:clamp(28px, 3vw + 1rem, 56px);
+  --fs-h3:clamp(20px, 1.6vw + 1rem, 30px);
+  --fs-body:clamp(15px, 0.3vw + 0.9rem, 17px);
+  --space-section:clamp(32px, 6vw, 80px);
+  --space-card-gap:clamp(14px, 2vw, 26px);
+
+  /* --- Fase 7: container duplo -------------------------------------------- */
+  --inset:860px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.skip-link{position:fixed;top:8px;left:8px;z-index:1000;background:var(--ink);color:white;padding:12px 20px;border-radius:8px;transform:translateY(-150%)}
+.skip-link:focus{transform:translateY(0)}
+.mobile-search,.mobile-dock{display:none}
+.info-page{padding-block:48px;min-height:60vh}
+.info-page h1{font-size:clamp(30px,5vw,48px);line-height:1.1;margin-bottom:32px}
+.info-page details{border-top:1px solid var(--line);padding:20px 0}
+.info-page summary{font-weight:750;cursor:pointer;min-height:44px;display:list-item}
+.info-page p{color:var(--muted);max-width:65ch;line-height:1.75}
+@media(max-width:760px){
+  body{padding-bottom:74px}
+  .mobile-search{display:flex;gap:8px;padding-block:10px;background:var(--cream)}
+  .mobile-search input{min-width:0;flex:1;border:1px solid var(--line);border-radius:var(--pill);padding:10px 16px;background:#fff;font:inherit;font-size:16px}
+  .mobile-search button{min-height:44px}
+  .mobile-dock{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:60;justify-content:space-around;background:var(--cream);border-top:1px solid var(--line);padding:6px 12px max(6px,env(safe-area-inset-bottom));box-shadow:0 -4px 20px #1712100a}
+  .mobile-dock a{display:flex;align-items:center;flex-direction:column;gap:3px;font-size:12px;font-weight:700;min-width:72px;min-height:48px;padding:4px}
+  .mobile-dock .icon{width:21px;height:21px}
+  input,select,textarea{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+}
+@media(prefers-reduced-motion:no-preference){
+  @view-transition{navigation:auto}
+  ::view-transition{pointer-events:none}
+  ::view-transition-old(root){animation:page-out .12s ease both}
+  ::view-transition-new(root){animation:page-in .18s ease both}
+  header{view-transition-name:store-header}
+  .mobile-dock{view-transition-name:store-dock}
+  ::view-transition-group(store-header),::view-transition-group(store-dock){animation-duration:.18s}
+  .flash{animation:feedback-in .2s ease both}
+}
+@keyframes page-out{to{opacity:0}}
+@keyframes page-in{from{opacity:0}}
+@keyframes feedback-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.btn:active:not(.is-disabled),.buy:active,.qty-step:active{transform:scale(.97)}
+[data-gallery][aria-busy="true"]{cursor:progress}
+html{scroll-behavior:smooth;scroll-padding-top:86px}
+body{
+  margin:0;
+  color:var(--ink);
+  background:
+    linear-gradient(180deg,rgba(247,239,226,.96),rgba(255,247,234,.98)),
+    radial-gradient(circle at 14% 10%,rgba(221,174,53,.22),transparent 32%),
+    radial-gradient(circle at 86% 18%,rgba(166,78,46,.18),transparent 30%);
+  font-family:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:var(--fs-body);
+  line-height:1.5;
+}
+button,input{font:inherit}
+button{border:0;background:none;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--rust);outline-offset:3px}
+/* Container duplo: .container e o shell largo (header, hero, grade de produtos)
+   e .inset e a medida de leitura (rodape, texto do produto, FAQ). --pad-x fica
+   no proprio .container para que filhos full-bleed (o trilho de colecoes)
+   consigam sangrar exatamente o mesmo tanto em cada breakpoint. */
+.container{--pad-x:20px;max-width:var(--max);margin:0 auto;padding:0 var(--pad-x)}
+.inset{max-width:var(--inset);margin-inline:auto;padding-inline:20px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:850;color:var(--rust)}
+/* Palavra em destaque dentro de um titulo (item "cabecalho de secao"):
+   cor da marca + peso, nunca tamanho - o titulo continua uma so linha optica. */
+.hl{color:var(--rust);font-weight:950}
+.lede{margin:10px 0 0;max-width:56ch;color:var(--muted);font-size:var(--fs-body);font-weight:650}
+/* Esconde a barra de rolagem nativa de trilhos horizontais (sem lib JS) */
+.no-scrollbar{scrollbar-width:none;-ms-overflow-style:none}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.icon{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.visually-hidden{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;
+}
+.logo{display:flex;align-items:center;gap:11px;min-width:0}
+.mark{
+  width:42px;height:42px;border-radius:50%;flex:0 0 auto;
+  transition:width .24s ease,height .24s ease;
+  border:1px solid rgba(74,40,21,.24);
+  background:var(--kraft);
+  display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 3px 0 var(--ink-12);
+}
+.mark img{width:100%;height:100%;object-fit:cover}
+.logo b{display:block;font-size:18px;letter-spacing:.01em}
+.logo small{
+  display:block;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--soft);font-weight:800;
+  max-height:16px;overflow:hidden;transition:opacity .2s ease,max-height .24s ease;
+}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  min-height:44px;padding:12px 18px;border-radius:var(--pill);
+  font-weight:850;font-size:14px;border:1px solid var(--line-strong);
+  background:var(--white);
+}
+.btn.primary{background:var(--rust);border-color:var(--rust);color:#fff}
+.btn.sun{background:var(--sun);border-color:var(--ink-12);color:var(--ink)}
+.btn:hover{transform:translateY(-1px)}
+/* WhatsApp ainda sem numero configurado: botao existe, mas nao e um link morto */
+.btn.is-disabled,.btn.is-disabled:hover{
+  opacity:.55;cursor:not-allowed;transform:none;
+  background:rgba(255,255,255,.6);border-color:var(--line);color:var(--muted);
+}
+.btn.primary.is-disabled{background:color-mix(in srgb,var(--rust) 42%,transparent);border-color:transparent;color:#fff}
+
+/* --- CTA pilula + badge circular ------------------------------------------
+   Usado SO nos dois momentos de maior intencao de compra: o CTA principal do
+   hero e o "Finalizar pedido" do carrinho. O texto continua na pilula e a seta
+   ganha um disco proprio, que desliza na diagonal no hover/foco. */
+.cta-pill{gap:14px;padding-right:6px;justify-content:space-between}
+.cta-pill-text{display:inline-flex;align-items:center;gap:9px;min-width:0}
+.cta-badge{
+  flex:0 0 auto;width:34px;height:34px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--ink);color:var(--cream);
+  transition:transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease;
+}
+.cta-badge .icon{width:16px;height:16px;stroke-width:2.2}
+.cta-pill:hover .cta-badge,.cta-pill:focus-visible .cta-badge{
+  transform:translate(4px,-4px);box-shadow:-3px 3px 0 var(--ink-15);
+}
+.btn.primary .cta-badge{background:var(--cream);color:var(--rust)}
+.cta-pill.is-disabled .cta-badge{background:var(--soft);color:var(--cream)}
+.cta-pill.is-disabled:hover .cta-badge{transform:none;box-shadow:none}
+@media(prefers-reduced-motion:reduce){
+  .cta-pill:hover .cta-badge,.cta-pill:focus-visible .cta-badge{transform:none}
+}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--line);background:rgba(255,255,255,.72);
+  border-radius:var(--pill);padding:7px 12px;font-size:12px;font-weight:800;color:var(--muted);
+}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 3px rgba(221,174,53,.22)}
+
+/* Header - dois estados (topo x rolado). A troca e feita por um
+   IntersectionObserver em assets/js/main.js observando .head-sentinel; sem JS o
+   header simplesmente fica sempre no estado "topo", que e o estado completo. */
+header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(255,247,234,.90);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid transparent;
+  transition:background .24s ease,box-shadow .24s ease,border-color .24s ease,backdrop-filter .24s ease;
+}
+header.on{
+  background:color-mix(in srgb,var(--cream) 78%,transparent);
+  backdrop-filter:blur(28px) saturate(1.25);
+  border-bottom-color:var(--line);
+  box-shadow:0 10px 30px var(--ink-08);
+}
+.head{height:70px;display:flex;align-items:center;gap:18px;transition:height .24s ease}
+header.on .head{height:56px}
+header.on .mark{width:34px;height:34px}
+header.on .logo small{opacity:0;max-height:0}
+header.on .icon-btn{width:38px;height:38px}
+/* 1px invisivel logo depois do <header>: quando ele sai do topo da viewport o
+   observer marca o header como "rolado". Sem calculo de scrollY. */
+.head-sentinel{height:1px;pointer-events:none}
+.desktop-nav{display:none;align-items:center;gap:22px;margin-left:12px}
+.desktop-nav a{font-size:14px;font-weight:750;color:var(--muted)}
+.desktop-nav a:hover{color:var(--rust)}
+.search{
+  display:none;align-items:center;gap:9px;min-width:220px;margin-left:auto;
+  padding:10px 14px;border:1px solid var(--line);border-radius:var(--pill);
+  background:rgba(255,255,255,.7);color:var(--soft);font-size:13px;
+}
+.search input{
+  border:0;background:none;outline:none;min-width:0;width:100%;
+  color:var(--ink);font-size:13px;font-weight:650;
+}
+.search input::placeholder{color:var(--soft)}
+.head-actions{margin-left:auto;display:flex;align-items:center;gap:9px}
+.icon-btn{
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(255,255,255,.72);display:grid;place-items:center;color:var(--ink);
+  position:relative;flex:0 0 auto;transition:width .24s ease,height .24s ease;
+}
+.cart-count{
+  position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;
+  border-radius:var(--pill);background:var(--rust);color:#fff;
+  font-size:11px;font-weight:900;display:grid;place-items:center;
+  border:2px solid var(--cream);
+}
+.cart-count[data-count="0"]{display:none}
+@media(min-width:900px){
+  .desktop-nav,.search{display:flex}
+  .menu-btn{display:none}
+  .head-actions{margin-left:0}
+}
+
+/* Mensagens flash */
+.flash-wrap{padding:14px 0 0}
+.flash{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  border:1px solid var(--line);border-left-width:5px;border-radius:16px;
+  padding:12px 16px;font-size:14px;font-weight:750;background:rgba(255,255,255,.8);
+}
+.flash.success{border-left-color:var(--moss)}
+.flash.error{border-left-color:var(--rust)}
+.flash.info{border-left-color:var(--sun)}
+
+/* Hero */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(100deg,var(--cream) 0%,var(--cream) 38%,var(--clay) 62%,var(--kraft) 100%);
+  border-bottom:1px solid var(--ink-15);
+}
+.hero-media{
+  position:relative;z-index:1;
+  min-height:min(620px,calc(100svh - 70px));
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,520px);
+  align-items:center;gap:clamp(12px,3vw,32px);
+  padding-top:clamp(34px,6vw,74px);
+  padding-bottom:clamp(30px,5vw,58px);
+}
+.hero-content{min-width:0;position:relative;z-index:2}
+.hero-copy{max-width:620px}
+.hero h1{
+  margin:12px 0 16px;
+  max-width:12ch;
+  font-size:var(--fs-h1);
+  line-height:.96;letter-spacing:0;font-weight:920;
+}
+.hero p{margin:0;max-width:43ch;font-size:clamp(16px,1.5vw,19px);color:var(--muted);font-weight:650}
+.hero-ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}
+.hero .chip{background:rgba(255,247,234,.86);color:var(--cocoa);border-color:rgba(141,87,42,.24)}
+.hero-visual{
+  position:relative;height:min(560px,72vh);width:100%;
+  justify-self:stretch;pointer-events:none;
+}
+.hero-visual img{
+  position:absolute;object-fit:contain;object-position:bottom;width:auto;
+  filter:drop-shadow(0 22px 26px rgba(23,18,16,.28));
+  max-width:none;pointer-events:none;
+}
+/* Composicao "arrumada": rotacao leve e alternada (nunca mais que ~2.5deg),
+   base (bottom) numa faixa estreita para as pecas parecerem apoiadas juntas
+   em vez de flutuando em alturas aleatorias, e progressao suave de tamanho
+   (38/46/68/52%) em vez do salto brusco que havia entre a 2a e a 3a foto. */
+.hero-visual img:nth-child(1){left:-2%;bottom:0%;height:38%;transform:rotate(-2deg);z-index:1}
+.hero-visual img:nth-child(2){left:24%;bottom:4%;height:46%;transform:rotate(1.5deg);z-index:2}
+.hero-visual img:nth-child(3){left:48%;bottom:0%;height:68%;transform:rotate(-1.5deg);z-index:3}
+.hero-visual img:nth-child(4){left:74%;bottom:5%;height:52%;transform:rotate(2deg);z-index:4}
+
+/* Trust bar - grid full-bleed com hairline entre as celulas.
+   A faixa nao usa .container de proposito: ela vai de borda a borda da tela e
+   quem cria o ritmo sao as linhas de 1px, nao o espacamento solto. 2 colunas no
+   mobile, 4 no desktop; as bordas externas ficam a cargo da propria faixa. */
+.trust{padding:0;border-bottom:1px solid var(--line);background:rgba(255,247,234,.6)}
+.trust-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.trust-item{
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  min-height:64px;padding:14px 16px;text-align:center;
+  font-size:13px;font-weight:800;color:var(--cocoa);
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.trust-item:nth-child(2n){border-right:0}
+.trust-item:nth-child(n+3){border-bottom:0}
+.trust-item .icon{width:20px;height:20px;color:var(--rust);flex:0 0 auto}
+@media(min-width:760px){
+  .trust-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .trust-item,
+  .trust-item:nth-child(2n){border-bottom:0;border-right:1px solid var(--line)}
+  .trust-item:last-child{border-right:0}
+}
+@media(max-width:620px){.trust-item{font-size:12px;gap:7px;padding:12px 10px;min-height:60px}}
+
+/* Shop */
+.shop-wrap{padding:var(--space-section) 0 26px}
+.shop{display:grid;grid-template-columns:1fr;gap:26px}
+.filters{
+  border:1px solid var(--line);border-radius:28px;background:rgba(255,247,234,.84);
+  padding:20px;box-shadow:0 14px 34px rgba(48,39,42,.06);
+}
+.filters h4{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+.filter-group{margin-bottom:18px}
+.filter-group:last-child{margin-bottom:0}
+.filter-link,.check{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 11px;border-radius:16px;font-size:14px;color:var(--muted);text-align:left;
+}
+.filter-link:hover,.check:hover{background:rgba(216,168,120,.28);color:var(--ink)}
+.filter-link span{color:var(--soft);font-size:12px}
+.filter-link.active{background:var(--rust);color:#fff}
+.filter-link.active span{color:#fff}
+.check{justify-content:flex-start;border:1px solid var(--line);margin-bottom:8px;background:rgba(255,255,255,.55)}
+.check i{
+  width:18px;height:18px;border-radius:7px;border:1px solid var(--line-strong);
+  display:grid;place-items:center;flex:0 0 auto;
+}
+.check i::after{content:"";width:8px;height:8px;border-radius:3px;background:var(--rust);opacity:0}
+.check.active{color:var(--ink);background:rgba(216,168,120,.22)}
+.check.active i::after{opacity:1}
+.toolbar{display:flex;align-items:end;justify-content:space-between;gap:14px;margin-bottom:18px}
+.toolbar h2{font-size:var(--fs-h2);line-height:1;margin:5px 0 0;letter-spacing:0}
+.toolbar .lede{margin-top:8px;max-width:48ch;font-size:14px}
+.toolbar-actions{display:flex;align-items:center;gap:10px}
+.active-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.active-filters .chip{background:rgba(255,255,255,.9)}
+.active-filters .chip b{color:var(--ink)}
+.shelves{display:grid;gap:34px}
+.shelf{display:grid;gap:14px}
+.shelf-head{
+  display:flex;align-items:end;justify-content:space-between;gap:16px;
+  border-bottom:1px solid var(--line);padding-bottom:12px;
+}
+.shelf-head h3{margin:0;font-size:var(--fs-h3);line-height:1.05;letter-spacing:0}
+.shelf-head p{margin:5px 0 0;color:var(--muted);font-size:14px;max-width:52ch}
+.shelf-count{
+  flex:0 0 auto;border:1px solid var(--line);border-radius:var(--pill);
+  background:rgba(255,255,255,.64);padding:7px 11px;
+  color:var(--cocoa);font-size:12px;font-weight:900;
+}
+.load-more{
+  justify-self:center;display:inline-flex;align-items:center;gap:8px;
+  margin-top:6px;padding:12px 22px;border-radius:var(--pill);
+  border:1px solid var(--line-strong);background:#fff;
+  font-size:14px;font-weight:850;color:var(--ink);
+}
+.load-more:hover{background:rgba(216,168,120,.28)}
+.load-more span{
+  background:var(--rust);color:#fff;border-radius:var(--pill);
+  padding:2px 9px;font-size:12px;font-weight:900;
+}
+.empty{
+  border:1px dashed var(--line-strong);border-radius:28px;
+  padding:34px 24px;text-align:center;background:rgba(255,255,255,.5);
+}
+.empty h3{margin:0 0 8px;font-size:20px}
+.empty p{margin:0 0 18px;color:var(--muted);font-size:14px}
+.product-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--space-card-gap);align-items:start;grid-auto-flow:dense;
+}
+.card{text-align:left;width:100%;display:block;position:relative}
+.pic{
+  position:relative;aspect-ratio:4/5;border-radius:28px 22px 30px 24px;overflow:hidden;border:1px solid rgba(48,39,42,.11);
+  background:
+    linear-gradient(135deg,rgba(255,247,234,.22),rgba(255,255,255,0)),
+    var(--tone,var(--kraft));
+  background-size:cover;
+  background-position:center;
+  box-shadow:0 12px 28px rgba(48,39,42,.08);
+  isolation:isolate;
+  transition:transform .22s ease,box-shadow .22s ease,border-radius .22s ease;
+}
+.product-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+/* Link que cobre a foto inteira. Fica ACIMA do degrade e ABAIXO do botao de
+   comprar - assim o card inteiro leva ao produto sem aninhar <a> dentro de <a>. */
+.pic-link{position:absolute;inset:0;z-index:2;display:block}
+.card:nth-child(4n) .pic{border-radius:22px 34px 24px 30px}
+.card:nth-child(5n+3) .pic{border-radius:34px 24px 32px 22px}
+.card:hover .pic,.card:focus-visible .pic{transform:translateY(-3px);box-shadow:0 18px 36px rgba(48,39,42,.14)}
+.pic::before{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(15,15,16,0) 50%,rgba(15,15,16,.42));
+}
+.off{
+  position:absolute;top:9px;right:9px;z-index:3;width:50px;height:50px;border-radius:50%;
+  display:grid;place-items:center;background:var(--rust);color:#fff;font-size:12px;font-weight:950;
+  transform:rotate(7deg);border:2px solid #fff;
+}
+.tag-avail{
+  position:absolute;top:10px;left:10px;z-index:3;
+  background:rgba(255,247,234,.94);border-radius:var(--pill);
+  padding:5px 10px;font-size:11px;font-weight:900;color:var(--cocoa);
+}
+.buy{
+  position:absolute;left:10px;right:10px;bottom:10px;z-index:4;
+  min-height:40px;background:var(--black);color:#fff;border-radius:var(--pill);
+  display:flex;align-items:center;justify-content:center;gap:7px;font-size:13px;font-weight:900;
+}
+.card-copy{padding:10px 2px 0}
+.card h3{font-size:15px;margin:0 0 4px;line-height:1.25}
+.card-meta{font-size:12px;color:var(--muted);font-weight:750;display:block}
+.card-price{font-size:14px;font-weight:900;color:var(--cocoa);margin-top:3px;display:block}
+@media(min-width:760px){.product-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1000px){
+  .shop{grid-template-columns:260px 1fr;align-items:start}
+  .filters{position:sticky;top:90px}
+  .filter-mobile{display:none}
+  .product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .buy{opacity:0;transform:translateY(8px);transition:.18s}
+  .card:hover .buy,.card:focus-visible .buy{opacity:1;transform:none}
+}
+/* Telas de desktop largas (>=1440px): a prateleira ganha uma 5a coluna em vez
+   de so alargar a margem em volta do grid de 4 - e a sidebar cresce junto pra
+   nao ficar desproporcional ao lado de um grid maior. */
+@media(min-width:1440px){
+  .shop{grid-template-columns:288px 1fr}
+  .product-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+@media(max-width:999px){
+  .filters{display:none}
+}
+
+/* Collections and bands */
+.band{padding:var(--space-section) 0;background:rgba(255,247,234,.52);border-top:1px solid var(--ink-08);border-bottom:1px solid var(--ink-08)}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:22px}
+.section-head h2{margin:5px 0 0;font-size:var(--fs-h2);line-height:1;letter-spacing:0}
+.section-head .lede{max-width:46ch}
+/* Com a lede embaixo do titulo o botao da direita nao cabe mais na mesma linha
+   em tela estreita: a cabeca da secao empilha e o botao vira largura de conteudo. */
+@media(max-width:680px){
+  .section-head{flex-direction:column;align-items:flex-start;gap:14px}
+  .section-head>.btn{align-self:flex-start}
+}
+.collections{display:grid;grid-template-columns:1fr;gap:var(--space-card-gap)}
+.collection{
+  min-height:220px;position:relative;overflow:hidden;border-radius:28px;
+  background:var(--tone,var(--kraft));border:1px solid var(--ink-15);
+  background-image:linear-gradient(190deg,rgba(15,15,16,0) 30%,rgba(15,15,16,.74) 92%),var(--photo);
+  background-size:cover;background-position:center;
+  padding:20px;display:flex;align-items:flex-end;
+  box-shadow:0 12px 28px rgba(48,39,42,.10);
+  transition:transform .22s ease,box-shadow .22s ease,background-size .5s ease;
+}
+.collection:hover,.collection:focus-visible{
+  transform:translateY(-5px);box-shadow:0 20px 40px rgba(48,39,42,.20);background-size:112%;
+}
+.collection b{
+  position:relative;font-size:clamp(24px,3vw,32px);line-height:1;letter-spacing:0;
+  font-weight:920;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.35);
+  display:flex;align-items:center;gap:8px;
+}
+.collection b::after{content:"→";font-size:22px;transition:transform .22s ease}
+.collection:hover b::after{transform:translateX(4px)}
+.collection span{
+  position:absolute;top:18px;left:18px;background:rgba(255,247,234,.94);
+  border-radius:var(--pill);padding:6px 12px;font-size:11px;font-weight:900;
+  letter-spacing:.02em;color:var(--cocoa);
+}
+.collection.active{outline:3px solid var(--rust);outline-offset:2px}
+@media(min-width:760px){.collections{grid-template-columns:repeat(4,1fr)}.collection{min-height:270px}}
+
+/* Trilho horizontal com scroll-snap - SO no mobile.
+   Ate 759px a banda "Colecoes" deixa de ser grid e vira um carrossel nativo:
+   sangra ate a borda da tela (usando o mesmo --pad-x do .container, para o
+   primeiro card nascer alinhado com o titulo) e cada card ancora no inicio.
+   Sem lib JS: quem rola e o proprio navegador. */
+@media(max-width:759px){
+  .collections{
+    display:flex;
+    grid-template-columns:none;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x mandatory;
+    scroll-padding-inline:var(--pad-x,20px);
+    margin-inline:calc(var(--pad-x,20px) * -1);
+    padding-inline:var(--pad-x,20px);
+    padding-bottom:4px;
+  }
+  .collections>.collection{
+    flex:0 0 min(78%,300px);
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+    min-height:250px;
+  }
+  /* Sem hover no toque: o "levantar" do card so atrapalharia o snap */
+  .collections>.collection:hover{transform:none;box-shadow:0 12px 28px rgba(48,39,42,.10)}
+}
+.life{
+  display:grid;grid-template-columns:1fr;border-radius:32px;overflow:hidden;
+  background:var(--cocoa);box-shadow:0 26px 56px rgba(23,18,16,.26);
+  margin:38px 0;
+}
+/* Duotone em CSS puro, sem asset novo: a MESMA foto que ja estava aqui e
+   dessaturada por filter e recebe duas camadas de tinta da paleta - sombra em
+   --cocoa (multiply) e luz em --clay (screen). O filter fica numa camada
+   propria porque filter afeta os descendentes: se estivesse no .life-media, a
+   tinta seria dessaturada junto e o duotone viraria cinza. */
+.life-media{
+  min-height:320px;position:relative;overflow:hidden;isolation:isolate;
+  background:var(--cocoa);
+}
+.life-photo{
+  position:absolute;inset:0;
+  background:url('../products/product-05.webp') center/cover no-repeat;
+  filter:grayscale(.85) contrast(1.1);
+}
+.life-tint{position:absolute;inset:0;background:var(--cocoa);mix-blend-mode:multiply;opacity:.5}
+.life-tint.warm{background:var(--clay);mix-blend-mode:screen;opacity:.3}
+/* Degrade de leitura, herdado do layout anterior (fica ACIMA das tintas) */
+.life-media::after{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(15,15,16,0) 34%,rgba(15,15,16,.48));
+}
+.life-text{
+  padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:center;
+  background:linear-gradient(155deg,var(--cocoa),var(--black));
+}
+.life-text .eyebrow{color:var(--sun)}
+/* min() sobre o token: --fs-h2 e calibrado para titulo de secao em largura
+   cheia; aqui a coluna e estreita (o painel mora dentro da coluna direita da
+   loja) e sem o teto o titulo quebraria uma palavra por linha. */
+.life-text h2{font-size:min(var(--fs-h2),42px);line-height:1.04;margin:10px 0 14px;color:#fff}
+.life-text p{margin:0 0 22px;color:rgba(255,247,234,.72);max-width:48ch}
+.life-cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.life-cta .btn{min-height:54px;padding:0 26px;font-size:15px}
+.life-note{font-size:12px;color:rgba(255,247,234,.58);font-weight:750}
+@media(min-width:820px){.life{grid-template-columns:1.12fr .88fr}}
+
+/* Product page */
+.product-page{padding:28px 0 64px}
+.back{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-weight:850;margin-bottom:18px}
+.back:hover{color:var(--rust)}
+.pgrid{display:grid;grid-template-columns:1fr;gap:30px}
+.gallery-main{
+  aspect-ratio:4/5;border-radius:32px;position:relative;overflow:hidden;
+  border:1px solid var(--line);background:linear-gradient(135deg,var(--kraft),var(--rust));
+  cursor:zoom-in;
+}
+.gallery-main img{
+  width:100%;height:100%;object-fit:cover;
+  transform-origin:var(--ox,50%) var(--oy,50%);
+  transition:transform .2s ease;
+}
+.gallery-main.zoomed img{transform:scale(2)}
+@media(hover:none){.gallery-main{cursor:default}.gallery-main.zoomed img{transform:none}}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.thumbs button{
+  aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:var(--cream);
+  border:1px solid var(--line);padding:0;cursor:pointer;transition:transform .16s ease,border-color .16s ease;
+}
+.thumbs button img{width:100%;height:100%;object-fit:cover}
+.thumbs button:hover{transform:translateY(-2px)}
+.thumbs button.active{border:2px solid var(--rust)}
+.pinfo{background:rgba(255,247,234,.82);border:1px solid var(--line);border-radius:30px;padding:24px}
+/* Mesmo caso do .life-text h2: token com teto, porque o painel e estreito. */
+.pinfo h1{font-size:min(var(--fs-h2),44px);line-height:1.04;margin:8px 0 10px}
+/* O .inset dentro do painel serve como medida de leitura (abaixo de 900px o
+   .pinfo ocupa a largura inteira e a descricao viraria uma linha longa demais);
+   o respiro lateral ja e do proprio painel, entao aqui ele zera. */
+.pinfo>.inset{padding-inline:0}
+.pinfo .big-price{font-size:30px;font-weight:950;margin:0 0 14px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.mode{border:1px solid var(--line);border-radius:18px;padding:13px;text-align:center;color:var(--muted);font-size:12px}
+.mode.on{border-color:var(--rust);background:rgba(216,168,120,.30);color:var(--ink)}
+.mode b{display:block;color:var(--ink)}
+.facts{border-top:1px solid var(--line);margin-top:14px}
+.fact{display:flex;justify-content:space-between;gap:20px;border-bottom:1px dashed var(--line);padding:12px 0;font-size:14px}
+.fact span{color:var(--muted)}
+.pdesc{color:var(--muted);white-space:pre-line}
+.pcta{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}.pcta .btn{flex:1 1 180px}
+.freight{margin-top:16px;border:1px solid var(--line);border-radius:22px;padding:15px;background:var(--cream);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.freight p{margin:0;font-size:13px;color:var(--muted);max-width:32ch}
+.related{margin-top:52px}
+@media(min-width:900px){.pgrid{grid-template-columns:1.04fr .96fr}.pinfo{position:sticky;top:92px}}
+
+/* --- Accordion de FAQ (produto.php) ---------------------------------------
+   <details>/<summary> puros: abre e fecha sem uma linha de JS. A transicao usa
+   max-height (o unico jeito CSS-only de animar altura desconhecida) com um teto
+   generoso, e o "+" gira 135deg virando "x". Conteudo institucional da loja -
+   nao depende de dado por produto. */
+/* Dentro do .product-page (que ja e um .container) o respiro lateral e do
+   container; aqui o .inset entra so pela medida de leitura. */
+.product-page>.inset{padding-inline:0}
+.faq{margin-top:var(--space-section)}
+.faq-head{margin-bottom:6px}
+.faq-head h2{margin:6px 0 0;font-size:var(--fs-h3);line-height:1.1;letter-spacing:0}
+.faq details{border-bottom:1px solid var(--line)}
+.faq details:first-of-type{border-top:1px solid var(--line)}
+.faq summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:18px 2px;font-size:15px;font-weight:850;color:var(--ink);
+}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover{color:var(--rust)}
+.faq summary .plus{
+  flex:0 0 auto;width:30px;height:30px;border-radius:50%;
+  border:1px solid var(--line-strong);display:grid;place-items:center;
+  font-size:19px;line-height:0;font-weight:700;color:var(--cocoa);
+  transition:transform .3s cubic-bezier(.22,1,.36,1),background .2s ease,color .2s ease,border-color .2s ease;
+}
+.faq details[open] summary .plus{
+  transform:rotate(135deg);background:var(--rust);border-color:var(--rust);color:#fff;
+}
+.faq-body{overflow:hidden;max-height:0;transition:max-height .32s ease}
+.faq details[open] .faq-body{max-height:360px}
+.faq-body p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.6}
+@media(prefers-reduced-motion:reduce){
+  .faq summary .plus,.faq-body{transition:none}
+}
+
+/* Pagina de erro (404) */
+.errorpage{padding:70px 0 90px;text-align:center}
+.errorpage h1{font-size:var(--fs-h1);line-height:1;margin:10px 0 12px}
+.errorpage p{color:var(--muted);max-width:44ch;margin:0 auto 24px}
+
+/* O rodape usa .inset (860px) em vez do shell largo: com 3 colunas espalhadas
+   por 1180px as listas ficavam ilhas soltas nas pontas. */
+footer{padding:var(--space-section) 0 46px;color:var(--muted)}
+.foot{display:grid;grid-template-columns:1fr;gap:24px;border-top:1px solid var(--line);padding-top:30px}
+footer h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft)}
+footer a{display:block;padding:10px 0;font-weight:650}
+footer a:hover{color:var(--rust)}
+.foot-note{border-top:1px solid var(--line);margin-top:26px;padding-top:18px;font-size:12px}
+@media(min-width:760px){.foot{grid-template-columns:2fr 1fr 1fr}}
+
+/* Mobile menu from layout 02 */
+.drawer{
+  position:fixed;inset:0;z-index:80;background:rgba(48,39,42,.45);
+  opacity:0;pointer-events:none;transition:.22s;
+}
+.drawer.open{opacity:1;pointer-events:auto}
+.drawer-panel{
+  position:absolute;top:0;right:0;bottom:0;width:min(78vw,340px);
+  background:var(--cream);border-radius:32px 0 0 32px;
+  padding:22px 28px;overflow:auto;
+  transform:translateX(100%);transition:.28s cubic-bezier(.22,1,.36,1);
+  box-shadow:-18px 0 48px rgba(48,39,42,.16);
+}
+.drawer.open .drawer-panel{transform:none}
+.drawer-close{display:grid;place-items:center;margin:0 0 26px auto;width:42px;height:42px;border-radius:50%;color:var(--muted)}
+.drawer h3{margin:24px 0 12px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--rust)}
+.drawer a{
+  min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:18px;
+  border-bottom:1px dashed var(--line);font-size:21px;color:var(--ink);
+}
+.drawer a span{font-size:14px;color:var(--soft)}
+@media(min-width:900px){.drawer{display:none}}
+@media(max-width:520px){
+  html{scroll-padding-top:80px}
+  .container{--pad-x:16px}
+  .inset{padding-inline:16px}
+  .head{height:66px}.logo small{display:none}.mark{width:38px;height:38px}
+  header.on .head{height:54px}header.on .mark{width:32px;height:32px}
+  .head-actions .btn.primary{width:42px;padding:0}
+  .head-actions .btn.primary span{display:none}
+  .shop-wrap{padding-top:30px}.product-grid{gap:13px}.pic{border-radius:20px}
+  .toolbar{align-items:flex-start}.toolbar-actions{flex-wrap:wrap;justify-content:flex-end}
+  .shelf-head{flex-direction:column;align-items:flex-start}
+  .collections{gap:13px}
+  .drawer-panel{width:78vw;border-radius:30px 0 0 30px;padding:20px 26px}
+  .pinfo{padding:20px;border-radius:24px}
+  .thumbs{grid-template-columns:repeat(4,1fr);gap:8px}
+}
+@media(max-width:760px){
+  .hero-media{
+    min-height:auto;
+    grid-template-columns:1fr;
+    gap:22px;
+    padding-top:24px;
+    padding-bottom:34px;
+  }
+  /* O tamanho vem de --fs-h1 (token fluido); aqui so o ritmo da caixa. */
+  .hero h1{
+    max-width:11ch;
+    line-height:.98;
+    margin-bottom:14px;
+  }
+  .hero p{font-size:16px;max-width:34ch}
+  .hero-ctas{gap:10px;margin-top:20px}
+  .hero-ctas .btn{flex:1 1 150px;min-height:46px;padding-inline:14px}
+  .hero-visual{justify-self:stretch;width:100%;height:min(340px,48vh)}
+  .hero-visual img:nth-child(4){display:none}
+  .hero-visual img:nth-child(1){left:-2%;bottom:0%;height:38%}
+  .hero-visual img:nth-child(2){left:28%;bottom:5%;height:50%}
+  .hero-visual img:nth-child(3){left:54%;bottom:0%;height:82%}
+}
+@media(max-width:420px){
+  .hero .chip{font-size:11px;line-height:1.2;align-items:flex-start}
+  .hero-media{gap:18px;padding-top:20px;padding-bottom:28px}
+  .hero p{font-size:15px;line-height:1.48}
+  /* Uma coluna: o CTA pilula+badge precisa da largura inteira para o disco da
+     seta nao espremer o texto. */
+  .hero-ctas{display:grid;grid-template-columns:1fr;gap:9px}
+  .hero-ctas .btn{min-height:46px;padding-inline:16px;font-size:13px}
+  .hero-ctas .btn.cta-pill{padding-right:6px}
+  /* Com a foto 3 (a mais alta da colagem) escondida, as duas que sobram ficavam
+     com 42%/38% de altura ancoradas no rodape de uma caixa de 280px - resultado:
+     mais da metade da banda era vao vazio. A caixa encolhe e as duas crescem ate
+     ocuparem quase toda a altura, mantendo o desencontro que da o ar de colagem. */
+  .hero-visual{height:min(216px,32vh)}
+  .hero-visual img:nth-child(3){display:none}
+  .hero-visual img:nth-child(1){left:-2%;bottom:0%;height:80%}
+  .hero-visual img:nth-child(2){left:44%;bottom:4%;height:72%}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar-actions{width:100%;display:grid;grid-template-columns:1fr auto}
+  .toolbar-actions .btn{padding-inline:12px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .buy{left:8px;right:8px;bottom:8px;min-height:38px;font-size:12px}
+  .shelf-head{align-items:flex-start}
+  .shelf-head p{font-size:13px}
+}
+
+/* ---------------------------------------------------------------------------
+   Fase 4 - carrinho e checkout WhatsApp
+--------------------------------------------------------------------------- */
+
+/* "Adicionar ao carrinho" virou <form method="post"> (mutacao de estado nao
+   pode ser um link). display:contents faz o <form> sumir da caixa de layout,
+   entao o <button> herda EXATAMENTE o posicionamento que o <a> tinha antes -
+   nenhuma regra de .buy / .pcta .btn precisou ser reescrita. */
+.buy-form,.pcta-form{display:contents}
+.buy{width:100%;font-family:inherit}
+@media(min-width:1000px){
+  /* :focus-within cobre quem chega no botao pelo teclado (o :focus-visible do
+     .card nunca dispara, porque quem recebe foco agora e o <button> de dentro) */
+  .card:focus-within .buy{opacity:1;transform:none}
+}
+
+.cart-page{padding-block:26px 60px}
+.cart-page .back{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:800;color:var(--muted);margin-bottom:18px}
+.cart-page .back:hover{color:var(--rust)}
+.cart-head-note{margin:0;font-size:13px;font-weight:800;color:var(--muted)}
+
+.cart-grid{display:grid;grid-template-columns:1fr;gap:22px;align-items:start}
+@media(min-width:900px){.cart-grid{grid-template-columns:1fr 320px}}
+
+.cart-lines{display:flex;flex-direction:column;gap:14px}
+.cart-row{
+  display:grid;grid-template-columns:88px 1fr;gap:14px;align-items:center;
+  border:1px solid var(--line);border-radius:24px;padding:14px;
+  background:rgba(255,255,255,.72);
+}
+.cart-thumb{display:block;border-radius:18px;overflow:hidden;border:1px solid rgba(48,39,42,.11);background:var(--kraft)}
+.cart-thumb img{width:88px;height:110px;object-fit:cover}
+.cart-info{min-width:0}
+.cart-info h3{margin:0 0 4px;font-size:15px;line-height:1.25}
+.cart-info h3 a:hover{color:var(--rust)}
+.cart-meta{display:block;font-size:12px;color:var(--muted);font-weight:750}
+.cart-unit{display:block;font-size:12px;color:var(--muted);font-weight:750;margin-top:3px}
+.cart-unit b{color:var(--cocoa)}
+
+.cart-qty{
+  grid-column:2;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+}
+.qty-step{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(255,255,255,.8);font-weight:900;font-size:16px;line-height:1;
+  display:grid;place-items:center;color:var(--cocoa);
+}
+.qty-step:hover{border-color:var(--line-strong)}
+.qty-input{
+  width:62px;height:34px;text-align:center;border:1px solid var(--line);
+  border-radius:var(--pill);background:var(--white);font-weight:850;font-size:14px;color:var(--ink);
+}
+.qty-apply,.cart-remove,.cart-clear button{
+  border:1px solid var(--line);border-radius:var(--pill);padding:7px 14px;
+  background:rgba(255,255,255,.7);font-size:12px;font-weight:850;color:var(--muted);
+}
+.qty-apply:hover,.cart-remove:hover,.cart-clear button:hover{color:var(--rust);border-color:var(--line-strong)}
+.cart-line-end{grid-column:2;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cart-subtotal{font-size:15px;font-weight:900;color:var(--cocoa)}
+.cart-clear{margin-top:4px;text-align:right}
+
+@media(min-width:640px){
+  .cart-row{grid-template-columns:88px minmax(0,1fr) auto auto;gap:16px}
+  .cart-qty,.cart-line-end{grid-column:auto}
+  .cart-line-end{flex-direction:column;align-items:flex-end;gap:6px;min-width:120px}
+}
+
+.cart-summary{
+  border:1px solid var(--line);border-radius:28px;padding:20px;
+  background:rgba(255,255,255,.82);box-shadow:var(--shadow);
+}
+@media(min-width:900px){.cart-summary{position:sticky;top:90px}}
+.cart-summary h2,.cart-summary h3{margin:0 0 14px;font-size:18px}
+.cart-total{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.cart-total span{font-size:13px;font-weight:800;color:var(--muted)}
+.cart-total b{font-size:22px;color:var(--cocoa)}
+.cart-note{margin:12px 0 0;font-size:12px;line-height:1.5;color:var(--muted);font-weight:650}
+.cart-checkout{width:100%;margin-top:16px;min-height:54px}
+.hero-visual.custom-banner img{left:0;bottom:0;width:100%;height:100%;object-fit:cover;transform:none;border-radius:24px;filter:none}
