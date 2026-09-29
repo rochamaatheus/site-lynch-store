@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Editar produto | Lynch Store: prévia</title>
+<link rel="icon" href="/site-lynch-store/assets/lynch-logo.webp">
+<link rel="stylesheet" href="/site-lynch-store/assets/css/admin.css">
+<link rel="stylesheet" href="/site-lynch-store/telas.css"></head>
+<body>
+<header class="admin-head">
+  <div class="container bar">
+    <div class="admin-brand">
+      <b>Lynch Store</b>
+      <small>Painel administrativo</small>
+    </div>
+    <nav class="admin-nav" aria-label="Navegacao do painel">
+              <a href="/site-lynch-store/painel-dashboard.html">Dashboard</a>
+              <a href="/site-lynch-store/painel-produtos.html" aria-current="page">Produtos</a>
+              <a href="/site-lynch-store/painel-pedidos.html">Pedidos</a>
+              <a href="/site-lynch-store/painel-importar.html">Importar</a>
+              <a href="/site-lynch-store/painel-categorias.html">Categorias</a>
+              <a href="/site-lynch-store/painel-configuracoes.html">Configurações</a>
+              <a href="/site-lynch-store/painel-conta.html">Minha conta</a>
+            <a href="/site-lynch-store/index.html" rel="noopener">Ver a loja ↗</a>
+              <span class="who">Conta demonstrativa</span>
+            <form><button class="btn" type="button">Sair</button></form>
+    </nav>
+  </div>
+</header>
+<main><aside class="client-preview-notice" id="preview-notice"><b>Prévia para aprovação</b><span>Esta tela é demonstrativa. Nenhuma alteração é salva.</span><a href="/site-lynch-store/telas.html">Ver todas as telas</a></aside>
+  <div class="container">
+<p class="crumb"><a href="/site-lynch-store/painel-produtos.html">← Voltar para produtos</a></p>
+
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Editando</p>
+    <h1>Peça de cosplay 01</h1>
+  </div>
+      <div class="actions">
+      <a class="btn" href="/site-lynch-store/painel-produto-fotos.html">
+        Gerenciar fotos (1)
+      </a>
+              <a class="btn ghost" rel="noopener" href="/site-lynch-store/produto-peca-de-cosplay-01.html">Ver na loja ↗</a>
+          </div>
+  </div>
+
+<form class="card">
+        <input type="hidden" name="id" value="1">
+
+  <div class="form-grid">
+    <div class="field half">
+      <label for="f-name">Nome do produto *</label>
+      <input type="text" id="f-name" name="name" maxlength="180" required="" value="Peça de cosplay 01" placeholder="Ex.: Capa de mago em veludo">
+    </div>
+
+    <div class="field half">
+      <label for="f-slug">Endereco (slug)</label>
+      <input type="text" id="f-slug" name="slug" maxlength="200" value="peca-de-cosplay-01" placeholder="gerado a partir do nome">
+      <span class="hint">
+        E o que aparece no link do produto. Deixe em branco para gerar automaticamente
+        a partir do nome; se ja existir outro produto com o mesmo endereco, o sistema
+        acrescenta um numero no fim.
+      </span>
+    </div>
+
+    <div class="field">
+      <label for="f-short">Descricao curta</label>
+      <input type="text" id="f-short" name="short_description" maxlength="255" value="" placeholder="Uma linha que aparece embaixo do nome no card">
+    </div>
+
+    <div class="field">
+      <label for="f-desc">Descricao completa</label>
+      <textarea id="f-desc" name="description" rows="7" placeholder="Tecidos, medidas, prazo de producao, cuidados..."></textarea>
+    </div>
+
+    <div class="field third">
+      <label for="f-cat">Categoria</label>
+      <select id="f-cat" name="category_id">
+        <option value="0">Sem categoria</option>
+                            <option value="1" selected="">
+            Cosplay          </option>
+                            <option value="2">
+            Fantasia          </option>
+                            <option value="3">
+            Camisetas          </option>
+                            <option value="4">
+            Novidades          </option>
+              </select>
+    </div>
+
+    <div class="field third">
+      <span class="lbl">Disponibilidade</span>
+      <div class="radioset">
+        <label>
+          <input type="radio" name="availability" value="sob_encomenda" checked=""> Sob encomenda
+        </label>
+        <label>
+          <input type="radio" name="availability" value="pronta_entrega"> Pronta entrega
+        </label>
+      </div>
+    </div>
+
+    <div class="field third">
+      <label for="f-sort">Ordem de exibicao</label>
+      <input type="number" id="f-sort" name="sort_order" step="1" value="1">
+      <span class="hint">Menor aparece primeiro na loja.</span>
+    </div>
+
+    <div class="field half">
+      <label for="f-price">Preco (R$)</label>
+      <input type="text" id="f-price" name="price" inputmode="decimal" value="" placeholder="189,90" disabled="">
+      <label class="checkline" style="margin-top:9px;text-transform:none;letter-spacing:0;font-size:14.5px;color:var(--ink)">
+        <input type="checkbox" id="f-onrequest" name="price_on_request" value="1" checked="">
+        Consultar valor (nao mostrar preco na loja)
+      </label>
+    </div>
+
+    <div class="field half">
+      <span class="lbl">Visibilidade</span>
+      <label class="checkline">
+        <input type="checkbox" name="active" value="1" checked="">
+        Ativo (aparece na loja)
+      </label>
+      <label class="checkline">
+        <input type="checkbox" name="featured" value="1">
+        Destaque
+      </label>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn primary" type="button">
+      Salvar alteracoes    </button>
+    <a class="btn ghost" href="/site-lynch-store/painel-produtos.html">Cancelar</a>
+      </div>
+</form>
+
+<div class="card">
+  <h2 class="sec">Fotos</h2>
+  <p class="muted" style="font-size:14px;margin:4px 0 16px">
+          1 foto cadastrada.
+      A primeira (capa) e a que aparece na vitrine.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+              <img class="thumb" style="width:66px;height:88px" src="/site-lynch-store/uploads/products/1/19375b522de93f02.webp" alt="" loading="lazy">
+          </div>
+    <a class="btn primary" href="/site-lynch-store/painel-produto-fotos.html">
+    Gerenciar fotos deste produto
+  </a>
+</div>
+
+<script>
+/* Slug automatico + campo de preco.
+   Tudo progressivo: sem JS o formulario continua funcionando (o servidor gera
+   o slug quando o campo chega vazio e ignora o preco quando "Consultar valor"
+   esta marcado). */
+(function () {
+  var nome  = document.getElementById('f-name');
+  var slug  = document.getElementById('f-slug');
+  var preco = document.getElementById('f-price');
+  var chk   = document.getElementById('f-onrequest');
+
+  function slugify(texto) {
+    return (texto || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')  /* tira acentos */
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 200);
+  }
+
+  if (nome && slug) {
+    /* So sobrescreve enquanto o slug estiver "espelhando" o nome. Assim que a
+       Ray editar o slug na mao, o espelho e desligado e nao volta. */
+    var espelhando = slug.value === '' || slug.value === slugify(nome.value);
+
+    slug.addEventListener('input', function () { espelhando = false; });
+    nome.addEventListener('input', function () {
+      if (espelhando) { slug.value = slugify(nome.value); }
+    });
+    slug.addEventListener('blur', function () {
+      if (slug.value !== '') { slug.value = slugify(slug.value); }
+    });
+  }
+
+  if (preco && chk) {
+    function syncPreco() {
+      preco.disabled = chk.checked;
+      if (chk.checked) { preco.value = ''; }
+    }
+    chk.addEventListener('change', syncPreco);
+    syncPreco();
+  }
+})();
+</script>
+  </div>
+</main>
+<footer class="admin-foot">
+  <div class="container">
+    Lynch Store · painel interno · 2026  </div>
+</footer>
+
+
+<script src="/site-lynch-store/painel-preview.js" defer=""></script></body></html>

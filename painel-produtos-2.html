@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Mais produtos | Lynch Store: prévia</title>
+<link rel="icon" href="/site-lynch-store/assets/lynch-logo.webp">
+<link rel="stylesheet" href="/site-lynch-store/assets/css/admin.css">
+<link rel="stylesheet" href="/site-lynch-store/telas.css"></head>
+<body>
+<header class="admin-head">
+  <div class="container bar">
+    <div class="admin-brand">
+      <b>Lynch Store</b>
+      <small>Painel administrativo</small>
+    </div>
+    <nav class="admin-nav" aria-label="Navegacao do painel">
+              <a href="/site-lynch-store/painel-dashboard.html">Dashboard</a>
+              <a href="/site-lynch-store/painel-produtos.html" aria-current="page">Produtos</a>
+              <a href="/site-lynch-store/painel-pedidos.html">Pedidos</a>
+              <a href="/site-lynch-store/painel-importar.html">Importar</a>
+              <a href="/site-lynch-store/painel-categorias.html">Categorias</a>
+              <a href="/site-lynch-store/painel-configuracoes.html">Configurações</a>
+              <a href="/site-lynch-store/painel-conta.html">Minha conta</a>
+            <a href="/site-lynch-store/index.html" rel="noopener">Ver a loja ↗</a>
+              <span class="who">Conta demonstrativa</span>
+            <form><button class="btn" type="button">Sair</button></form>
+    </nav>
+  </div>
+</header>
+<main><aside class="client-preview-notice" id="preview-notice"><b>Prévia para aprovação</b><span>Esta tela é demonstrativa. Nenhuma alteração é salva.</span><a href="/site-lynch-store/telas.html">Ver todas as telas</a></aside>
+  <div class="container">
+<div class="page-head">
+  <div>
+    <p class="eyebrow">Catalogo</p>
+    <h1>Produtos</h1>
+    <p class="muted" style="margin:6px 0 0;font-size:14px">
+      46 produtos no catalogo.
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="/site-lynch-store/painel-importar.html">Importar planilha</a>
+    <a class="btn" href="#preview-notice" aria-disabled="true">Exportar CSV</a>
+    <a class="btn primary" href="/site-lynch-store/painel-produto-novo.html">+ Novo produto</a>
+  </div>
+</div>
+
+<form class="filters">
+  <div class="field grow">
+    <label for="f-busca">Buscar</label>
+    <input type="search" id="f-busca" name="busca" value="" placeholder="Nome ou slug do produto">
+  </div>
+  <div class="field">
+    <label for="f-cat">Categoria</label>
+    <select id="f-cat" name="categoria">
+      <option value="">Todas</option>
+      <option value="-1">Sem categoria</option>
+              <option value="1">
+          Cosplay        </option>
+              <option value="2">
+          Fantasia        </option>
+              <option value="3">
+          Camisetas        </option>
+              <option value="4">
+          Novidades        </option>
+          </select>
+  </div>
+  <div class="field">
+    <label for="f-disp">Disponibilidade</label>
+    <select id="f-disp" name="disponibilidade">
+      <option value="">Todas</option>
+      <option value="sob_encomenda">Sob encomenda</option>
+      <option value="pronta_entrega">Pronta entrega</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="f-status">Status</label>
+    <select id="f-status" name="status">
+      <option value="">Todos</option>
+      <option value="ativo">Ativos</option>
+      <option value="inativo">Inativos</option>
+    </select>
+  </div>
+  <div class="btns">
+    <button class="btn primary" type="button">Filtrar</button>
+      </div>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th style="width:64px">Foto</th>
+          <th>Produto</th>
+          <th>Categoria</th>
+          <th>Disponibilidade</th>
+          <th>Preco</th>
+          <th>Ordem</th>
+          <th>Status</th>
+          <th style="text-align:right">Acoes</th>
+        </tr>
+      </thead>
+      <tbody>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/31/8f707e16fd7df9a1.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 31</b>
+            <small>camiseta-geek-31</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>31</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="31">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/32/9014d93d67020b42.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 32</b>
+            <small>camiseta-geek-32</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Novidades</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>32</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="32">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/33/5325b1e73e0a3754.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 33</b>
+            <small>camiseta-geek-33</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>33</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="33">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/34/6be161bb15fe9d05.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 34</b>
+            <small>camiseta-geek-34</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>34</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="34">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/35/2e71cefe5d10d9c8.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 35</b>
+            <small>camiseta-geek-35</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>35</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="35">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/36/43b21bd891f89777.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 36</b>
+            <small>camiseta-geek-36</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Novidades</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>36</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="36">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/37/49f93bd6f64737fd.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 37</b>
+            <small>camiseta-geek-37</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>37</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="37">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/38/0fc5de548f87c1e1.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 38</b>
+            <small>camiseta-geek-38</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>38</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="38">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/39/fdfc827638a91c2e.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 39</b>
+            <small>camiseta-geek-39</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>39</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="39">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/40/09536bf8cad64369.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 40</b>
+            <small>camiseta-geek-40</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Novidades</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>40</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="40">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/41/49b9521f8ee2cbba.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 41</b>
+            <small>camiseta-geek-41</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>41</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="41">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/42/f6d4194e6a6cb6f8.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 42</b>
+            <small>camiseta-geek-42</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>42</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="42">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/43/ba41b2fc5f14216e.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 43</b>
+            <small>camiseta-geek-43</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>43</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="43">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/44/18f8f8143eeab5e9.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 44</b>
+            <small>camiseta-geek-44</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Novidades</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>44</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="44">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/45/cd6de7d2707886d5.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 45</b>
+            <small>camiseta-geek-45</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Camisetas</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>45</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="45">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+                      <tr class="">
+          <td>
+                          <img class="thumb" src="/site-lynch-store/uploads/products/46/d8a6135ef9874a76.webp" alt="" loading="lazy">
+                      </td>
+          <td class="cell-name">
+            <b>Camiseta geek 46</b>
+            <small>camiseta-geek-46</small>
+          </td>
+          <td>
+                          <span class="badge kraft">Novidades</span>
+                      </td>
+          <td>
+            <span class="badge on">
+              Pronta entrega            </span>
+          </td>
+          <td>Consultar valor</td>
+          <td>46</td>
+          <td>
+            <span class="badge on">Ativo</span>
+                      </td>
+          <td class="cell-actions">
+            <a class="btn small" href="/site-lynch-store/painel-produto-editar.html">Editar</a>
+            <a class="btn small ghost" href="/site-lynch-store/painel-produto-fotos.html">Fotos</a>
+            <form>
+                            <input type="hidden" name="id" value="46">
+              <input type="hidden" name="action" value="delete">
+              <button class="btn small danger" type="button">
+                Excluir              </button>
+            </form>
+          </td>
+        </tr>
+            </tbody>
+    </table>
+  </div>
+  <p class="muted" style="font-size:12.5px;margin:16px 0 0">
+    "Excluir" desativa o produto (ele some da loja mas continua aqui, e pode ser reativado
+    a qualquer momento). As fotos ja enviadas nunca sao apagadas por essa acao.
+  </p>
+</div>
+<nav class="actions" aria-label="Paginação dos produtos">
+<a class="btn" href="/site-lynch-store/painel-produtos.html">Voltar ao início</a></nav>
+  </div>
+</main>
+<footer class="admin-foot">
+  <div class="container">
+    Lynch Store · painel interno · 2026  </div>
+</footer>
+
+
+<script src="/site-lynch-store/painel-preview.js" defer=""></script></body></html>

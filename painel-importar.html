@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Importar planilha | Lynch Store: prévia</title>
+<link rel="icon" href="/site-lynch-store/assets/lynch-logo.webp">
+<link rel="stylesheet" href="/site-lynch-store/assets/css/admin.css">
+<link rel="stylesheet" href="/site-lynch-store/telas.css"></head>
+<body>
+<header class="admin-head">
+  <div class="container bar">
+    <div class="admin-brand">
+      <b>Lynch Store</b>
+      <small>Painel administrativo</small>
+    </div>
+    <nav class="admin-nav" aria-label="Navegacao do painel">
+              <a href="/site-lynch-store/painel-dashboard.html">Dashboard</a>
+              <a href="/site-lynch-store/painel-produtos.html">Produtos</a>
+              <a href="/site-lynch-store/painel-pedidos.html">Pedidos</a>
+              <a href="/site-lynch-store/painel-importar.html" aria-current="page">Importar</a>
+              <a href="/site-lynch-store/painel-categorias.html">Categorias</a>
+              <a href="/site-lynch-store/painel-configuracoes.html">Configurações</a>
+              <a href="/site-lynch-store/painel-conta.html">Minha conta</a>
+            <a href="/site-lynch-store/index.html" rel="noopener">Ver a loja ↗</a>
+              <span class="who">Conta demonstrativa</span>
+            <form><button class="btn" type="button">Sair</button></form>
+    </nav>
+  </div>
+</header>
+<main><aside class="client-preview-notice" id="preview-notice"><b>Prévia para aprovação</b><span>Esta tela é demonstrativa. Nenhuma alteração é salva.</span><a href="/site-lynch-store/telas.html">Ver todas as telas</a></aside>
+  <div class="container">
+<div class="page-head"><div><p class="eyebrow">Catálogo em lote</p><h1>Importar produtos</h1><p class="muted">Da sua planilha para a loja, com uma conferência antes de publicar.</p></div><a class="btn" href="#preview-notice" aria-disabled="true">Baixar modelo CSV</a></div>
+<div class="card">
+<form enctype="multipart/form-data">
+<div class="form-grid">
+<div class="field"><label for="sheet">Planilha CSV ou Excel (.xlsx)</label><input type="file" id="sheet" name="sheet" accept=".csv,.xlsx" required=""><span class="hint">Até 500 produtos e 3 MB. No Excel, usamos a primeira aba. Fotos são adicionadas na edição de cada produto.</span></div>
+<div class="field"><label for="mode">Como importar</label><select id="mode" name="mode"><option value="create">Criar somente produtos novos</option><option value="upsert">Criar novos e atualizar existentes pelo slug</option></select><span class="hint">Ao atualizar, os campos da planilha substituem os dados atuais. Campos vazios são limpos. Fotos e ordem da vitrine são preservadas.</span></div>
+</div><button class="btn primary" type="button">Conferir planilha</button>
+</form>
+</div>
+<details class="card"><summary>Como preencher a planilha</summary><p><b>nome</b> é obrigatório. <b>slug</b> identifica o produto, por exemplo camiseta-gato. Se ficar vazio, será gerado pelo nome. Para atualizar, use o mesmo slug da exportação.</p><p><b>preco</b>: 129,90 ou 129.90; vazio significa consultar valor. <b>disponibilidade</b>: pronta_entrega ou sob_encomenda. <b>ativo</b> e <b>destaque</b>: 1 para sim, 0 para não. Categoria nova é criada automaticamente. Não use fórmulas.</p></details>
+  </div>
+</main>
+<footer class="admin-foot">
+  <div class="container">
+    Lynch Store · painel interno · 2026  </div>
+</footer>
+
+
+<script src="/site-lynch-store/painel-preview.js" defer=""></script></body></html>

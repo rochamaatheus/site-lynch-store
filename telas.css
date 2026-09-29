@@ -1,0 +1,25 @@
+@font-face{font-family:Inter;src:url('assets/fonts/Inter-Variable-latin.woff2') format('woff2');font-display:swap}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#f7efe2;color:#171210;font-family:Inter,system-ui,sans-serif}
+body:has(.screens) main{max-width:1050px;margin:auto;padding:clamp(28px,6vw,84px) 24px 72px}
+.eyebrow{color:#a64e2e;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+body:has(.screens) h1{max-width:780px;margin:12px 0 20px;font-size:clamp(38px,7vw,72px);line-height:1.05;letter-spacing:-.055em}
+.intro{max-width:720px;color:#6e5b4e;font-size:clamp(16px,2vw,20px);line-height:1.6}
+body:has(.screens) section{margin-top:52px}
+body:has(.screens) h2{font-size:26px;margin:0 0 18px}
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.screen{min-height:76px;padding:18px 20px;background:#fff7ea;border:1px solid #d8c5ac;border-radius:15px;display:flex;justify-content:space-between;align-items:center;gap:16px;color:#171210;font-weight:700;text-decoration:none;transition:transform .18s,border-color .18s,box-shadow .18s}
+.screen:hover{transform:translateY(-2px);border-color:#a64e2e;box-shadow:0 10px 26px #17121016}
+.screen span:last-child{font-size:22px;color:#a64e2e}
+.hint,.footer{color:#6e5b4e;font-size:14px;line-height:1.6}
+.footer{margin-top:64px;border-top:1px solid #d8c5ac;padding-top:24px}
+.client-preview-notice{background:#171210;color:#fff7ea;padding:12px 20px;margin:0 0 24px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;font-size:13px;line-height:1.5;text-align:center}
+.client-preview-notice b{color:#f9d67a}
+.client-preview-notice a{color:#f9d67a;text-decoration:underline;font-weight:700}
+.preview-notice a{color:#f9d67a;text-decoration:underline;font-weight:700}
+body:has(.card #username) .client-preview-notice{position:fixed;top:0;left:0;right:0;z-index:20;margin:0}
+body:has(.card #username){padding-top:95px}
+:focus-visible{outline:3px solid #a64e2e;outline-offset:3px}
+@media(max-width:600px){.client-preview-notice{display:block}.client-preview-notice>*{display:block;margin:2px auto}body:has(.card #username){padding-top:115px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.screen{transition:none}.screen:hover{transform:none}}

@@ -1,3 +1,3 @@
 # Lynch Store: prévia para aprovação
 
-Gerada das páginas PHP. Busca e carrinho são demonstrativos; não enviam pedidos nem armazenam dados de clientes no servidor. O painel e o checkout real fazem parte da instalação PHP na Hostinger.
+Abra telas.html para navegar por todas as telas. O catálogo e o carrinho são demonstrativos. O painel é uma cópia visual estática, sem autenticação ou gravação de dados.
