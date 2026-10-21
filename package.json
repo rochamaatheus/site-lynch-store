@@ -1,0 +1,14 @@
+{
+  "name": "lynch-store-quality",
+  "private": true,
+  "description": "Ferramentas locais de QA; não são necessárias na hospedagem",
+  "scripts": {
+    "test:e2e": "node tests/browser.cjs",
+    "audit": "node tests/lighthouse.cjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.3",
+    "lighthouse": "^13.5.0",
+    "playwright": "^1.55.0"
+  }
+}

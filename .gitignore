@@ -17,3 +17,45 @@ node_modules/
 # Artefatos de trabalho (screenshots de QA, automação de browser) — não os assets do site
 /responsive-shots/
 .playwright-mcp/
+
+# Segredos — credenciais do banco e senha do admin. O modelo (.env.example) é versionado.
+.env
+.env.local
+.env.*.local
+
+# Dependências PHP (caso algum dia entre Composer)
+vendor/
+composer.phar
+/dist/
+/.qa-credentials.json
+/tests/fixtures/
+/docs/qa-*.png
+/docs/lighthouse/
+/docs/*tests.json
+/docs/explain.json
+.installed
+.install-lock
+install-secret.php
+
+# Uploads do painel admin — conteúdo do cliente, não código.
+# As pastas continuam versionadas via .gitkeep para existirem no deploy.
+uploads/*
+!uploads/.gitkeep
+# O .htaccess de uploads/ NAO e conteudo do cliente: e a regra de seguranca que
+# impede um arquivo enviado de ser executado como PHP. Precisa ir no git.
+!uploads/.htaccess
+!uploads/products/
+uploads/products/*
+!uploads/products/.gitkeep
+
+# Dumps de banco — só o schema versionado entra no git
+db/*.sql
+!db/schema.sql
+*.sql.gz
+
+# Registros de estado do trabalho local (caminhos da maquina e notas de QA;
+# nunca devem ir para o repositorio nem para o pacote da hospedagem)
+/STATUS.json
+/BUILD-STATUS.json
+/IMAGENS-STATUS.json
+/MELHORIAS-STATUS.json

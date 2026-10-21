@@ -1,0 +1,145 @@
+<?php
+/**
+ * Lynch Store - grava um produto (fase 6)
+ *
+ * Handler POST puro: nao imprime HTML, sempre termina em redirect (Post/
+ * Redirect/Get - F5 depois de salvar nao regrava nada).
+ *
+ * Filosofia de validacao: o unico campo que TRAVA o cadastro e o nome. Slug
+ * vazio ou duplicado, preco mal digitado e categoria inexistente sao
+ * CORRIGIDOS e avisados por flash - a Ray nao pode perder um texto longo de
+ * descricao porque errou um detalhe num campo secundario.
+ */
+
+declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/includes/auth.php';
+
+$admin = require_login();
+
+require_once dirname(__DIR__) . '/includes/functions.php';
+require_once dirname(__DIR__) . '/includes/ProductRepository.php';
+require_once dirname(__DIR__) . '/includes/CategoryRepository.php';
+
+/** Redireciona e encerra. */
+function ps_redirect(string $path): never
+{
+    header('Location: ' . APP_BASE_URL . $path, true, 303);
+    exit;
+}
+
+// ---------------------------------------------------------------------------
+// So POST, e so com CSRF valido
+// ---------------------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+    // Redireciona em vez de responder 405: quem cai aqui por GET e a Ray com um
+    // link antigo/favorito, e o util para ela e voltar para a lista com um aviso.
+    flash_set('error', 'Essa página só responde ao envio de um formulário. Abra o produto pela lista e salve por lá.');
+    ps_redirect('/admin/produtos.php');
+}
+
+if (!csrf_check($_POST['csrf'] ?? null)) {
+    flash_set('error', 'A página ficou aberta por muito tempo e o cadastro não foi aceito. Abra o produto de novo e repita a alteração.');
+    ps_redirect('/admin/produtos.php');
+}
+
+$id       = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+$editando = $id > 0;
+
+if ($editando && ProductRepository::findAnyById($id) === null) {
+    flash_set('error', 'Produto não encontrado (id ' . $id . ').');
+    ps_redirect('/admin/produtos.php');
+}
+
+$voltarPara = $editando
+    ? '/admin/produto-form.php?id=' . $id
+    : '/admin/produto-form.php';
+
+// ---------------------------------------------------------------------------
+// Campos
+// ---------------------------------------------------------------------------
+$name = trim((string) ($_POST['name'] ?? ''));
+$_SESSION['product_form_old'] = ['id' => $id, 'data' => $_POST];
+if ($name === '') {
+    flash_set('error', 'O nome do produto e obrigatorio.');
+    ps_redirect($voltarPara);
+}
+
+$avisos = [];
+
+// --- slug ---
+$slugPedido = slugify((string) ($_POST['slug'] ?? ''), 200);
+if ($slugPedido === '') {
+    $slugPedido = slugify($name, 200);
+    if ($slugPedido === '') {
+        // Nome so com simbolos/emoji: nao da para derivar slug nenhum.
+        $slugPedido = 'produto';
+    }
+}
+
+$slug = ProductRepository::uniqueSlug($slugPedido, $editando ? $id : null);
+if ($slug !== $slugPedido) {
+    $avisos[] = 'O endereço "' . $slugPedido . '" já estava em uso; salvamos como "' . $slug . '".';
+}
+
+// --- categoria ---
+$categoryId = (int) ($_POST['category_id'] ?? 0);
+if ($categoryId > 0 && CategoryRepository::findAnyById($categoryId) === null) {
+    $avisos[]   = 'A categoria escolhida não existe mais; o produto ficou sem categoria.';
+    $categoryId = 0;
+}
+
+// --- preco ---
+$onRequest  = !empty($_POST['price_on_request']);
+$precoTexto = (string) ($_POST['price'] ?? '');
+$cents      = $onRequest ? null : price_to_cents($precoTexto);
+
+if (!$onRequest && $cents === null) {
+    flash_set('error', 'Informe um preço válido, como 129,90, ou marque Consultar valor.');
+    ps_redirect($voltarPara);
+}
+
+$dados = [
+    'category_id'       => $categoryId,
+    'name'              => $name,
+    'slug'              => $slug,
+    'short_description' => (string) ($_POST['short_description'] ?? ''),
+    'description'       => (string) ($_POST['description'] ?? ''),
+    'price_cents'       => $cents,
+    'price_on_request'  => $onRequest,
+    'availability'      => (string) ($_POST['availability'] ?? 'sob_encomenda'),
+    'active'            => !empty($_POST['active']),
+    'featured'          => !empty($_POST['featured']),
+    'sort_order'        => (int) ($_POST['sort_order'] ?? 0),
+];
+
+// ---------------------------------------------------------------------------
+// Grava
+// ---------------------------------------------------------------------------
+try {
+    if ($editando) {
+        ProductRepository::update($id, $dados);
+        $novoId = $id;
+        flash_set('success', 'Produto "' . $name . '" atualizado.');
+    } else {
+        $novoId = ProductRepository::create($dados);
+        flash_set('success', 'Produto "' . $name . '" cadastrado. Agora envie as fotos.');
+    }
+} catch (Throwable $e) {
+    error_log('[lynch][produto-salvar] ' . $e->getMessage());
+    flash_set('error', 'Nao foi possivel salvar o produto. Tente novamente.');
+    ps_redirect($voltarPara);
+}
+
+foreach ($avisos as $aviso) {
+    flash_set('info', $aviso);
+}
+unset($_SESSION['product_form_old']);
+
+// Ao CRIAR, o destino natural e a tela de fotos: o produto acabou de ganhar um
+// id e nao tem imagem nenhuma. Ao editar, volta para o proprio formulario.
+if ($editando) {
+    ps_redirect('/admin/produto-form.php?id=' . $novoId);
+}
+
+ps_redirect('/admin/produto-imagens.php?id=' . $novoId);

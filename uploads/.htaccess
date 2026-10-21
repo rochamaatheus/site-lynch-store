@@ -1,0 +1,69 @@
+# ---------------------------------------------------------------------------
+# Lynch Store - uploads/ (fase 6)
+#
+# Aqui so devem existir imagens enviadas pelo painel. NADA nesta pasta pode
+# ser executado pelo servidor, mesmo que a validacao de includes/Upload.php
+# falhe algum dia (defesa em profundidade: a validacao ja recusa qualquer
+# arquivo cujo MIME real nao seja jpeg/png/webp).
+#
+# POR QUE NAO "php_flag engine off":
+# php_flag so existe com mod_php. Em PHP-FPM/suPHP/CGI - o padrao em cPanel
+# hoje - a diretiva e desconhecida e o Apache devolve 500 na pasta inteira,
+# derrubando TODAS as imagens do site. O .htaccess da raiz (fase 1) ja deixa
+# esse aviso registrado; este arquivo e a alternativa universal que ele indica.
+#
+# RemoveHandler/RemoveType funcionam em qualquer SAPI: eles desfazem a
+# associacao extensao -> interpretador herdada da configuracao do servidor.
+# Sem handler, o Apache trata o arquivo como conteudo estatico.
+# ---------------------------------------------------------------------------
+
+# Nunca listar o conteudo da pasta
+Options -Indexes
+
+# Nem se a hospedagem tiver ligado Includes/CGI globalmente
+Options -ExecCGI -Includes
+
+# 1) Desfaz a associacao de qualquer extensao executavel (todas as variantes
+#    que hospedagens costumam mapear, inclusive .phar, .cgi e .pl).
+RemoveHandler .php .phps .php3 .php4 .php5 .php6 .php7 .php8 .phtml .phtm .phar .shtml .cgi .pl .py .jsp .asp .aspx
+RemoveType    .php .phps .php3 .php4 .php5 .php6 .php7 .php8 .phtml .phtm .phar .shtml .cgi .pl .py .jsp .asp .aspx
+
+# 2) Cinto e suspensorio: mesmo que algo reassocie um handler acima, forca
+#    todo arquivo desta pasta a ser servido como conteudo estatico.
+<IfModule mod_mime.c>
+    <FilesMatch ".*">
+        SetHandler default-handler
+    </FilesMatch>
+</IfModule>
+
+# 3) E se ainda assim um .php aparecer aqui, ele simplesmente nao e servido.
+#    (Sintaxe do Apache 2.4; o equivalente 2.2 fica comentado abaixo.)
+<FilesMatch "\.(?:php[0-9]?|phps|phtml|phtm|phar|shtml|cgi|pl|py|jsp|aspx?|htaccess|ini|sh|bash)$">
+    Require all denied
+    # --- Apache 2.2 (legado) ---
+    # Order allow,deny
+    # Deny from all
+</FilesMatch>
+
+# 4) Allowlist explicita do que PODE sair daqui: so imagem.
+#    Qualquer outra extensao cai no bloqueio do item 3 ou fica sem handler.
+<IfModule mod_mime.c>
+    AddType image/webp .webp
+    AddType image/jpeg .jpg .jpeg
+    AddType image/png  .png
+</IfModule>
+
+# 5) O navegador nao deve "adivinhar" o tipo de um arquivo daqui.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Content-Disposition "inline"
+</IfModule>
+
+# Cache longo: os nomes sao aleatorios (bin2hex(random_bytes(8))), entao um
+# arquivo nunca muda de conteudo - trocar a foto gera um nome novo.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png  "access plus 1 year"
+</IfModule>

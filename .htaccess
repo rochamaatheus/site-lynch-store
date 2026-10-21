@@ -1,0 +1,131 @@
+# ---------------------------------------------------------------------------
+# Lynch Store - .htaccess da raiz (fase 1: Fundacao)
+# Alvo: Apache 2.4 em hospedagem compartilhada (cPanel). Testado local no XAMPP.
+# ---------------------------------------------------------------------------
+
+# Nao listar o conteudo de pastas sem index
+Options -Indexes
+
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # -----------------------------------------------------------------------
+    # HTTPS OBRIGATORIO (login do painel e cookie de sessao nao podem trafegar
+    # em texto puro). Ignora localhost para nao quebrar o teste local, e
+    # respeita X-Forwarded-Proto quando a hospedagem termina o TLS num proxy.
+    # Se o hPanel ja tiver "Forcar HTTPS" ligado, esta regra e redundante e
+    # inofensiva.
+    # -----------------------------------------------------------------------
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+    RewriteCond %{HTTP_HOST} !^(?:localhost|127\.0\.0\.1)(?::\d+)?$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # Para usar so um endereco (www ou sem www), depois de definir o dominio
+    # definitivo, descomente e ajuste as duas linhas abaixo:
+    # RewriteCond %{HTTP_HOST} !^www\.SEU-DOMINIO\.com\.br$ [NC]
+    # RewriteRule ^ https://www.SEU-DOMINIO.com.br%{REQUEST_URI} [R=301,L]
+
+    # -----------------------------------------------------------------------
+    # BLOQUEIO DE PASTAS INTERNAS
+    # includes/ e db/ contem codigo, credenciais e o schema - nada ali deve ser
+    # servido pelo navegador. Em .htaccess nao existe <Directory>, entao o
+    # bloqueio por pasta e feito com mod_rewrite (403 antes de qualquer coisa).
+    # -----------------------------------------------------------------------
+    RewriteRule ^(?:includes|db|vendor|scripts|tests|docs|dist|storage)(?:/|$) - [F,L]
+    RewriteRule ^robots\.txt$ robots.php [L]
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    RewriteRule ^index\.html$ index.php [R=301,L]
+    RewriteRule ^(?:install-secret|BUILD-STATUS|IMAGENS-STATUS|STATUS) - [F,L]
+    RewriteRule ^uploads/.*\.(?:php[0-9]?|phtml|phar)(?:/|$) - [F,L,NC]
+
+    # Partials do admin tambem nao sao paginas
+    RewriteRule ^admin/partials(?:/|$) - [F,L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ 404.php [L]
+
+    # -----------------------------------------------------------------------
+    # URLs BONITAS - OPCIONAL, ainda DESATIVADAS (decisao da fase 3)
+    #
+    # produto.php e index.php ja existem (fase 3), entao o bloco abaixo pode
+    # ser ligado a qualquer momento. Nao foi ligado porque:
+    #   1. o build inteiro e testado com "php -S", que NAO le .htaccess -
+    #      ativar aqui criaria uma rota que nunca e exercitada localmente;
+    #   2. quem gera todo link do site e product_url()/url_catalog() em
+    #      includes/functions.php - trocar o formato de URL e uma linha la,
+    #      e o site inteiro acompanha.
+    #
+    # Para ativar em producao (Apache): descomentar o bloco, ajustar
+    # product_url() para base_url('produto/' . $slug) e testar as DUAS formas
+    # (a antiga com query string continua funcionando, o que preserva links
+    # antigos que a Ray tenha divulgado).
+    # -----------------------------------------------------------------------
+    # RewriteCond %{REQUEST_FILENAME} !-f
+    # RewriteCond %{REQUEST_FILENAME} !-d
+    # RewriteRule ^produto/([a-z0-9-]+)/?$ produto.php?slug=$1 [QSA,L]
+    #
+    # RewriteCond %{REQUEST_FILENAME} !-f
+    # RewriteCond %{REQUEST_FILENAME} !-d
+    # RewriteRule ^categoria/([a-z0-9-]+)/?$ index.php?categoria=$1 [QSA,L]
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Arquivos sensiveis por nome (vale mesmo sem mod_rewrite)
+# Sintaxe do Apache 2.4. Para Apache 2.2, trocar "Require all denied" por:
+#     Order allow,deny
+#     Deny from all
+# ---------------------------------------------------------------------------
+<FilesMatch "^\.env|^\.env\..*|\.(sql|ini|log|md|json|lock|bak|sh|zip|ps1|key)$|composer\.(json|lock)$">
+    Require all denied
+    # --- Apache 2.2 (legado) ---
+    # Order allow,deny
+    # Deny from all
+</FilesMatch>
+
+# O proprio .htaccess e arquivos ocultos
+<FilesMatch "^\.(?!well-known)">
+    Require all denied
+    # --- Apache 2.2 (legado) ---
+    # Order allow,deny
+    # Deny from all
+</FilesMatch>
+
+# ---------------------------------------------------------------------------
+# Uploads: um arquivo enviado pelo admin NUNCA pode rodar como PHP.
+# Ativar na fase 6 (upload de imagens), depois de confirmar qual SAPI a
+# hospedagem usa: "php_flag" so funciona com mod_php - em PHP-FPM/suPHP (o
+# comum em cPanel hoje) ele derruba o site com erro 500.
+# A alternativa universal e um uploads/.htaccess com:
+#     RemoveHandler .php .phtml .php5 .php7 .php8
+#     RemoveType .php .phtml .php5 .php7 .php8
+# ---------------------------------------------------------------------------
+# <IfModule mod_php.c>
+#     php_flag engine off
+# </IfModule>
+
+# ---------------------------------------------------------------------------
+# Cabecalhos basicos de seguranca (nao dependem de nenhuma pagina existir)
+# ---------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Acesso negado sem a pagina padrao do servidor (que pode mostrar versao e caminhos)
+ErrorDocument 403 "Acesso negado."
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml
+</IfModule>
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>

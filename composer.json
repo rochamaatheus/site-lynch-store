@@ -1,0 +1,16 @@
+{
+  "name": "lynch/store",
+  "description": "Loja PHP da Lynch Store",
+  "type": "project",
+  "require": {
+    "php": "^8.3",
+    "ext-pdo_mysql": "*",
+    "ext-gd": "*",
+    "ext-mbstring": "*",
+    "ext-fileinfo": "*",
+    "ext-zip": "*",
+    "phpoffice/phpspreadsheet": "^5.0"
+  },
+  "config": {"sort-packages": true, "optimize-autoloader": true},
+  "scripts": {"build": "@php scripts/build.php", "test": "@php tests/run.php"}
+}
