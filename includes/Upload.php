@@ -32,6 +32,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/ImageProcessor.php';
+require_once __DIR__ . '/SecurityLog.php';
 
 final class Upload
 {
@@ -69,6 +70,7 @@ final class Upload
     {
         $check = self::validate($file);
         if (!$check['ok']) {
+            SecurityLog::event('upload_recusado', ['motivo' => (string) $check['error']]);
             return self::fail((string) $check['error']);
         }
 
@@ -151,6 +153,7 @@ final class Upload
     ): array {
         $check = self::validate($file);
         if (!$check['ok']) {
+            SecurityLog::event('upload_recusado', ['motivo' => (string) $check['error']]);
             return self::failPhoto((string) $check['error']);
         }
 

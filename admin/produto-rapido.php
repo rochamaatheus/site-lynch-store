@@ -104,4 +104,5 @@ $message = match ($op) {
     default          => 'Alteração salva.',
 };
 
+SecurityLog::audit((int) $admin['id'], 'produto_rapido', $op . ': ' . $product['name']);
 quick_reply(true, $message, $product);

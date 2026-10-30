@@ -4,7 +4,7 @@
 # ---------------------------------------------------------------------------
 
 # Nao listar o conteudo de pastas sem index
-Options -Indexes
+Options -Indexes -MultiViews
 
 DirectoryIndex index.php
 
@@ -34,12 +34,25 @@ DirectoryIndex index.php
     # servido pelo navegador. Em .htaccess nao existe <Directory>, entao o
     # bloqueio por pasta e feito com mod_rewrite (403 antes de qualquer coisa).
     # -----------------------------------------------------------------------
-    RewriteRule ^(?:_old|includes|db|vendor|scripts|tests|docs|dist|storage|node_modules)(?:/|$) - [F,L]
+    # So GET, HEAD e POST (TRACE, PUT, DELETE, OPTIONS... recebem 405).
+    RewriteCond %{REQUEST_METHOD} !^(?:GET|HEAD|POST)$
+    RewriteRule ^ - [R=405,L]
+
+    # Arquivos e pastas ocultos (.git, .env, .vscode, .DS_Store, backups do editor),
+    # exceto .well-known (security.txt e validacao de certificado).
+    RewriteRule (?:^|/)\.(?!well-known(?:/|$)) - [F,L]
+
+    RewriteRule ^(?:_old|_lixeira|includes|db|vendor|scripts|tests|docs|dist|storage|node_modules|fixtures|lynch-privado)(?:/|$) - [F,L,NC]
+    # Copias e sobras de deploy: backup do editor, pacote, dump, planilha, LEIA-ME com a chave
+    RewriteRule (?:~|\.(?:bak|old|orig|save|swp|tmp|dist|sql|gz|tgz|tar|7z|rar|zip|csv|xlsx|yml|yaml|pem|crt|key|ps1|sh|log|md|lock|ini))$ - [F,L,NC]
+    RewriteRule (?:^|/)(?:LEIA-ME|README|STATUS|composer|package)[^/]*$ - [F,L,NC]
     RewriteRule ^robots\.txt$ robots.php [L]
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
     RewriteRule ^index\.html$ index.php [R=301,L]
     RewriteRule ^(?:install-secret|BUILD-STATUS|IMAGENS-STATUS|STATUS) - [F,L]
     RewriteRule ^uploads/.*\.(?:php[0-9]?|phtml|phar)(?:/|$) - [F,L,NC]
+    # Em uploads/ so saem imagens.
+    RewriteRule ^uploads/(?!.*\.(?:webp|jpe?g|png)$) - [F,L,NC]
 
     # Partials do admin tambem nao sao paginas
     RewriteRule ^admin/partials(?:/|$) - [F,L]
@@ -78,7 +91,7 @@ DirectoryIndex index.php
 #     Order allow,deny
 #     Deny from all
 # ---------------------------------------------------------------------------
-<FilesMatch "^\.env|^\.env\..*|\.(sql|ini|log|md|json|lock|bak|sh|zip|ps1|key)$|composer\.(json|lock)$">
+<FilesMatch "^\.env|^\.env\..*|\.(sql|ini|log|md|json|lock|bak|old|orig|swp|save|tmp|sh|zip|gz|tar|ps1|key|pem|csv|xlsx|yml|yaml)$|~$|composer\.(json|lock)$|^LEIA-ME">
     Require all denied
     # --- Apache 2.2 (legado) ---
     # Order allow,deny
@@ -111,7 +124,8 @@ DirectoryIndex index.php
 # ---------------------------------------------------------------------------
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     # Versao do PHP/servidor nao vai para o visitante
     Header always unset X-Powered-By

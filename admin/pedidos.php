@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$before) { throw new InvalidArgumentException('Pedido não encontrado.'); }
             $newStatus = (string) ($_POST['status'] ?? '');
             OrderRepository::save($id, $newStatus, (string) ($_POST['notes'] ?? ''));
+            SecurityLog::audit((int) $admin['id'], 'pedido', 'pedido #' . $id . ': ' . $newStatus);
             flash_set('success', $newStatus !== $before['status']
                 ? 'Pedido #' . $id . ' agora está como "' . (OrderRepository::STATUSES[$newStatus] ?? $newStatus) . '".'
                 : 'Observação do pedido #' . $id . ' salva.');

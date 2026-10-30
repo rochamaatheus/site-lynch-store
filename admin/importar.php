@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $result = ProductImport::apply($preview['products'], $preview['mode'], $preview['existing']);
                 unset($_SESSION['product_import']);
+                SecurityLog::audit((int) $admin['id'], 'importacao', $result['created'] . ' criados, ' . $result['updated'] . ' atualizados');
                 flash_set('success', "{$result['created']} produtos criados e {$result['updated']} atualizados. Fotos existentes preservadas.");
                 header('Location: ' . base_url('admin/produtos.php'), true, 303); exit;
             }

@@ -10,19 +10,41 @@ const {chromium} = require('playwright');
   const base='http://localhost:8082';
   const results=[];
   try{
-    await page.goto(base+'/instalar.php');
-    for(const [key,value] of Object.entries({key:fixture.key,url:base,host:'127.0.0.1',database:fixture.database,user:fixture.user,db_password:fixture.db_password,admin_user:fixture.admin_user,admin_password:fixture.admin_password})){
-      await page.locator('[name='+key+']').fill(value);
-    }
-    await page.getByRole('button',{name:'Instalar loja',exact:true}).click();
+    const fill = async password => {
+      await page.goto(base+'/instalar.php');
+      for(const [key,value] of Object.entries({key:fixture.key,url:base,host:'127.0.0.1',database:fixture.database,user:fixture.user,db_password:fixture.db_password,admin_user:fixture.admin_user,admin_password:password})){
+        await page.locator('[name='+key+']').fill(value);
+      }
+      await page.getByRole('button',{name:'Instalar loja',exact:true}).click();
+    };
+    await fill('troque-esta-senha');
+    assert.match(await page.locator('body').innerText(),/fácil de adivinhar/);
+    results.push('Instalador recusa senha de exemplo para o painel');
+    await fill(fixture.admin_password);
     assert.match(await page.locator('body').innerText(),/Sua loja está instalada/);
     results.push('ZIP instala schema, catálogo e admin em banco vazio');
-    assert.equal((await page.request.get(base+'/instalar.php')).status(),403);
-    results.push('Instalador bloqueado após concluir');
+    assert.ok([403,404].includes((await page.request.get(base+'/instalar.php')).status()));
+    assert.ok([403,404,405].includes((await page.request.post(base+'/instalar.php',{form:{key:fixture.key,admin_user:'invasor',admin_password:'x'.repeat(20),database:fixture.database}})).status()));
+    for(const gone of ['instalar.php','install-secret.php','db/catalog.json']) assert.ok(!fs.existsSync(path.join(fixture.root,gone)),'apagado: '+gone);
+    results.push('Instalador se apaga com a chave e o catálogo; reinstalar por POST não é possível');
     for(const route of ['/.env','/.installed','/db/catalog.json','/db/schema.sql','/includes/config.php','/vendor/autoload.php','/install-secret.php','/uploads/.htaccess','/admin/partials/admin-header.php','/composer.json','/node_modules/x.js','/tests/run.php','/docs/QA.md','/scripts/build.php']){
       assert.equal((await page.request.get(base+route)).status(),403,route);
     }
-    results.push('Apache aplica .htaccess e bloqueia todos os arquivos sensíveis');
+    fs.mkdirSync(path.join(fixture.root,'.git'),{recursive:true}); fs.writeFileSync(path.join(fixture.root,'.git/HEAD'),'ref: refs/heads/main');
+    for(const name of ['index.php.bak','index.php~','backup.sql','LEIA-ME-INSTALACAO.txt','uploads/notas.txt','uploads/x.svg']) fs.writeFileSync(path.join(fixture.root,name),'segredo');
+    for(const route of ['/.git/HEAD','/.git/','/.user.ini','/index.php.bak','/index.php~','/backup.sql','/LEIA-ME-INSTALACAO.txt','/uploads/notas.txt','/uploads/x.svg','/uploads/']){
+      assert.equal((await page.request.get(base+route)).status(),403,route);
+    }
+    const http=require('node:http');
+    // TRACE e respondido pelo nucleo do Apache antes do .htaccess (TraceEnable so muda na
+    // configuracao do servidor); a hospedagem desliga. Aqui conferimos os demais.
+    for(const m of ['PUT','DELETE','OPTIONS','PATCH']){
+      const status=await new Promise((ok,ko)=>{const rq=http.request(base+'/index.php',{method:m},rs=>{rs.resume();ok(rs.statusCode)});rq.on('error',ko);rq.end();});
+      assert.equal(status,405,m);
+    }
+    const sec=await page.request.get(base+'/.well-known/security.txt');
+    assert.equal(sec.status(),200);
+    results.push('Apache aplica .htaccess e bloqueia todos os arquivos sensíveis, .git, backups, LEIA-ME, não imagens em uploads e métodos fora de GET/HEAD/POST; security.txt publicado');
     for(const route of ['/tests/run.php','/scripts/build.php','/docs/QA.md','/STATUS.json','/README.md','/.env.example','/composer.json','/package.json','/assets/products/product-01.webp','/assets/hero/cutout-01.webp']){
       assert.ok(!fs.existsSync(path.join(fixture.root,route)),'fora do pacote: '+route);
     }
@@ -36,6 +58,8 @@ const {chromium} = require('playwright');
     const home=await page.request.get(base+'/');
     assert.doesNotMatch(home.headers()['content-security-policy'],/unsafe-inline/);
     assert.equal(home.headers()['x-powered-by'],undefined);
+    assert.match(home.headers()['content-security-policy'],/frame-ancestors 'none'/);
+    assert.match(home.headers()['x-frame-options'],/DENY/);
     results.push('Compressão gzip, cache de assets, CSP sem unsafe-inline e sem X-Powered-By no Apache');
     assert.match(await (await page.request.get(base+'/robots.txt')).text(),/Sitemap: http:\/\/localhost:8082\/sitemap.xml/);
     const sitemap=await page.request.get(base+'/sitemap.xml');

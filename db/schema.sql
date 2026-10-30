@@ -196,6 +196,25 @@ CREATE TABLE IF NOT EXISTS coupons (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- audit_log - trilha de acessos e acoes do painel (Minha conta mostra as
+--   ultimas). Sem dado pessoal de cliente nem senha: IP so como hash curto com
+--   chave do servidor (ip_hash), apagado depois de 180 dias.
+-- admin_id NULL = tentativa com usuario que nao existe. Sem FK de proposito: a
+--   trilha sobrevive a um usuario removido.
+-- Lista: ORDER BY id DESC LIMIT n (PK). Limpeza: created_at (idx_audit_created).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    admin_id    INT UNSIGNED DEFAULT NULL,
+    event       VARCHAR(32) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    detail      VARCHAR(200) NOT NULL DEFAULT '',
+    ip_hash     CHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    PRIMARY KEY (id),
+    KEY idx_audit_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- Banco que JA existia antes do pipeline de imagem (ago/2026)
 -- Este arquivo usa CREATE TABLE IF NOT EXISTS, entao reimportar NAO adiciona
 -- coluna em tabela ja criada. Numa instalacao antiga, rodar uma vez:

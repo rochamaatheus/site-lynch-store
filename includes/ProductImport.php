@@ -83,6 +83,9 @@ final class ProductImport
                 foreach ($headers as $i => $key) {
                     $value = trim((string) ($values[$i] ?? ''));
                     if (str_starts_with($value, '=')) { throw new InvalidArgumentException('Substitua fórmulas por valores.'); }
+                    // A exportacao poe um apostrofo antes de =, +, - e @ (contra fórmula no
+                    // Excel); a reimportacao tira, para o texto voltar igual ao original.
+                    if (preg_match("/^'[=+\\-@]/", $value) === 1) { $value = substr($value, 1); }
                     $data[$key] = $value;
                 }
                 $name = $data['nome'];

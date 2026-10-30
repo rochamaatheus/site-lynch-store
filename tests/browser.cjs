@@ -249,6 +249,7 @@ const pass = text => results.push(text);
     await card('QAFIX'+C).getByRole('button',{name:'Desativar',exact:true}).click();
     await page.waitForLoadState('load');
     assert.match(await card('QAFIX'+C).innerText(),/Desativado/);
+    await go('/carrinho.php');
     co = await toWa();
     assert.doesNotMatch(co.loc,/wa\.me/);
     await go('/carrinho.php');
@@ -332,6 +333,8 @@ const pass = text => results.push(text);
     await row().getByRole('button',{name:'Marcar como esgotado',exact:true}).click();
     await toastHas('marcado como esgotado');
     assert.match(await row().getAttribute('class'),/is-out/);
+    // Painel e loja tem sessoes separadas: o token da loja vem de uma pagina da loja.
+    await go('/carrinho.php');
     const blocked = await post('/finalizar.php',{});
     assert.equal(blocked.status(),303);
     assert.doesNotMatch(blocked.headers().location,/wa\.me/);

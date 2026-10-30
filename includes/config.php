@@ -157,7 +157,66 @@ if (is_file(APP_ROOT . '/vendor/autoload.php')) {
     require_once APP_ROOT . '/vendor/autoload.php';
 }
 
+// Painel (/admin/) usa uma sessao propria, SameSite=Strict; a loja usa outra, Lax
+// (o link do WhatsApp/Instagram precisa chegar com a sacola). Login, CSRF e
+// cookie de um lado nunca valem do outro.
+if (!defined('LYNCH_ADMIN_AREA')) {
+    define('LYNCH_ADMIN_AREA', PHP_SAPI !== 'cli'
+        && preg_match('~/admin/[^/]+\.php$~', str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''))) === 1);
+}
+
+/** A requisicao chegou por HTTPS (inclusive atras do proxy da hospedagem)? */
+function lynch_is_https(): bool
+{
+    return (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+}
+
+/**
+ * Pasta privada para logs (fora do alcance do navegador). Ordem: LYNCH_PRIVATE_DIR
+ * do .env; em producao, a pasta ACIMA do public_html (lynch-privado); por ultimo a
+ * pasta temporaria do PHP. Nunca aceita uma pasta dentro do site. null = sem
+ * pasta gravavel (o log so deixa de ser gravado; a loja segue).
+ */
+function lynch_private_dir(): ?string
+{
+    static $dir = false;
+    if ($dir !== false) {
+        return $dir;
+    }
+    $candidates = [];
+    $fromEnv = trim((string) env('LYNCH_PRIVATE_DIR', ''));
+    if ($fromEnv !== '') {
+        $candidates[] = $fromEnv;
+    }
+    if (APP_ENV === 'production') {
+        $candidates[] = dirname(APP_ROOT) . DIRECTORY_SEPARATOR . 'lynch-privado';
+    }
+    $candidates[] = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'lynch-privado-' . substr(hash('sha256', APP_ROOT . '|' . DB_NAME), 0, 12);
+    $root = rtrim(str_replace('\\', '/', (string) (realpath(APP_ROOT) ?: APP_ROOT)), '/') . '/';
+    foreach ($candidates as $candidate) {
+        if (!is_dir($candidate) && !@mkdir($candidate, 0700, true) && !is_dir($candidate)) {
+            continue;
+        }
+        $real = rtrim(str_replace('\\', '/', (string) realpath($candidate)), '/') . '/';
+        if ($real === '/' || str_starts_with($real, $root) || !is_writable($candidate)) {
+            continue;
+        }
+        return $dir = rtrim((string) realpath($candidate), '/\\');
+    }
+    return $dir = null;
+}
+
 if (PHP_SAPI !== 'cli') {
+    // So GET, HEAD e POST: TRACE, PUT, DELETE, OPTIONS e afins nao servem a loja.
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (!in_array($method, ['GET', 'HEAD', 'POST'], true)) {
+        header('Allow: GET, HEAD, POST');
+        http_response_code(405);
+        exit('Método não permitido.');
+    }
+    unset($method);
     foreach ($_GET as $value) {
         if (is_array($value)) { http_response_code(400); exit('Parâmetro inválido.'); }
     }
@@ -169,9 +228,14 @@ if (PHP_SAPI !== 'cli') {
     // Versao do PHP nao e da conta de ninguem (expose_php so muda no php.ini).
     header_remove('X-Powered-By');
     header('X-Content-Type-Options: nosniff');
-    header('X-Frame-Options: SAMEORIGIN');
+    // Nenhuma pagina da loja ou do painel e feita para abrir dentro de iframe
+    // (clique-jacking): X-Frame-Options para navegador antigo, frame-ancestors na CSP.
+    header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');
     header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    header('Cross-Origin-Opener-Policy: same-origin');
+    header('Cross-Origin-Resource-Policy: same-origin');
+    header('X-Permitted-Cross-Domain-Policies: none');
     // Sem 'unsafe-inline' em script-src nem em style-src: todo JavaScript vive em
     // assets/js e todo CSS em assets/css (o JS so mexe em estilo pelo CSSOM, que a
     // CSP permite), entao um texto malicioso salvo no banco nao executa script nem
@@ -179,14 +243,14 @@ if (PHP_SAPI !== 'cli') {
     // @view-transition (header.php), que precisa estar no HTML para a transicao
     // entre paginas valer antes do CSS externo carregar. Se mudar o texto, recalcule
     // o hash (sha256 em base64).
-    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'sha256-SREix9zPMZHrSuo8zRSjb672r1gsHIh96MJuaZq6iJo='; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'sha256-SREix9zPMZHrSuo8zRSjb672r1gsHIh96MJuaZq6iJo='; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com");
     header('Cache-Control: private, no-store');
     // HSTS tambem atras do proxy/CDN da hospedagem, que termina o TLS e avisa por
     // X-Forwarded-Proto (o .htaccess ja redireciona http para https fora do localhost).
-    if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
-        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
-        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') {
-        header('Strict-Transport-Security: max-age=31536000');
+    // includeSubDomains: todo subdominio precisa ter HTTPS. Sem "preload" de
+    // proposito (entrar na lista dos navegadores e dificil de desfazer).
+    if (lynch_is_https()) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
 }
 
@@ -215,6 +279,12 @@ set_exception_handler(static function (Throwable $error): void {
 // ---------------------------------------------------------------------------
 error_reporting(E_ALL);
 ini_set('log_errors', '1');
+// Em producao o log do PHP vai para a pasta privada (fora do public_html), nunca
+// para um error_log solto dentro do site.
+if (APP_ENV === 'production' && ($privateDir = lynch_private_dir()) !== null) {
+    ini_set('error_log', $privateDir . DIRECTORY_SEPARATOR . 'php-erros.log');
+}
+unset($privateDir);
 
 if (APP_DEBUG) {
     ini_set('display_errors', '1');
@@ -232,20 +302,35 @@ date_default_timezone_set(env('APP_TIMEZONE', 'America/Sao_Paulo'));
 // Este arquivo NAO inicia a sessao: quem faz isso e includes/auth.php (fase 5).
 // ---------------------------------------------------------------------------
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
-    // Detecta HTTPS (inclusive atras de proxy/CDN da hospedagem)
-    $isHttps =
-        (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
-        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
-        || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https')
-        || str_starts_with(APP_BASE_URL, 'https://');
+    $requestHttps = lynch_is_https();
+    $isHttps = $requestHttps || str_starts_with(APP_BASE_URL, 'https://');
 
     ini_set('session.cookie_httponly', '1');   // JS nao le o cookie de sessao
     ini_set('session.gc_maxlifetime', '7200');
-    ini_set('session.cookie_samesite', 'Lax'); // corta CSRF cross-site basico
+    // Limpeza de sessoes velhas mesmo se a hospedagem desligou o GC.
+    ini_set('session.gc_probability', '1');
+    ini_set('session.gc_divisor', '100');
+    // Painel: Strict (nenhum site de fora leva o cookie do admin, nem por link).
+    // Loja: Lax (quem chega pelo link do Instagram encontra a sacola).
+    ini_set('session.cookie_samesite', LYNCH_ADMIN_AREA ? 'Strict' : 'Lax');
     ini_set('session.use_strict_mode', '1');   // rejeita ID de sessao nao gerado pelo servidor
     ini_set('session.use_only_cookies', '1');  // nunca aceita ID pela URL
+    ini_set('session.use_trans_sid', '0');
+    ini_set('session.cookie_path', '/');
+    ini_set('session.cookie_domain', '');
+    ini_set('session.cookie_lifetime', '0');   // some ao fechar o navegador
     ini_set('session.cookie_secure', $isHttps ? '1' : '0');
-    ini_set('session.name', 'LYNCHSESSID');
+    // Prefixo __Host- em HTTPS: o navegador so aceita o cookie com Secure, Path=/
+    // e sem Domain, entao um subdominio nao consegue plantar nem ler o cookie.
+    $sessionBase = LYNCH_ADMIN_AREA ? 'LYNCHADM' : 'LYNCHSESSID';
+    ini_set('session.name', ($requestHttps ? '__Host-' : '') . $sessionBase);
 
-    unset($isHttps);
+    unset($isHttps, $requestHttps, $sessionBase);
+}
+
+// Limite leve por IP nas paginas publicas (o painel fica de fora: a Ray nao pode
+// ser barrada no proprio painel).
+if (PHP_SAPI !== 'cli' && !LYNCH_ADMIN_AREA) {
+    require_once __DIR__ . '/RateLimit.php';
+    RateLimit::guardPage();
 }

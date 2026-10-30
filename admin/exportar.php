@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/includes/auth.php';
-require_login();
+$admin = require_login();
 require_once dirname(__DIR__) . '/includes/ProductImport.php';
 require_once dirname(__DIR__) . '/includes/ProductRepository.php';
+if (!isset($_GET['modelo'])) { SecurityLog::audit((int) $admin['id'], 'exportacao'); }
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="produtos-lynch.csv"');
 $out = fopen('php://output', 'w');
@@ -24,7 +25,7 @@ if (isset($_GET['modelo'])) {
         if ($ready) {
             array_push($row, $p['stock_qty'] ?? '', $p['show_stock'], $p['sale_price_cents'] === null ? '' : cents_to_input((int) $p['sale_price_cents']), format_date_br($p['sale_ends_on']), $p['sold_out']);
         }
-        $row = array_map(static function ($v) { $v = (string) $v; return preg_match('/^[\s]*[=+\-@]/u', $v) ? "'" . $v : $v; }, $row);
+        $row = array_map(static function ($v) { $v = (string) $v; return preg_match('/^[\s]*[=+\-@]|^[\t\r\n]/u', $v) ? "'" . $v : $v; }, $row);
         fputcsv($out, $row, ';', '"', '');
     }
 }

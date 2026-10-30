@@ -10,6 +10,8 @@ declare(strict_types=1);
  *   php db/upgrade.php --rollback      desfaz a parte de estoque e promocao (so em teste)
  *   php db/upgrade.php --rollback=cupons
  *                                      remove so a tabela coupons (so em teste)
+ *   php db/upgrade.php --rollback=auditoria
+ *                                      remove so a tabela audit_log (so em teste)
  *   php db/upgrade.php --aplicar-em=<banco> --backup=<dump.sql>
  *                                      aplica num banco sem marcador de teste, depois
  *                                      de validado em copia e com dump recente
@@ -40,6 +42,18 @@ const UPGRADE_COUPONS_TABLE = "CREATE TABLE IF NOT EXISTS coupons (
     UNIQUE KEY uq_coupons_code (code),
     CONSTRAINT chk_coupons_value
         CHECK (discount_value > 0 AND (discount_type = 'fixed' OR discount_value <= 100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+/** Mesma definicao de db/schema.sql (trilha de auditoria do painel). */
+const UPGRADE_AUDIT_TABLE = "CREATE TABLE IF NOT EXISTS audit_log (
+    id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    admin_id    INT UNSIGNED DEFAULT NULL,
+    event       VARCHAR(32) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    detail      VARCHAR(200) NOT NULL DEFAULT '',
+    ip_hash     CHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    PRIMARY KEY (id),
+    KEY idx_audit_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
 function upgrade_has_table(PDO $pdo, string $table): bool
@@ -98,6 +112,19 @@ function upgrade_schema(PDO $pdo): void
     if (!upgrade_has_table($pdo, 'coupons')) {
         $pdo->exec(UPGRADE_COUPONS_TABLE);
     }
+
+    // Trilha de auditoria do painel: tabela nova; sem ela o painel segue sem a lista.
+    if (!upgrade_has_table($pdo, 'audit_log')) {
+        $pdo->exec(UPGRADE_AUDIT_TABLE);
+    }
+}
+
+/** Desfaz so a trilha de auditoria (so em teste). */
+function downgrade_audit_schema(PDO $pdo): void
+{
+    if (upgrade_has_table($pdo, 'audit_log')) {
+        $pdo->exec('DROP TABLE audit_log');
+    }
 }
 
 /** Desfaz so os cupons (a tabela e o que ela guarda; os pedidos nao mudam). */
@@ -145,6 +172,11 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
     }
 
+    if (isset($opts['rollback']) && $opts['rollback'] === 'auditoria') {
+        downgrade_audit_schema(db());
+        echo "Tabela audit_log removida de " . DB_NAME . ".\n";
+        exit(0);
+    }
     if (isset($opts['rollback']) && $opts['rollback'] === 'cupons') {
         downgrade_coupons_schema(db());
         echo "Tabela de cupons removida de " . DB_NAME . ".

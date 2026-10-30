@@ -85,6 +85,7 @@ try {
         );
     } else {
         CategoryRepository::delete($id);
+        SecurityLog::audit((int) $admin['id'], 'categoria', 'excluída: ' . $nome);
         flash_set('success', 'Categoria "' . $nome . '" excluída.');
 
         if ($vinculados > 0) {

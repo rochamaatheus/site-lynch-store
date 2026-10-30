@@ -104,6 +104,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
 
             if ($ok > 0) {
+                SecurityLog::audit((int) $admin['id'], 'fotos', 'produto #' . $id . ': ' . $ok . ' enviada(s)');
                 flash_set('success', $ok . ' foto' . ($ok === 1 ? '' : 's') . ' enviada' . ($ok === 1 ? '' : 's') . ' com sucesso.');
             }
             foreach ($erros as $erro) {
@@ -118,6 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $imageId = (int) ($_POST['image_id'] ?? 0);
 
             if ($imageId > 0 && ProductRepository::setPrimaryImage($id, $imageId)) {
+                SecurityLog::audit((int) $admin['id'], 'fotos', 'produto #' . $id . ': capa trocada');
                 flash_set('success', 'Capa trocada. É essa foto que aparece na vitrine.');
             } else {
                 flash_set('error', 'Não foi possível definir essa foto como capa.');
@@ -143,6 +145,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     (string) $linha['file_path'],
                     $linha['source_path'] === null ? null : (string) $linha['source_path']
                 );
+                SecurityLog::audit((int) $admin['id'], 'fotos', 'produto #' . $id . ': foto removida');
                 flash_set('success', 'Foto removida.');
             } else {
                 flash_set('error', 'Não foi possível remover a foto.');
@@ -172,6 +175,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             // O WHERE de reorderImages() casa id AND product_id, entao um id de
             // outro produto injetado no form simplesmente nao atualiza nada.
             ProductRepository::reorderImages($id, $mapa);
+            SecurityLog::audit((int) $admin['id'], 'fotos', 'produto #' . $id . ': ordem');
             flash_set('success', 'Ordem das fotos atualizada.');
 
             pi_back($selfUrl);
@@ -204,6 +208,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
 
             ProductRepository::setImageFocal($imageId, $id, $foco);
+            SecurityLog::audit((int) $admin['id'], 'fotos', 'produto #' . $id . ': corte');
             flash_set('success', 'Corte ajustado: ' . ImageProcessor::focalLabel($foco) . '.');
 
             pi_back($selfUrl);

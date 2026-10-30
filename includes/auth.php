@@ -22,28 +22,121 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/RateLimit.php';
+require_once __DIR__ . '/SecurityLog.php';
 
 // ---------------------------------------------------------------------------
 // Parametros do throttling
+//
+// Tres camadas, para que ninguem de fora consiga trancar a Ray do painel:
+//  1. mesmo IP + mesma conta: 5 erros em 15 min bloqueiam SO aquele IP naquela
+//     conta (o aparelho da Ray, em outra rede, continua entrando);
+//  2. mesmo IP, qualquer conta: 10 erros em 15 min (robo que chuta usuarios);
+//  3. a conta inteira, somando todos os IPs: 30 erros seguidos bloqueiam por 15
+//     min apenas aparelhos desconhecidos. O aparelho onde a Ray ja entrou guarda
+//     um cookie assinado (nao e login automatico) e passa por esse bloqueio.
+// Cada erro ainda segura a resposta um pouco mais (ate 1,5 s).
 // ---------------------------------------------------------------------------
 if (!defined('AUTH_MAX_ATTEMPTS')) {
-    define('AUTH_MAX_ATTEMPTS', 5);      // falhas toleradas antes do bloqueio
+    define('AUTH_MAX_ATTEMPTS', 5);      // conta + IP
 }
 if (!defined('AUTH_IP_MAX_ATTEMPTS')) {
-    define('AUTH_IP_MAX_ATTEMPTS', 10);  // falhas do mesmo IP (qualquer usuario) por janela
+    define('AUTH_IP_MAX_ATTEMPTS', 10);  // mesmo IP, qualquer usuario
+}
+if (!defined('AUTH_GLOBAL_MAX_ATTEMPTS')) {
+    define('AUTH_GLOBAL_MAX_ATTEMPTS', 30); // conta inteira (so aparelho desconhecido)
 }
 if (!defined('AUTH_LOCK_SECONDS')) {
-    define('AUTH_LOCK_SECONDS', 600);    // 10 minutos
+    define('AUTH_LOCK_SECONDS', 900);    // 15 minutos
+}
+if (!defined('AUTH_IDLE_SECONDS')) {
+    define('AUTH_IDLE_SECONDS', 7200);   // 2 h sem uso
+}
+if (!defined('AUTH_ABSOLUTE_SECONDS')) {
+    define('AUTH_ABSOLUTE_SECONDS', 43200); // 12 h desde o login, mesmo em uso
+}
+if (!defined('AUTH_DEVICE_DAYS')) {
+    define('AUTH_DEVICE_DAYS', 180);
+}
+
+// ---------------------------------------------------------------------------
+// Senhas
+// ---------------------------------------------------------------------------
+
+/**
+ * Algoritmo e custo explicitos. PASSWORD_DEFAULT no PHP 8.3 (o da Hostinger) e
+ * bcrypt custo 10; aqui e Argon2id quando o PHP tem, senao bcrypt custo 12.
+ *
+ * @return array{0:string|int,1:array<string,int>}
+ */
+function lynch_password_algo(): array
+{
+    if (defined('PASSWORD_ARGON2ID')) {
+        return [PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]];
+    }
+    return [PASSWORD_BCRYPT, ['cost' => 12]];
+}
+
+function lynch_password_hash(string $password): string
+{
+    [$algo, $options] = lynch_password_algo();
+    return password_hash($password, $algo, $options);
+}
+
+function lynch_password_needs_rehash(string $hash): bool
+{
+    [$algo, $options] = lynch_password_algo();
+    return password_needs_rehash($hash, $algo, $options);
 }
 
 /**
- * Hash descartavel usado so para gastar o mesmo tempo de CPU quando o usuario
- * NAO existe. Sem isso, um atacante mede o tempo de resposta e descobre quais
- * usernames existem (timing attack) mesmo com a mensagem sendo generica.
- * Corresponde a senha "lynch-store-dummy-password".
+ * Hash descartavel do MESMO algoritmo e custo do hash real, usado quando o
+ * usuario nao existe ou o acesso esta bloqueado: a resposta leva o mesmo tempo e
+ * o tempo nao revela quais usuarios existem. Senha "lynch-store-dummy-password".
  */
-if (!defined('AUTH_DUMMY_HASH')) {
-    define('AUTH_DUMMY_HASH', '$2y$10$9/KKa3X.hIGr.MWyIiE9qepA0nppv6GZuR7YuDuFfhJoXZbi/uF2m');
+function auth_dummy_hash(): string
+{
+    return defined('PASSWORD_ARGON2ID')
+        ? '$argon2id$v=19$m=65536,t=4,p=1$UUtwUHprWE5ZUzFrVkZqMA$QJM+IFzSs2Z0e6ySfdAPqxMDN5fjZEpSrBlTYGhTCQg'
+        : '$2y$12$LfZutqNka3JQKtHuhRyJLOGVhbatew4lpLcoQgAyd0lYkUbmQmMFO';
+}
+
+/**
+ * Politica de senha do painel. null = aceita; senao a mensagem para a tela.
+ * 12 a 72 bytes (limite do bcrypt), sem senha de exemplo, sem repeticao boba,
+ * sem conter o proprio login.
+ */
+function password_policy_error(string $password, string $username = ''): ?string
+{
+    $length = strlen($password);
+    if ($length < 12) {
+        return 'Use uma senha com pelo menos 12 caracteres. Uma frase longa é uma boa escolha.';
+    }
+    if ($length > 72) {
+        return 'A senha pode ter no máximo 72 caracteres.';
+    }
+    $lower = mb_strtolower($password, 'UTF-8');
+    $plain = (string) preg_replace('/[^a-z0-9]/', '', $lower);
+    $banned = [
+        'troqueestasenha', 'trocarestasenha', 'lynchstoredummypassword', 'lynchstore', 'lynchstore123',
+        'senhadopainel', 'senha123456', 'senhasenha', 'admin123456', 'administrador', 'password123',
+        'qwerty123456', '123456789012', '1234567890123', 'abcdefghijkl', 'girassolazulnaarara',
+    ];
+    foreach ($banned as $bad) {
+        if ($plain === $bad || ($bad !== '' && strlen($bad) >= 10 && str_starts_with($plain, $bad) && strlen($plain) - strlen($bad) <= 3)) {
+            return 'Essa senha é conhecida demais (aparece em exemplos e listas de senhas vazadas). Escolha outra.';
+        }
+    }
+    if (preg_match('/^(.)\1+$/u', $password) === 1 || count(array_unique(mb_str_split($password))) < 5) {
+        return 'A senha repete poucos caracteres. Misture palavras, como uma frase.';
+    }
+    if (preg_match('/^(?:0123456789|1234567890|abcdefghij|qwertyuiop)/', $plain) === 1) {
+        return 'Sequência de teclado não serve como senha. Use uma frase.';
+    }
+    $user = mb_strtolower(trim($username), 'UTF-8');
+    if ($user !== '' && mb_strlen($user) >= 3 && str_contains($lower, $user)) {
+        return 'A senha não pode conter o seu login.';
+    }
+    return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +152,11 @@ function ensure_session(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
+        // Marca o nascimento da sessao (finalizar.php recusa pedido de sessao com
+        // poucos segundos de vida: robo que abre e ja envia).
+        if (!isset($_SESSION['_born']) || !is_int($_SESSION['_born'])) {
+            $_SESSION['_born'] = time();
+        }
     }
 }
 
@@ -103,9 +201,17 @@ function current_admin(): ?array
     $stmt->execute([$id]);
     $row = $stmt->fetch();
 
-    if (!is_array($row) || !hash_equals((string) ($_SESSION['admin_fingerprint'] ?? ''), hash('sha256', (string) ($row['password_hash'] ?? ''))) || time() - (int) ($_SESSION['admin_last_seen'] ?? 0) > 7200) {
-        // Usuario removido/desativado: a sessao nao vale mais nada.
-        unset($_SESSION['admin_id']);
+    $now = time();
+    $expired = $now - (int) ($_SESSION['admin_last_seen'] ?? 0) > AUTH_IDLE_SECONDS
+        || $now - (int) ($_SESSION['admin_login_at'] ?? 0) > AUTH_ABSOLUTE_SECONDS;
+    // A impressao digital e o hash da senha: trocar a senha (ou "Encerrar as
+    // outras sessoes", que regrava o hash) derruba todas as outras sessoes.
+    if (!is_array($row) || !hash_equals((string) ($_SESSION['admin_fingerprint'] ?? ''), hash('sha256', (string) ($row['password_hash'] ?? ''))) || $expired) {
+        // Usuario removido/desativado, senha trocada ou tempo esgotado.
+        if ($expired && is_array($row)) {
+            SecurityLog::event('sessao_expirada', ['admin' => $id]);
+        }
+        unset($_SESSION['admin_id'], $_SESSION['admin_fingerprint'], $_SESSION['admin_login_at'], $_SESSION['admin_last_seen']);
         $cache = ['id' => $id, 'row' => null];
         return null;
     }
@@ -179,16 +285,32 @@ function attempt_login(string $username, string $password): array
 
     $username = trim($username);
 
-    if ($username === '' || $password === '') {
+    if ($username === '' || $password === '' || strlen($username) > 50 || strlen($password) > 4096) {
         return ['ok' => false, 'error' => $genericError];
     }
 
-    // Limite por endereco de rede, somando todos os usuarios tentados: o bloqueio
-    // por conta (abaixo) nao segura quem chuta varios logins diferentes.
-    if (RateLimit::tooMany('login', AUTH_IP_MAX_ATTEMPTS, AUTH_LOCK_SECONDS)) {
-        password_verify($password, AUTH_DUMMY_HASH);
+    // Balde conta + IP: chave com o login normalizado (o mesmo para usuario que
+    // existe e que nao existe, entao o limite nao revela nada).
+    $accountClient = RateLimit::clientId() . '|' . hash('sha256', mb_strtolower($username, 'UTF-8'));
+    $fail = static function (?int $userId, string $event) use ($password, $accountClient, $genericError): array {
         RateLimit::hit('login', AUTH_LOCK_SECONDS);
+        RateLimit::hit('login-conta', AUTH_LOCK_SECONDS, $accountClient);
+        SecurityLog::audit($userId, $event, $userId === null ? 'usuário digitado não existe' : '');
+        // Atraso progressivo pelos erros deste IP nesta conta (ate 1,5 s).
+        if (PHP_SAPI !== 'cli') {
+            $n = RateLimit::count('login-conta', AUTH_LOCK_SECONDS, $accountClient);
+            usleep(min(1500000, 250000 * max(0, $n - 1)));
+        }
+        unset($password);
         return ['ok' => false, 'error' => $genericError];
+    };
+
+    // Limites por endereco de rede: qualquer usuario (robo chutando logins) e
+    // esta conta neste IP. Nenhum dos dois tranca a conta para outros IPs.
+    if (RateLimit::tooMany('login', AUTH_IP_MAX_ATTEMPTS, AUTH_LOCK_SECONDS)
+        || RateLimit::tooMany('login-conta', AUTH_MAX_ATTEMPTS, AUTH_LOCK_SECONDS, $accountClient)) {
+        password_verify($password, auth_dummy_hash());
+        return $fail(null, 'login_bloqueado');
     }
 
     $pdo = db();
@@ -202,72 +324,71 @@ function attempt_login(string $username, string $password): array
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    // Usuario inexistente ou desativado: gasta o mesmo tempo de um bcrypt real
+    // Usuario inexistente ou desativado: gasta o mesmo tempo de um hash real
     // e devolve exatamente a mesma mensagem de senha errada.
     if (!is_array($user) || (int) $user['active'] !== 1) {
-        password_verify($password, AUTH_DUMMY_HASH);
-        RateLimit::hit('login', AUTH_LOCK_SECONDS);
-        return ['ok' => false, 'error' => $genericError];
+        password_verify($password, auth_dummy_hash());
+        return $fail(null, 'login_desconhecido');
     }
 
     $now = time();
+    $userId = (int) $user['id'];
 
-    // Bloqueio ativo?
+    // Bloqueio global da conta (muitos erros somando todos os IPs): vale so para
+    // aparelho desconhecido. O aparelho onde a Ray ja entrou segue podendo entrar.
     if (!empty($user['locked_until'])) {
         $lockedUntil = strtotime((string) $user['locked_until']);
-        if ($lockedUntil !== false && $lockedUntil > $now) {
-            password_verify($password, AUTH_DUMMY_HASH);
-            RateLimit::hit('login', AUTH_LOCK_SECONDS);
-            return ['ok' => false, 'error' => $genericError];
+        if ($lockedUntil !== false && $lockedUntil > $now && !auth_trusted_device($user)) {
+            password_verify($password, auth_dummy_hash());
+            return $fail($userId, 'login_bloqueado');
         }
-
-        // Bloqueio ja venceu: zera o contador antes de avaliar esta tentativa.
-        $reset = $pdo->prepare('UPDATE admin_users SET failed_attempts = 0, locked_until = NULL WHERE id = ?');
-        $reset->execute([(int) $user['id']]);
-        $user['failed_attempts'] = 0;
-        $user['locked_until']    = null;
+        if ($lockedUntil === false || $lockedUntil <= $now) {
+            // Bloqueio ja venceu: zera o contador antes de avaliar esta tentativa.
+            $pdo->prepare('UPDATE admin_users SET failed_attempts = 0, locked_until = NULL WHERE id = ?')->execute([$userId]);
+        }
     }
 
     if (!password_verify($password, (string) $user['password_hash'])) {
-        auth_register_failure($pdo, (int) $user['id']);
-        RateLimit::hit('login', AUTH_LOCK_SECONDS);
-        return ['ok' => false, 'error' => $genericError];
+        auth_register_failure($pdo, $userId);
+        return $fail($userId, 'login_falha');
     }
 
     // ---- Sucesso -----------------------------------------------------------
     RateLimit::clear('login');
+    RateLimit::clear('login-conta', $accountClient);
     // ID novo para a sessao autenticada (session fixation) e token CSRF novo.
     session_regenerate_id(true);
     unset($_SESSION['csrf']);
 
-    $_SESSION['admin_id']       = (int) $user['id'];
-    $_SESSION['admin_login_at'] = $now;
-    $_SESSION['admin_last_seen'] = $now;
-    $_SESSION['admin_fingerprint'] = hash('sha256', (string) $user['password_hash']);
+    $hash = (string) $user['password_hash'];
+    // Se o algoritmo/custo mudou (ex.: bcrypt 10 -> Argon2id), reforca o hash agora.
+    if (lynch_password_needs_rehash($hash)) {
+        $hash = lynch_password_hash($password);
+        $pdo->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')->execute([$hash, $userId]);
+    }
 
-    $upd = $pdo->prepare(
+    $_SESSION['admin_id']          = $userId;
+    $_SESSION['admin_login_at']    = $now;
+    $_SESSION['admin_last_seen']   = $now;
+    $_SESSION['admin_fingerprint'] = hash('sha256', $hash);
+
+    $pdo->prepare(
         'UPDATE admin_users
             SET failed_attempts = 0,
                 locked_until    = NULL,
                 last_login_at   = ?
           WHERE id = ?'
-    );
-    $upd->execute([date('Y-m-d H:i:s', $now), (int) $user['id']]);
+    )->execute([date('Y-m-d H:i:s', $now), $userId]);
 
-    // Se o custo/algoritmo padrao do PHP mudou, reforca o hash silenciosamente.
-    if (password_needs_rehash((string) $user['password_hash'], PASSWORD_DEFAULT)) {
-        $rehash = $pdo->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?');
-        $newHash = password_hash($password, PASSWORD_DEFAULT);
-        $rehash->execute([$newHash, (int) $user['id']]);
-        $_SESSION['admin_fingerprint'] = hash('sha256', $newHash);
-    }
+    auth_issue_device_cookie($userId, $hash);
+    SecurityLog::audit($userId, 'login_ok');
 
     return ['ok' => true, 'error' => null];
 }
 
 /**
- * Contabiliza uma tentativa falha e aplica o bloqueio quando passar do limite.
- * Interna - nao chamar de fora de auth.php.
+ * Contabiliza uma tentativa falha na conta (somando todos os IPs) e aplica o
+ * bloqueio global quando passar do limite. Interna - nao chamar de fora de auth.php.
  */
 function auth_register_failure(PDO $pdo, int $userId): void
 {
@@ -277,11 +398,122 @@ function auth_register_failure(PDO $pdo, int $userId): void
     // direita (aqui ainda ve o valor antigo, por isso o + 1).
     $stmt = $pdo->prepare(
         'UPDATE admin_users
-            SET locked_until    = IF(failed_attempts + 1 > ?, ?, locked_until),
-                failed_attempts = failed_attempts + 1
+            SET locked_until    = IF(failed_attempts + 1 >= ?, ?, locked_until),
+                failed_attempts = LEAST(failed_attempts + 1, 65535)
           WHERE id = ?'
     );
-    $stmt->execute([AUTH_MAX_ATTEMPTS, date('Y-m-d H:i:s', time() + AUTH_LOCK_SECONDS), $userId]);
+    $stmt->execute([AUTH_GLOBAL_MAX_ATTEMPTS, date('Y-m-d H:i:s', time() + AUTH_LOCK_SECONDS), $userId]);
+}
+
+// ---------------------------------------------------------------------------
+// Aparelho conhecido (cookie assinado; NAO e "lembrar senha" nem login automatico)
+//
+// Depois de um login certo, o navegador guarda um cookie HttpOnly, Secure,
+// SameSite=Strict com id do usuario + validade + numero aleatorio, assinado com
+// HMAC cuja chave deriva do hash da senha (segredo que so existe no banco).
+// Serve para uma unica coisa: deixar a Ray entrar durante o bloqueio global da
+// conta, que um atacante consegue provocar de varios IPs. A senha continua sendo
+// pedida. Trocar a senha (ou encerrar as sessoes) invalida todos esses cookies.
+// ---------------------------------------------------------------------------
+
+function auth_device_cookie_name(): string
+{
+    return (lynch_is_https() ? '__Host-' : '') . 'lynch_aparelho';
+}
+
+function auth_device_signature(int $userId, int $expires, string $nonce, string $passwordHash): string
+{
+    $key = hash('sha256', 'lynch-aparelho|' . $passwordHash . '|' . DB_NAME, true);
+    return hash_hmac('sha256', $userId . '|' . $expires . '|' . $nonce, $key);
+}
+
+function auth_issue_device_cookie(int $userId, string $passwordHash): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent()) {
+        return;
+    }
+    $expires = time() + AUTH_DEVICE_DAYS * 86400;
+    $nonce = bin2hex(random_bytes(16));
+    $value = $userId . '.' . $expires . '.' . $nonce . '.' . auth_device_signature($userId, $expires, $nonce, $passwordHash);
+    setcookie(auth_device_cookie_name(), $value, [
+        'expires'  => $expires,
+        'path'     => '/',
+        'secure'   => lynch_is_https() || str_starts_with(APP_BASE_URL, 'https://'),
+        'httponly' => true,
+        'samesite' => 'Strict',
+    ]);
+}
+
+/** @param array<string,mixed> $user linha de admin_users com id e password_hash */
+function auth_trusted_device(array $user): bool
+{
+    $raw = $_COOKIE[auth_device_cookie_name()] ?? '';
+    if (!is_string($raw) || strlen($raw) > 200) {
+        return false;
+    }
+    $parts = explode('.', $raw);
+    if (count($parts) !== 4 || !ctype_digit($parts[0]) || !ctype_digit($parts[1]) || !ctype_xdigit($parts[2]) || !ctype_xdigit($parts[3])) {
+        return false;
+    }
+    [$uid, $expires, $nonce, $sig] = $parts;
+    if ((int) $uid !== (int) $user['id'] || (int) $expires < time()) {
+        return false;
+    }
+    return hash_equals(auth_device_signature((int) $uid, (int) $expires, $nonce, (string) $user['password_hash']), $sig);
+}
+
+/**
+ * "Encerrar as sessoes dos outros aparelhos": confere a senha atual e regrava o
+ * hash com sal novo. A impressao digital das outras sessoes deixa de bater (elas
+ * caem no proximo clique) e os cookies de aparelho conhecido perdem a assinatura.
+ * Esta sessao e este aparelho continuam valendo.
+ */
+function admin_revoke_other_sessions(int $userId, string $currentPassword): bool
+{
+    $stmt = db()->prepare('SELECT password_hash FROM admin_users WHERE id = ? AND active = 1');
+    $stmt->execute([$userId]);
+    $hash = (string) $stmt->fetchColumn();
+    if ($hash === '' || !password_verify($currentPassword, $hash)) {
+        return false;
+    }
+    $new = lynch_password_hash($currentPassword);
+    db()->prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')->execute([$new, $userId]);
+    $_SESSION['admin_fingerprint'] = hash('sha256', $new);
+    session_regenerate_id(true);
+    auth_issue_device_cookie($userId, $new);
+    SecurityLog::audit($userId, 'sessoes_encerradas');
+    return true;
+}
+
+/**
+ * Troca de senha (Minha conta). Devolve null em sucesso ou a mensagem de erro.
+ */
+function admin_change_password(int $userId, string $username, string $current, string $new, string $confirm): ?string
+{
+    $stmt = db()->prepare('SELECT password_hash FROM admin_users WHERE id = ? AND active = 1');
+    $stmt->execute([$userId]);
+    $hash = (string) $stmt->fetchColumn();
+    if ($hash === '' || !password_verify($current, $hash)) {
+        SecurityLog::audit($userId, 'login_falha', 'senha atual errada ao trocar a senha');
+        return 'A senha atual não confere.';
+    }
+    if (($policy = password_policy_error($new, $username)) !== null) {
+        return $policy;
+    }
+    if (!hash_equals($new, $confirm)) {
+        return 'A confirmação precisa ser igual à nova senha.';
+    }
+    if (password_verify($new, $hash)) {
+        return 'A nova senha precisa ser diferente da atual.';
+    }
+    $newHash = lynch_password_hash($new);
+    db()->prepare('UPDATE admin_users SET password_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?')->execute([$newHash, $userId]);
+    $_SESSION['admin_fingerprint'] = hash('sha256', $newHash);
+    session_regenerate_id(true);
+    unset($_SESSION['csrf']);
+    auth_issue_device_cookie($userId, $newHash);
+    SecurityLog::audit($userId, 'senha_trocada');
+    return null;
 }
 
 /**
@@ -341,20 +573,51 @@ function csrf_field(): string
 }
 
 /**
+ * Defesa em profundidade, alem do token: o navegador diz de onde veio o envio.
+ * Sec-Fetch-Site "cross-site" ou um Origin de outro endereco sao recusados.
+ * Sem esses cabecalhos (navegador antigo, ferramenta) vale so o token.
+ */
+function request_same_origin(): bool
+{
+    $site = strtolower((string) ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? ''));
+    if ($site === 'cross-site') {
+        return false;
+    }
+    $origin = (string) ($_SERVER['HTTP_ORIGIN'] ?? '');
+    if ($origin === '' || $origin === 'null') {
+        return true;
+    }
+    $allowed = [];
+    if (APP_BASE_URL !== '') {
+        $p = parse_url(APP_BASE_URL);
+        if (is_array($p) && isset($p['scheme'], $p['host'])) {
+            $allowed[] = strtolower($p['scheme'] . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : ''));
+        }
+    }
+    // O proprio endereco pedido tambem vale (www e sem www): o navegador da vitima
+    // manda o Host verdadeiro, entao isso nao abre brecha para outro site.
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host !== '' && preg_match('/^[a-z0-9.\-]+(?::\d{1,5})?$/D', $host) === 1) {
+        $allowed[] = (lynch_is_https() ? 'https://' : 'http://') . $host;
+    }
+    return in_array(strtolower(rtrim($origin, '/')), $allowed, true);
+}
+
+/**
  * Confere o token recebido. Comparacao em tempo constante (hash_equals).
  */
 function csrf_check(mixed $token): bool
 {
     ensure_session();
 
-    if (!is_string($token) || $token === '') {
-        return false;
+    $ok = is_string($token) && $token !== ''
+        && !empty($_SESSION['csrf']) && is_string($_SESSION['csrf'])
+        && hash_equals($_SESSION['csrf'], $token)
+        && (PHP_SAPI === 'cli' || request_same_origin());
+    if (!$ok && PHP_SAPI !== 'cli') {
+        SecurityLog::event('csrf_invalido', ['origem' => substr((string) ($_SERVER['HTTP_ORIGIN'] ?? ''), 0, 80), 'site' => (string) ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')]);
     }
-    if (empty($_SESSION['csrf']) || !is_string($_SESSION['csrf'])) {
-        return false;
-    }
-
-    return hash_equals($_SESSION['csrf'], $token);
+    return $ok;
 }
 
 // ---------------------------------------------------------------------------

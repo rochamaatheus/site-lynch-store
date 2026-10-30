@@ -60,9 +60,11 @@ $nome = (string) $produto['name'];
 try {
     if ($action === 'restore') {
         ProductRepository::restore($id);
+        SecurityLog::audit((int) $admin['id'], 'produto_status', 'voltou para a loja: ' . $nome);
         flash_set('success', 'Produto "' . $nome . '" reativado e visível na loja de novo.');
     } else {
         ProductRepository::softDelete($id);
+        SecurityLog::audit((int) $admin['id'], 'produto_status', 'tirado da loja: ' . $nome);
         flash_set('success', 'Produto "' . $nome . '" desativado. Ele sumiu da loja, mas continua aqui e pode ser reativado.');
     }
 } catch (Throwable $e) {

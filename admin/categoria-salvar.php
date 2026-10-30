@@ -69,9 +69,11 @@ $dados = [
 try {
     if ($editando) {
         CategoryRepository::update($id, $dados);
+        SecurityLog::audit((int) $admin['id'], 'categoria', 'atualizada: ' . $name);
         flash_set('success', 'Categoria "' . $name . '" atualizada.');
     } else {
         CategoryRepository::create($dados);
+        SecurityLog::audit((int) $admin['id'], 'categoria', 'criada: ' . $name);
         flash_set('success', 'Categoria "' . $name . '" criada.');
     }
 } catch (Throwable $e) {

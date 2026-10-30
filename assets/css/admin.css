@@ -606,3 +606,9 @@ body.login main{padding:0}
   .prow-toggles{grid-template-columns:1fr}
   .shortcut{font-size:15px}
 }
+/* Minha conta: acessos e alteracoes recentes */
+.audit-list{list-style:none;margin:8px 0 0;padding:0;display:grid}
+.audit-list li{padding:10px 0;border-top:1px solid var(--line);font-size:15px;line-height:1.45;overflow-wrap:anywhere}
+.audit-list li.is-alert b{color:var(--rust-ink)}
+.audit-when{display:block;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.audit-net{display:inline-block;margin-left:4px;font-size:13px;color:var(--muted)}

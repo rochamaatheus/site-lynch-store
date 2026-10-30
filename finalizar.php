@@ -16,6 +16,19 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/Cart.php';
 require_once __DIR__ . '/includes/WhatsAppMessage.php';
 
+/*
+ * Limites contra enxurrada de pedidos falsos (e contra gastar os usos de um
+ * cupom divulgado). So contam pedidos NOVOS: repetir o mesmo envio em 30 minutos
+ * reaproveita a referencia e nao conta. Generosos para rede movel com CGNAT, em
+ * que muitas clientes saem pelo mesmo IP: uma loja pequena nao recebe 40 pedidos
+ * por hora de uma mesma rede.
+ */
+const ORDER_SESSION_MAX   = 10;   // pedidos novos por sessao, por hora
+const ORDER_IP_MAX        = 40;   // pedidos novos por IP, por hora
+const ORDER_COUPON_IP_MAX = 15;   // usos de cupom por IP, por hora
+const ORDER_WINDOW        = 3600;
+const ORDER_MIN_SESSION_SECONDS = 3;
+
 // "Comprar agora" usa a sua propria sacola na sessao (ver carrinho.php).
 if (($_POST['bag'] ?? '') === 'direct') {
     cart_bag('cart_direct');
@@ -53,6 +66,15 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
 
 if (!csrf_check(isset($_POST['csrf']) ? (string) $_POST['csrf'] : null)) {
     checkout_fail('Não foi possível finalizar o pedido. Atualize a página e tente novamente.', $cartUrl);
+}
+
+// Robo: o campo isca (invisivel para gente) veio preenchido, ou a sessao nasceu
+// ha menos de 3 segundos (ninguem escolhe peca, abre a sacola e envia tao rapido).
+$honeypot = $_POST['site_url'] ?? '';
+$sessionAge = time() - (int) ($_SESSION['_born'] ?? 0);
+if ((is_string($honeypot) && trim($honeypot) !== '') || $sessionAge < ORDER_MIN_SESSION_SECONDS) {
+    SecurityLog::event('pedido_robo', ['motivo' => $honeypot !== '' ? 'isca' : 'rapido_demais']);
+    checkout_fail('Não foi possível enviar agora. Espere alguns segundos e toque em Enviar de novo.', $cartUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +179,14 @@ if ($recent && ($previous['fingerprint'] ?? '') === $fingerprint) {
     $orderId = (int) $previous['id'];
 }
 if ($orderId === null) {
+    $now = time();
+    $sessionOrders = array_values(array_filter((array) ($_SESSION['orders_at'] ?? []), static fn ($t): bool => is_int($t) && $now - $t < ORDER_WINDOW));
+    if (count($sessionOrders) >= ORDER_SESSION_MAX
+        || RateLimit::tooMany('pedido', ORDER_IP_MAX, ORDER_WINDOW)
+        || ($couponSnap !== null && RateLimit::tooMany('cupom-uso', ORDER_COUPON_IP_MAX, ORDER_WINDOW))) {
+        SecurityLog::event('pedido_limite', ['sessao' => count($sessionOrders), 'cupom' => $couponSnap !== null ? 1 : 0]);
+        checkout_fail('Recebemos muitos pedidos desta conexão em pouco tempo. Sua sacola foi mantida. Espere alguns minutos ou chame a loja direto no WhatsApp.', $cartUrl);
+    }
     $pdo = db();
     try {
         $pdo->beginTransaction();
@@ -182,6 +212,12 @@ if ($orderId === null) {
         $orderId = (int) $pdo->lastInsertId();
         $pdo->commit();
         $_SESSION[$lastKey] = ['fingerprint' => $fingerprint, 'id' => $orderId, 'at' => time(), 'coupon_code' => $couponSnap['code'] ?? ''];
+        $sessionOrders[] = $now;
+        $_SESSION['orders_at'] = $sessionOrders;
+        RateLimit::hit('pedido', ORDER_WINDOW);
+        if ($couponSnap !== null) {
+            RateLimit::hit('cupom-uso', ORDER_WINDOW);
+        }
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();

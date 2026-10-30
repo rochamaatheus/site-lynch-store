@@ -698,3 +698,5 @@ a,button,summary,label,select,input,.pdp-gallery{touch-action:manipulation}
   .bag-foot{box-shadow:none}
   .bag-note-lead{margin-bottom:10px}
 }
+/* Campo isca do envio do pedido: invisivel para gente, robo preenche */
+.hp{display:none}

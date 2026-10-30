@@ -51,7 +51,7 @@ $add = static function (string $relative) use ($zip, $root, &$manifest): void {
     $zip->addFile($file, 'public_html/' . $relative);
     $manifest[$relative] = hash_file('sha256', $file);
 };
-foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','db/schema.sql'] as $file) { $add($file); }
+foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','.user.ini','.well-known/security.txt','db/schema.sql'] as $file) { $add($file); }
 foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $folder, FilesystemIterator::SKIP_DOTS));
     foreach ($it as $file) {
@@ -79,3 +79,6 @@ $instructions = "LYNCH STORE | INSTALAÇÃO NA HOSTINGER\n\n1. Configure PHP 8.3
 file_put_contents($dir . '/LEIA-ME-INSTALACAO.txt', $instructions);
 file_put_contents($dir . '/manifest.json', json_encode(['created' => date(DATE_ATOM), 'zip_sha256' => hash_file('sha256', $zipPath), 'files' => $manifest, 'catalog_counts' => array_map('count', $catalog)], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 echo "Build concluído: $zipPath\nInstruções e chave: $dir/LEIA-ME-INSTALACAO.txt\n";
+if (str_contains((string) @file_get_contents($root . '/.well-known/security.txt'), 'SEU-DOMINIO')) {
+    echo "ATENÇÃO: .well-known/security.txt ainda tem o contato de exemplo. Preencha antes de publicar.\n";
+}

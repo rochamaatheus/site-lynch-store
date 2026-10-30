@@ -136,6 +136,7 @@ $bagMainCount = cart_count();
     <?php elseif ($bagReady): ?>
       <form method="post" action="<?= e(base_url('finalizar.php')) ?>">
         <?= csrf_field() ?><?= $bagField ?>
+        <div class="hp"><label>Deixe este campo vazio <input type="text" name="site_url" value="" tabindex="-1" autocomplete="off"></label></div>
         <button class="btn ink wide" type="submit" data-sending="Abrindo o WhatsApp…"><?= icon('chat') ?> <?= $bagDirect ? 'Enviar pelo WhatsApp' : 'Enviar pedido no WhatsApp' ?></button>
       </form>
     <?php else: ?>

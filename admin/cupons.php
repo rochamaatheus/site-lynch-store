@@ -35,16 +35,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if ($op === 'create') {
                 $data = CouponRepository::parseForm($_POST);
                 $id = CouponRepository::create($data);
+                SecurityLog::audit((int) $admin['id'], 'cupom', 'criado ' . $data['code']);
                 flash_set('success', 'Cupom ' . $data['code'] . ' criado. Já pode ser usado na sacola.');
                 $anchor = '#cupom-' . $id;
             } elseif ($op === 'activate' || $op === 'deactivate') {
                 $coupon = CouponRepository::find($id) ?? throw new DomainException('Cupom não encontrado.');
                 CouponRepository::setActive($id, $op === 'activate');
+                SecurityLog::audit((int) $admin['id'], 'cupom', ($op === 'activate' ? 'ativado ' : 'desativado ') . $coupon['code']);
                 flash_set('success', 'Cupom ' . $coupon['code'] . ($op === 'activate' ? ' ativado.' : ' desativado. Ele para de valer na sacola na hora.'));
                 $anchor = '#cupom-' . $id;
             } elseif ($op === 'delete') {
                 $coupon = CouponRepository::find($id) ?? throw new DomainException('Cupom não encontrado.');
                 CouponRepository::softDelete($id);
+                SecurityLog::audit((int) $admin['id'], 'cupom', 'excluído ' . $coupon['code']);
                 flash_set('success', 'Cupom ' . $coupon['code'] . ' excluído. Os pedidos que já usaram continuam registrados.');
             } else {
                 flash_set('error', 'Ação inválida.');

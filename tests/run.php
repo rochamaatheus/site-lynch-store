@@ -338,6 +338,75 @@ $img = imagecreatetruecolor(400, 500);
 imagefill($img, 0, 0, imagecolorallocate($img, 166, 78, 46));
 imagepng($img, __DIR__ . '/fixtures/upload.png');
 imagedestroy($img);
+// --- Seguranca (2a passada): senha, bloqueio sem trancar a dona, origem, limites, auditoria ---
+[$algo] = lynch_password_algo();
+$h = lynch_password_hash('frase longa de teste ' . $suffix);
+$info = password_get_info($h);
+$check(($info['algo'] === PASSWORD_ARGON2ID) || ($info['algo'] === PASSWORD_BCRYPT && ($info['options']['cost'] ?? 0) >= 12), 'Senha com Argon2id ou bcrypt custo 12 (não depende do padrão do PHP 8.3)');
+$check(lynch_password_needs_rehash(password_hash('x', PASSWORD_BCRYPT, ['cost' => 10])), 'Hash antigo bcrypt 10 é reforçado no próximo login');
+$check(password_get_info(auth_dummy_hash())['algo'] === $info['algo'] && password_verify('lynch-store-dummy-password', auth_dummy_hash()), 'Hash fictício do login usa o mesmo algoritmo do hash real (tempo igual para usuário inexistente)');
+foreach (['troque-esta-senha', '123456789012', 'aaaaaaaaaaaaaa', 'abababababab', 'qa_runner-segredo', 'curta'] as $weak) {
+    $check(password_policy_error($weak, 'qa_runner') !== null, 'Senha fraca recusada: ' . $weak);
+}
+$check(password_policy_error('girassol na arara de veludo', 'ray') === null, 'Frase longa aceita');
+$check(!str_contains(file_get_contents(dirname(__DIR__) . '/instalar.php'), "PASSWORD_DEFAULT"), 'Instalador grava a senha com algoritmo explícito');
+
+$qaHash = (string) $pdo->query("SELECT password_hash FROM admin_users WHERE username = 'qa_runner'")->fetchColumn();
+$qaId = (int) $pdo->query("SELECT id FROM admin_users WHERE username = 'qa_runner'")->fetchColumn();
+$_SERVER['REMOTE_ADDR'] = '198.51.100.10';   // rede de quem tenta adivinhar
+RateLimit::clear('login');
+RateLimit::clear('login-conta', RateLimit::clientId() . '|' . hash('sha256', 'qa_runner'));
+for ($i = 0; $i < AUTH_MAX_ATTEMPTS; $i++) { attempt_login('qa_runner', 'errada-' . $i); }
+$check(!attempt_login('qa_runner', $password)['ok'], 'Cinco erros na mesma conta e rede bloqueiam aquela rede');
+$lock = $pdo->query("SELECT failed_attempts, locked_until FROM admin_users WHERE username = 'qa_runner'")->fetch();
+$check($lock['locked_until'] === null, 'Erros de uma rede não trancam a conta para as outras');
+$_SERVER['REMOTE_ADDR'] = '203.0.113.20';    // aparelho da dona, outra rede
+$check(attempt_login('qa_runner', $password)['ok'], 'A dona entra de outra rede mesmo durante o ataque');
+unset($_SESSION['admin_id']);
+// Ataque espalhado por muitas redes: bloqueio global so para aparelho desconhecido.
+$qaHash = (string) $pdo->query("SELECT password_hash FROM admin_users WHERE username = 'qa_runner'")->fetchColumn();
+$pdo->prepare('UPDATE admin_users SET failed_attempts = ?, locked_until = ? WHERE id = ?')->execute([AUTH_GLOBAL_MAX_ATTEMPTS, date('Y-m-d H:i:s', time() + 600), $qaId]);
+$_SERVER['REMOTE_ADDR'] = '192.0.2.30';
+$check(!attempt_login('qa_runner', $password)['ok'], 'Bloqueio global recusa aparelho desconhecido');
+$exp = time() + 3600; $nonce = bin2hex(random_bytes(16));
+$_COOKIE[auth_device_cookie_name()] = $qaId . '.' . $exp . '.' . $nonce . '.' . auth_device_signature($qaId, $exp, $nonce, $qaHash);
+$check(attempt_login('qa_runner', $password)['ok'], 'Aparelho conhecido (cookie assinado) entra durante o bloqueio global');
+$_COOKIE[auth_device_cookie_name()] = $qaId . '.' . $exp . '.' . $nonce . '.' . str_repeat('0', 64);
+$check(!auth_trusted_device(['id' => $qaId, 'password_hash' => $qaHash]), 'Cookie de aparelho com assinatura falsa não vale');
+unset($_COOKIE[auth_device_cookie_name()]);
+$before = (string) $pdo->query("SELECT password_hash FROM admin_users WHERE id = $qaId")->fetchColumn();
+$check(!admin_revoke_other_sessions($qaId, 'senha-errada-qa') && admin_revoke_other_sessions($qaId, $password), 'Encerrar sessões exige a senha atual');
+$after = (string) $pdo->query("SELECT password_hash FROM admin_users WHERE id = $qaId")->fetchColumn();
+$check($after !== $before && password_verify($password, $after) && $_SESSION['admin_fingerprint'] === hash('sha256', $after), 'Encerrar sessões troca a impressão digital: as outras sessões caem, esta continua');
+$check(admin_change_password($qaId, 'qa_runner', $password, 'troque-esta-senha', 'troque-esta-senha') !== null, 'Troca de senha recusa a senha do .env.example');
+unset($_SESSION['admin_id']);
+$pdo->prepare('UPDATE admin_users SET failed_attempts = 0, locked_until = NULL WHERE id = ?')->execute([$qaId]);
+foreach (['198.51.100.10', '203.0.113.20', '192.0.2.30'] as $ip) { $_SERVER['REMOTE_ADDR'] = $ip; RateLimit::clear('login'); RateLimit::clear('login-conta', RateLimit::clientId() . '|' . hash('sha256', 'qa_runner')); }
+unset($_SERVER['REMOTE_ADDR']);
+
+$_SERVER['HTTP_SEC_FETCH_SITE'] = 'cross-site';
+$check(!request_same_origin(), 'Envio de outro site (Sec-Fetch-Site) recusado');
+unset($_SERVER['HTTP_SEC_FETCH_SITE']);
+$_SERVER['HTTP_ORIGIN'] = 'https://evil.test';
+$check(!request_same_origin(), 'Origin de outro endereço recusado');
+$_SERVER['HTTP_ORIGIN'] = rtrim(APP_BASE_URL, '/');
+$check(request_same_origin(), 'Origin da própria loja aceito');
+unset($_SERVER['HTTP_ORIGIN']);
+
+$rlw = 'qa-w' . $suffix;
+for ($i = 0; $i < 3; $i++) { RateLimit::throttle($rlw, 3, 60, 'cli-x'); }
+$check(RateLimit::throttle($rlw, 3, 60, 'cli-x') > 0 && RateLimit::throttle($rlw, 3, 60, 'cli-y') === 0, 'Limite de páginas por janela devolve espera só para o IP que passou do limite');
+
+SecurityLog::flush();
+$check(SecurityLog::ready(), 'Banco de teste com a tabela audit_log');
+SecurityLog::audit($qaId, 'config', 'teste QA ' . $suffix);
+$last = SecurityLog::recent(1)[0] ?? [];
+$check(($last['detail'] ?? '') === 'teste QA ' . $suffix && strlen((string) $last['ip_hash']) === 12 && !str_contains((string) $last['ip_hash'], '.'), 'Auditoria grava ação com IP só em hash curto');
+$check(lynch_private_dir() !== null && !str_starts_with(str_replace('\\', '/', (string) lynch_private_dir()), str_replace('\\', '/', APP_ROOT)), 'Pasta de logs fora da pasta do site');
+
+$apos = ProductImport::normalize([ProductImport::HEADERS, ['QA apóstrofo ' . $suffix, 'qa-apos-' . $suffix, '', '', '', "'- tamanho P", "'+55 47", '1', '0']]);
+$check(!$apos['errors'] && $apos['products'][0]['short_description'] === '- tamanho P', 'Reimportar o CSV exportado tira o apóstrofo que neutraliza fórmula');
+
 $plans = [];
 $queries = [
     'cart_before_single' => 'SELECT id,name,slug FROM products WHERE active=1 AND id=1',

@@ -225,6 +225,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
         SettingsRepository::setMany($novos);
         if ($oldBannerToRemove !== '') { Upload::deleteFile($oldBannerToRemove); }
+        SecurityLog::audit((int) $admin['id'], 'config', '');
         flash_set('success', 'Configurações salvas.');
     } catch (Throwable $e) {
         error_log('[lynch][configuracoes] ' . $e->getMessage());

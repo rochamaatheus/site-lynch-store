@@ -51,6 +51,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$requirements) {
             if (!preg_match('/^[a-zA-Z0-9_.-]{3,50}$/D', $fields['admin_user']) || strlen($fields['admin_password']) < 12 || strlen($fields['admin_password']) > 72) {
                 throw new RuntimeException('Use login com 3 a 50 caracteres e senha de 12 a 72 bytes.');
             }
+            // Mesma regra de includes/auth.php (password_policy_error): sem senha de
+            // exemplo, sem repeticao boba e sem conter o login.
+            $plainPw = (string) preg_replace('/[^a-z0-9]/', '', mb_strtolower($fields['admin_password'], 'UTF-8'));
+            if (in_array($plainPw, ['troqueestasenha', 'lynchstoredummypassword', 'lynchstore123', 'senha123456', 'admin123456', 'password123', 'qwerty123456', '123456789012', 'abcdefghijkl', 'girassolazulnaarara'], true)
+                || count(array_unique(mb_str_split($fields['admin_password']))) < 5
+                || preg_match('/^(?:0123456789|1234567890|abcdefghij|qwertyuiop)/', $plainPw) === 1
+                || str_contains(mb_strtolower($fields['admin_password'], 'UTF-8'), mb_strtolower($fields['admin_user'], 'UTF-8'))) {
+                throw new RuntimeException('Essa senha do painel é fácil de adivinhar ou contém o login. Use uma frase longa e só sua.');
+            }
             $whatsapp = preg_replace('/\D/', '', $fields['whatsapp']);
             if (strlen($whatsapp) === 10 || strlen($whatsapp) === 11) { $whatsapp = '55' . $whatsapp; }
             if ($whatsapp !== '' && !preg_match('/^[1-9]\d{9,14}$/D', $whatsapp)) { throw new RuntimeException('WhatsApp inválido. Use DDI e DDD ou deixe vazio para configurar depois.'); }
@@ -77,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$requirements) {
                     $stmt->execute(array_map(static fn($c) => $row[$c] ?? $defaults[$table][$c] ?? null, $columns));
                 }
             }
-            $pdo->prepare('INSERT INTO admin_users (username,password_hash,display_name) VALUES (?,?,?)')->execute([$fields['admin_user'], password_hash($fields['admin_password'], PASSWORD_DEFAULT), $fields['admin_user']]);
+            $pdo->prepare('INSERT INTO admin_users (username,password_hash,display_name) VALUES (?,?,?)')->execute([$fields['admin_user'], defined('PASSWORD_ARGON2ID') ? password_hash($fields['admin_password'], PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]) : password_hash($fields['admin_password'], PASSWORD_BCRYPT, ['cost' => 12]), $fields['admin_user']]);
             $pdo->prepare('INSERT INTO site_settings (setting_key,setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)')->execute(['whatsapp_number', $whatsapp]);
             $pdo->commit();
             $quote = static fn($v) => '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $v) . '"';
@@ -94,6 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$requirements) {
             }
             fclose($handle);
             file_put_contents($root . '/.installed', date(DATE_ATOM));
+            // Depois de instalar, nada do instalador fica para tras: a chave (hash), o
+            // catalogo de origem e o proprio instalar.php saem do servidor. Mesmo que
+            // .env e .installed sumissem, nao haveria chave nem formulario para reinstalar.
+            @unlink($root . '/install-secret.php');
+            @unlink($root . '/db/catalog.json');
+            $selfRemoved = @unlink(__FILE__);
             $_SESSION = [];
             session_destroy();
             $success = true;
@@ -110,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$requirements) {
 ?>
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Instalar Lynch Store</title><link rel="stylesheet" href="assets/css/admin.css"></head><body>
 <main class="container narrow-form"><div class="page-head"><div><p class="eyebrow">Lynch Store</p><h1><?= $success ? 'Sua loja está instalada' : 'Vamos abrir a loja?' ?></h1><p>Configure uma vez. Depois, cuide de tudo pelo painel.</p></div></div>
-<?php if ($success): ?><div class="flash success">Instalação concluída e bloqueada contra reutilização.</div><a class="btn primary" href="<?= $escape($url) ?>/admin/login.php">Entrar no painel</a><p>Revise os produtos, preços e o WhatsApp antes de divulgar a loja.</p>
+<?php if ($success): ?><div class="flash success">Instalação concluída e bloqueada contra reutilização.<?= empty($selfRemoved) ? ' Apague o arquivo instalar.php pelo Gerenciador de Arquivos do hPanel.' : ' O instalador foi apagado do servidor.' ?></div><a class="btn primary" href="<?= $escape($url) ?>/admin/login.php">Entrar no painel</a><p>Revise os produtos, preços e o WhatsApp antes de divulgar a loja.</p>
 <?php else: ?>
 <?php foreach ($requirements as $requirement): ?><div class="flash error">Necessário: <?= $escape($requirement) ?></div><?php endforeach; ?>
 <?php if ($error): ?><div class="flash error" role="alert"><?= $escape($error) ?></div><?php endif; ?>

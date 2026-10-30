@@ -21,6 +21,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/RateLimit.php';
+require_once __DIR__ . '/SecurityLog.php';
 
 final class CouponRepository
 {
@@ -351,6 +352,7 @@ function coupon_register_fail(): void
     $fails[] = time();
     $_SESSION['coupon_fails'] = array_slice($fails, -CouponRepository::MAX_FAILS * 2);
     RateLimit::hit('cupom', CouponRepository::FAIL_WINDOW);
+    SecurityLog::event('cupom_invalido');
     if (PHP_SAPI !== 'cli') {
         usleep(CouponRepository::FAIL_DELAY_US);
     }

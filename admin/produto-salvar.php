@@ -171,9 +171,11 @@ try {
     if ($editando) {
         ProductRepository::update($id, $dados);
         $novoId = $id;
+        SecurityLog::audit((int) $admin['id'], 'produto_salvo', 'atualizado: ' . $name);
         flash_set('success', 'Produto "' . $name . '" atualizado.');
     } else {
         $novoId = ProductRepository::create($dados);
+        SecurityLog::audit((int) $admin['id'], 'produto_salvo', 'cadastrado: ' . $name);
         flash_set('success', 'Produto "' . $name . '" cadastrado.');
     }
 } catch (Throwable $e) {

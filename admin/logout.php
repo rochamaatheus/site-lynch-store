@@ -13,6 +13,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || !csrf_check($_POST['csrf'] 
     header('Allow: POST');
     exit('Use o botão Sair do painel.');
 }
+$leaving = current_admin();
+if ($leaving !== null) {
+    SecurityLog::audit((int) $leaving['id'], 'logout');
+}
 logout();
 
 header('Location: ' . APP_BASE_URL . '/admin/login.php', true, 302);
