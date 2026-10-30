@@ -25,8 +25,8 @@ function lynch_store_settings(): array
         'store_name'       => 'Lynch Store',
         'store_slogan'     => 'Um mundo sobre medida para você',
         'store_bio'        => 'Cosmaker e Estilista, fundadora da Lynch Store.',
-        // +55 47 9178-1461 como o WhatsApp da Ray mostra (8 digitos depois do DDD).
-        'whatsapp_number'  => '554791781461',
+        // +55 47 99178-1461 com o 9 de celular.
+        'whatsapp_number'  => '5547991781461',
         'instagram_url'    => 'https://instagram.com/lynchstore',
         'opening_hours'    => json_encode([
             'seg_sex' => [['09:00', '12:00'], ['14:00', '18:30']],

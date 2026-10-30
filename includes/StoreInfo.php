@@ -77,7 +77,7 @@ function store_hours_lines(): array
     return $lines;
 }
 
-/** Numero do WhatsApp como o aplicativo mostra: +55 47 9178-1461. */
+/** Numero do WhatsApp como o aplicativo mostra: +55 47 99178-1461. */
 function whatsapp_display(?string $digits = null): string
 {
     $digits ??= whatsapp_number();

@@ -193,8 +193,8 @@ try {
     $check(str_contains($msg, '*Pedido #77*') && str_contains($msg, 'Subtotal: R$ 190,00') && str_contains($msg, 'Cupom QAP' . $S . ' (10%): -R$ 19,00') && str_contains($msg, '*Total estimado: R$ 171,00*'), 'Mensagem do WhatsApp com pedido, subtotal, cupom e total');
     $check(str_contains($msg, '1. QA cupom a') && str_contains($msg, 'Qtd: 1 x R$ 90,00 = R$ 90,00') && str_contains($msg, 'Promoção: de R$ 100,00 por R$ 90,00') && str_contains($msg, 'Qtd: 2, valor a combinar'), 'Mensagem lista itens numerados com quantidade, promoção e valor a combinar');
     $check(str_contains($msg, 'Itens com valor a combinar (1) não entram no total nem no desconto.') && str_contains($msg, WhatsAppMessage::CLOSING) && !str_contains($msg, '—'), 'Mensagem avisa itens sob consulta, pede para combinar pagamento e entrega e não tem travessão');
-    $wa = (string) WhatsAppMessage::url(cart_items(), ['number' => '554791781461', 'order_id' => 77, 'summary' => $sum]);
-    $check(str_starts_with($wa, 'https://wa.me/554791781461?text=') && str_contains($wa, 'Promo%C3%A7%C3%A3o') && rawurldecode(substr($wa, strlen('https://wa.me/554791781461?text='))) === $msg, 'Link do WhatsApp em UTF-8 com rawurlencode e texto íntegro');
+    $wa = (string) WhatsAppMessage::url(cart_items(), ['number' => '5547991781461', 'order_id' => 77, 'summary' => $sum]);
+    $check(str_starts_with($wa, 'https://wa.me/5547991781461?text=') && str_contains($wa, 'Promo%C3%A7%C3%A3o') && rawurldecode(substr($wa, strlen('https://wa.me/5547991781461?text='))) === $msg, 'Link do WhatsApp em UTF-8 com rawurlencode e texto íntegro');
 
     cart_coupon_set('QAF' . $S);
     $sum = cart_summary();
@@ -233,7 +233,7 @@ try {
     for ($i = 0; $i < 60; $i++) {
         $many[] = ['name' => str_repeat('Peça com nome bem comprido ', 6) . $i, 'qty' => 1, 'price_cents' => 1000, 'price_on_request' => false, 'url' => 'http://localhost/produto.php?slug=x' . $i];
     }
-    $longUrl = (string) WhatsAppMessage::url($many, ['number' => '554791781461', 'order_id' => 1]);
+    $longUrl = (string) WhatsAppMessage::url($many, ['number' => '5547991781461', 'order_id' => 1]);
     $check(strlen($longUrl) <= WhatsAppMessage::MAX_URL_LENGTH && str_contains(rawurldecode($longUrl), 'e mais') && str_contains(rawurldecode($longUrl), '*Total: R$ 600,00*'), 'Link do WhatsApp respeita o limite de tamanho e mantém o total');
 
     // Tentativas de cupom
@@ -244,10 +244,10 @@ try {
 } finally { $pdo->rollBack(); cart_bag('cart_direct'); cart_clear(); cart_bag('cart'); cart_clear(); }
 
 SettingsRepository::flush();
-$check(whatsapp_display('554791781461') === '+55 47 9178-1461' && instagram_handle('https://instagram.com/lynchstore') === '@lynchstore', 'WhatsApp e Instagram exibidos como no aplicativo');
+$check(whatsapp_display('5547991781461') === '+55 47 99178-1461' && instagram_handle('https://instagram.com/lynchstore') === '@lynchstore', 'WhatsApp e Instagram exibidos como no aplicativo');
 $check(store_hours_lines() === [['Segunda a sexta', '09:00 às 12:00 e 14:00 às 18:30'], ['Sábado', '09:00 às 12:00'], ['Domingo', 'Fechado']] && store_address_lines() === ['Avenida Júpiter, 146, Jardim Paraíso', 'Joinville - SC, CEP 89226-600'], 'Horário e endereço da Lynch lidos das configurações');
 $ld = store_jsonld();
-$check($ld['address']['postalCode'] === '89226-600' && count($ld['openingHoursSpecification']) === 3 && $ld['telephone'] === '+55 47 9178-1461' && !isset($ld['email']), 'JSON-LD com endereço, horário e telefone, sem e-mail');
+$check($ld['address']['postalCode'] === '89226-600' && count($ld['openingHoursSpecification']) === 3 && $ld['telephone'] === '+55 47 99178-1461' && !isset($ld['email']), 'JSON-LD com endereço, horário e telefone, sem e-mail');
 $check(store_hours('{"seg_sex":[["12:00","09:00"],["xx","10:00"]]}')['seg_sex'] === [], 'Horário inválido no banco é ignorado na vitrine');
 
 // Importacao com as colunas novas (fora da transacao: apply abre a sua)
