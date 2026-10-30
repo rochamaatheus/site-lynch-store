@@ -62,13 +62,13 @@ require __DIR__ . '/includes/partials/header.php';
     <?php foreach ($rack as $i => [$file, $w, $h, $cat, $alt]): ?>
     <a class="hanging<?= $h > 1000 ? ' is-long' : '' ?>" href="<?= e(url_catalog(['categoria' => $cat])) ?>" style="--i:<?= $i ?>" data-hanging>
       <svg class="hanger" viewBox="0 0 120 56" aria-hidden="true"><path d="M60 26V15c0-4 7-4 7-9s-4-5-7-5-6 2-6 5M60 26 8 50c-3 2-2 5 2 5h100c4 0 5-3 2-5z"/></svg>
-      <img src="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?>" srcset="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/' . $file . '-720.webp')) ?> 720w" sizes="(max-width:700px) 46vw, 240px" alt="<?= e($alt) ?>" width="<?= $w ?>" height="<?= $h ?>"<?= $i < 2 ? ' fetchpriority="high"' : ' loading="lazy"' ?> draggable="false">
+      <img src="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?>" srcset="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/' . $file . '-720.webp')) ?> 720w" sizes="(max-width:699px) 40vw, (max-width:999px) 230px, 22vw" alt="<?= e($alt) ?>" width="<?= $w ?>" height="<?= $h ?>"<?= $i < 2 ? ' fetchpriority="high"' : ' loading="lazy"' ?> draggable="false">
     </a>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
   <div class="wrap hero-copy">
-    <h1 class="hero-title"><?php foreach (preg_split('/\s+/u', trim($heroTitle)) ?: [] as $i => $word): ?><span class="word"><span style="--i:<?= (int) $i ?>"><?= e($word) ?></span></span> <?php endforeach; ?></h1>
+    <h1 class="hero-title"><?= e($heroTitle) ?></h1>
     <p><?= e($heroSubtitle) ?></p>
     <a class="btn ink" href="<?= e(url_catalog()) ?>"><?= e($heroCta) ?></a>
   </div>
@@ -106,7 +106,7 @@ require __DIR__ . '/includes/partials/header.php';
 <?php endif; ?>
 
 <section class="story" id="brecho">
-  <div class="story-photo photo"><img src="<?= e(asset_url('assets/hero/cutout-04-720.webp')) ?>" alt="Peça de cosplay com capa, foto real da loja" width="587" height="1212" loading="lazy" decoding="async"></div>
+  <div class="story-photo photo"><img src="<?= e(asset_url('assets/hero/cutout-04-360.webp')) ?>" srcset="<?= e(asset_url('assets/hero/cutout-04-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/cutout-04-720.webp')) ?> 720w" sizes="(max-width:999px) 44vw, 380px" alt="Peça de cosplay com capa, foto real da loja" width="587" height="1212" loading="lazy" decoding="async"></div>
   <div class="wrap story-copy">
     <h2 class="title">Peças com história, prontas para outro arco.</h2>
     <p>Cosplay, garimpos e itens únicos do brechó. Cada peça existe uma vez só, então vale perguntar antes que ela mude de personagem.</p>

@@ -31,6 +31,7 @@ require __DIR__ . '/includes/partials/header.php';
 <section class="wrap shop">
   <h1 class="page-title">Favoritos</h1>
   <p class="shop-count">Ficam guardados neste aparelho.</p>
+  <h2 class="sr">Peças guardadas</h2>
   <div class="grid" data-favs-grid></div>
   <div class="bag-empty" data-favs-empty>
     <?= sunflower(0, 'bag-empty-flower') ?>

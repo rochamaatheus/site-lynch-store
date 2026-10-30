@@ -20,7 +20,7 @@ Barra inferior com Início, Loja, Buscar, Favoritos e Sacola. Sacola em gaveta s
 
 ## Movimento
 
-Só `transform` e `opacity` nas animações principais. A foto do card se transforma na foto do produto (view transition entre páginas, como melhoria progressiva). `prefers-reduced-motion` desliga tudo. Texto nunca fica transparente durante animação de rolagem.
+Só `transform` e `opacity` nas animações principais. A foto do card se transforma na foto do produto (view transition entre páginas, como melhoria progressiva). Por decisão do responsável, a animação roda sempre, mesmo com "reduzir movimento" ligado no aparelho. O sol gira, as peças balançam com uma brisa constante e a arara se mexe sozinha uma vez ao abrir. Texto nunca fica transparente durante animação de rolagem.
 
 ## Evitar
 

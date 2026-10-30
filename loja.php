@@ -117,9 +117,10 @@ require __DIR__ . '/includes/partials/header.php';
       <a class="btn ink" href="<?= e(url_catalog()) ?>">Ver toda a loja</a>
     </div>
   <?php else: ?>
+    <h2 class="sr">Peças</h2>
     <div class="grid" data-grid>
-      <?php foreach ($items as $product): ?>
-        <?php include __DIR__ . '/includes/partials/product-card.php'; ?>
+      <?php foreach ($items as $i => $product): ?>
+        <?php $cardEager = $i < 2; include __DIR__ . '/includes/partials/product-card.php'; ?>
       <?php endforeach; ?>
     </div>
     <?php if ($total > count($items)): ?>

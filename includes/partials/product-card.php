@@ -28,7 +28,7 @@ $cardPrice = format_price(isset($product['price_cents']) ? (int) $product['price
 <article class="card">
   <div class="photo card-photo" data-morph="<?= e($cardSlug) ?>">
     <a href="<?= e(product_url($cardSlug)) ?>" aria-label="Ver <?= e($cardName) ?>">
-      <img src="<?= e(product_image_url($product['primary_image'] ?? null)) ?>" srcset="<?= e(product_image_thumb_url($product['primary_image'] ?? null)) ?> 240w, <?= e(product_image_url($product['primary_image'] ?? null)) ?> 720w" sizes="(max-width:700px) 47vw, (max-width:1100px) 30vw, 300px" alt="<?= e($cardAlt) ?>" width="720" height="900" loading="lazy" decoding="async">
+      <img src="<?= e(product_image_url($product['primary_image'] ?? null)) ?>" srcset="<?= e(product_image_thumb_url($product['primary_image'] ?? null)) ?> 240w, <?= e(product_image_small_url($product['primary_image'] ?? null)) ?> 480w, <?= e(product_image_url($product['primary_image'] ?? null)) ?> 720w" sizes="(max-width:699px) 47vw, (max-width:999px) 31vw, 300px" alt="<?= e($cardAlt) ?>" width="720" height="900"<?= !empty($cardEager) ? ' fetchpriority="high"' : ' loading="lazy"' ?> decoding="async">
     </a>
     <span class="tag"><?= e(availability_label($product['availability'] ?? null)) ?></span>
     <button class="round fav" type="button" data-fav="<?= e($cardId) ?>" aria-pressed="false" aria-label="Favoritar <?= e($cardName) ?>" hidden><?= icon('heart') ?></button>

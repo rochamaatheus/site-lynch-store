@@ -26,7 +26,7 @@ if (!in_array('--empty', $argv, true)) {
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
     foreach ($catalog['product_images'] as $row) {
         foreach ([$row['file_path'], $row['source_path']] as $path) { if ($path) { $uploads[$path] = true; } }
-        foreach (['-thumb', '-detail'] as $variant) {
+        foreach (['-thumb', '-small', '-detail'] as $variant) {
             $path = preg_replace('/\.webp$/', $variant . '.webp', $row['file_path']);
             if (is_file($root . '/' . $path)) { $uploads[$path] = true; }
         }

@@ -127,7 +127,7 @@ require __DIR__ . '/includes/partials/header.php';
     <div class="pdp-gallery" data-gallery tabindex="0" role="group" aria-label="Fotos de <?= e($name) ?>">
       <?php foreach ($images ?: [['file_path' => null, 'alt_text' => '']] as $i => $img): ?>
       <?php $alt = (string) ($img['alt_text'] ?? ''); ?>
-      <figure class="photo pdp-photo"<?= $i === 0 ? ' data-morph="' . e($productSlug) . '"' : '' ?>>
+      <figure class="photo pdp-photo"<?= $i === 0 ? ' data-morph="' . e($productSlug) . '" style="view-transition-name:peca"' : '' ?>>
         <img src="<?= e(product_image_detail_url($img['file_path'])) ?>" srcset="<?= e(product_image_url($img['file_path'])) ?> 720w, <?= e(product_image_detail_url($img['file_path'])) ?> 1080w" sizes="(max-width:899px) 100vw, 50vw" alt="<?= e($alt !== '' ? $alt : $name . ', foto ' . ($i + 1)) ?>" width="1080" height="1350"<?= $i === 0 ? ' fetchpriority="high"' : ' loading="lazy"' ?> decoding="async">
       </figure>
       <?php endforeach; ?>
@@ -148,7 +148,7 @@ require __DIR__ . '/includes/partials/header.php';
     <p class="pdp-desc"><?= e($description) ?></p>
 
     <div class="buybar">
-      <a class="top-bag" href="<?= e(base_url('carrinho.php')) ?>" data-open-bag aria-label="Abrir sacola"><?= bag_bloom(cart_count()) ?></a>
+      <a class="top-bag" href="<?= e(base_url('carrinho.php')) ?>" data-open-bag aria-label="Sacola com <?= e(cart_count()) ?> <?= cart_count() === 1 ? 'peça' : 'peças' ?>"><?= bag_bloom(cart_count()) ?></a>
       <form method="post" action="<?= e($cartAddUrl) ?>" data-add-form>
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="add">

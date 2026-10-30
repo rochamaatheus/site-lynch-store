@@ -38,6 +38,7 @@ final class ImageProcessor
     /** Derivados publicos: sufixo => [largura, altura]. Todos 4:5. */
     public const SIZES = [
         'thumb'  => [240, 300],
+        'small'  => [480, 600],
         'card'   => [720, 900],
         'detail' => [1080, 1350],
     ];

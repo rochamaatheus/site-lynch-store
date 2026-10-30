@@ -192,6 +192,12 @@ function product_image_thumb_url(?string $filePath): string
     return product_image_variant_url($filePath, 'thumb');
 }
 
+/** Foto de card para celular 480x600. */
+function product_image_small_url(?string $filePath): string
+{
+    return product_image_variant_url($filePath, 'small');
+}
+
 /** Imagem grande 1080x1350 (foto principal da galeria, com zoom). */
 function product_image_detail_url(?string $filePath): string
 {
@@ -517,7 +523,7 @@ function sunflower(?int $lit = null, string $class = ''): string
 /** Contador da sacola em forma de girassol. */
 function bag_bloom(int $count): string
 {
-    return '<span class="bloom" data-bloom data-count="' . $count . '">' . sunflower(min($count, 12)) . '<b data-bloom-n>' . $count . '</b></span>';
+    return '<span class="bloom" data-bloom data-count="' . $count . '">' . sunflower(min($count, 12)) . '<b data-bloom-n aria-hidden="true">' . $count . '</b></span>';
 }
 
 /** Fita metrica: o "sob medida" da loja. Numeros decorativos. */

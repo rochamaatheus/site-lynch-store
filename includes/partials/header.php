@@ -76,10 +76,12 @@ csrf_token();
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
 <link rel="apple-touch-icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
+<?php if ($isHome && empty($heroBanner)): ?>
+<link rel="preload" as="image" href="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?>" imagesrcset="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/cutout-01-720.webp')) ?> 720w" imagesizes="(max-width:699px) 40vw, (max-width:999px) 230px, 22vw" fetchpriority="high">
+<?php endif; ?>
 <link rel="preload" as="font" type="font/woff2" href="<?= e(asset_url('assets/fonts/Shrikhand-latin.woff2')) ?>" crossorigin>
-<link rel="preload" as="font" type="font/woff2" href="<?= e(asset_url('assets/fonts/Inter-Variable-latin.woff2')) ?>" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="<?= e(asset_url('assets/fonts/Inter-Loja.woff2')) ?>" crossorigin>
 <link rel="stylesheet" href="<?= e(asset_url('assets/css/loja.css')) ?>">
-<script src="<?= e(asset_url('assets/js/vt.js')) ?>"></script>
 <?php if ($pageJsonLd !== ''): ?>
 <script type="application/ld+json"><?= $pageJsonLd ?></script>
 <?php endif; ?>
@@ -92,7 +94,7 @@ csrf_token();
     <a class="round plain top-back" href="<?= e(url_catalog()) ?>" aria-label="Voltar para a loja"><?= icon('back') ?></a>
     <?php endif; ?>
     <a class="brand" href="<?= e(base_url()) ?>" aria-label="Lynch Store, página inicial">
-      <img src="<?= e(asset_url('assets/lynch-logo.webp')) ?>" alt="" width="40" height="40">
+      <img src="<?= e(asset_url('assets/lynch-logo-96.webp')) ?>" alt="" width="40" height="40">
       <span>Lynch Store</span>
     </a>
     <nav class="top-nav" aria-label="Coleções">
@@ -104,7 +106,7 @@ csrf_token();
     <div class="top-tools">
       <a class="round plain" href="<?= e(url_catalog([], 'busca')) ?>" data-open-search aria-label="Buscar"><?= icon('search') ?></a>
       <a class="round plain top-only" href="<?= e(base_url('favoritos.php')) ?>" aria-label="Favoritos"><?= icon('heart') ?></a>
-      <a class="top-bag" href="<?= e(base_url('carrinho.php')) ?>"<?= $isBagPage ? '' : ' data-open-bag' ?> aria-label="Abrir sacola"><?= bag_bloom($navCartCount) ?></a>
+      <a class="top-bag" href="<?= e(base_url('carrinho.php')) ?>"<?= $isBagPage ? '' : ' data-open-bag' ?> aria-label="Sacola com <?= e($navCartCount) ?> <?= $navCartCount === 1 ? 'peça' : 'peças' ?>"><?= bag_bloom($navCartCount) ?></a>
     </div>
   </div>
 </header>

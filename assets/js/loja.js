@@ -3,7 +3,6 @@
 (function () {
   'use strict';
 
-  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var $ = function (sel, root) { return (root || document).querySelector(sel); };
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var BAG_URL = (function () { var a = $('a[href*="carrinho.php"]'); return a ? a.getAttribute('href').split('?')[0] : 'carrinho.php'; })();
@@ -11,9 +10,9 @@
   /* ---- Arara: as pecas balancam com a velocidade do arraste (mola amortecida) ---- */
   (function rack() {
     var el = $('[data-rack]');
-    if (!el || calm) return;
+    if (!el) return;
     var items = $$('[data-hanging]', el);
-    var angle = 0, speed = 0, lastX = el.scrollLeft, running = false;
+    var angle = 0, speed = 0, lastX = 0, running = false;
 
     function frame() {
       var x = el.scrollLeft;
@@ -38,13 +37,24 @@
     items.forEach(function (item) {
       item.addEventListener('pointerdown', function () { speed += 1.2; wake(); }, { passive: true });
     });
+
+    /* Convite: a arara corre um pouco e volta, mostrando que da para arrastar. */
+    var touched = false;
+    ['pointerdown', 'wheel'].forEach(function (type) {
+      el.addEventListener(type, function () { touched = true; }, { passive: true, once: true });
+    });
+    setTimeout(function () {
+      if (touched || el.scrollWidth <= el.clientWidth + 20) return;
+      el.scrollTo({ left: 90, behavior: 'smooth' });
+      setTimeout(function () { if (!touched) el.scrollTo({ left: 0, behavior: 'smooth' }); }, 750);
+    }, 1900);
   })();
 
   /* ---- Girassol do topo e fita metrica acompanham a rolagem da pagina ---- */
   (function scrollLinked() {
     var sun = $('.hero-sun');
     var tape = $('[data-tape]');
-    if (calm || (!sun && !tape)) return;
+    if (!sun && !tape) return;
     var queued = false;
     function paint() {
       queued = false;
@@ -56,6 +66,51 @@
       if (!queued) { queued = true; requestAnimationFrame(paint); }
     }, { passive: true });
   })();
+
+  /* ---- Foto do card vira a foto do produto (view transition entre paginas).
+     A pagina de produto ja nasce com o nome no HTML; aqui so marcamos o card clicado. ---- */
+  (function morph() {
+    var clicked = null;
+    document.addEventListener('click', function (event) {
+      var link = event.target.closest('.card a');
+      if (link) clicked = $('[data-morph]', link.closest('.card'));
+    });
+    window.addEventListener('pageswap', function (event) {
+      if (!event.viewTransition) return;
+      /* Rumo a pagina sem transicao (painel), o navegador aborta: nao e erro. */
+      var vt = event.viewTransition, skip = function () {};
+      vt.ready.catch(skip); vt.finished.catch(skip); vt.updateCallbackDone.catch(skip);
+      /* Nome repetido cancela a transicao inteira. */
+      $$('[data-morph]').forEach(function (el) { el.style.viewTransitionName = ''; });
+      if (clicked) clicked.style.viewTransitionName = 'peca';
+    });
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        $$('.card [data-morph]').forEach(function (el) { el.style.viewTransitionName = ''; });
+        var main = $('.pdp-photo[data-morph]');
+        if (main) main.style.viewTransitionName = 'peca';
+      }
+    });
+  })();
+
+  /* ---- Pecas sobem na grade: fallback onde nao ha animation-timeline ---- */
+  var watchCards = (function () {
+    if (window.CSS && CSS.supports('animation-timeline: view()')) return function () {};
+    if (!('IntersectionObserver' in window)) return function () {};
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.remove('rise'); seen.unobserve(entry.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    return function (root) {
+      $$('.grid .card', root).forEach(function (card) {
+        if (card.dataset.watched) return;
+        card.dataset.watched = '1';
+        if (card.getBoundingClientRect().top > window.innerHeight) { card.classList.add('rise'); seen.observe(card); }
+      });
+    };
+  })();
+  watchCards();
 
   /* ---- Sacola ---- */
   function setBloom(count) {
@@ -71,7 +126,7 @@
       }
     });
     $$('[data-open-bag]').forEach(function (link) {
-      link.setAttribute('aria-label', 'Abrir sacola, ' + count + (count === 1 ? ' peça' : ' peças'));
+      if (link.hasAttribute('aria-label')) link.setAttribute('aria-label', 'Sacola com ' + count + (count === 1 ? ' peça' : ' peças'));
     });
   }
 
@@ -110,7 +165,7 @@
 
   /* A foto voa ate o girassol; so transform e opacity. */
   function fly(form) {
-    if (calm || !form.closest) return;
+    if (!form.closest) return;
     var img = $('img', form.closest('.card') || $('.pdp') || form);
     var target = $$('[data-bloom]').filter(function (b) { return b.getClientRects().length; }).pop();
     if (!img || !target || !img.animate) return;
@@ -140,7 +195,7 @@
       var card = form.closest('.card, .pdp');
       var tag = card && $('.tag', card);
       fly(form);
-      if (tag && !calm) { tag.classList.remove('swing'); void tag.offsetWidth; tag.classList.add('swing'); }
+      if (tag) { tag.classList.remove('swing'); void tag.offsetWidth; tag.classList.add('swing'); }
       if (submitter) submitter.classList.add('busy');
       post(form, submitter).then(function (state) {
         paintBag(state);
@@ -179,7 +234,6 @@
   }
   function closeSheet(dialog) {
     if (!dialog.open) return;
-    if (calm) { dialog.close(); return; }
     dialog.classList.add('leaving');
     setTimeout(function () { dialog.close(); dialog.classList.remove('leaving'); dialog.style.transform = ''; }, 200);
   }
@@ -315,6 +369,7 @@
     fetch('favoritos.php?ids=' + favs.join(','), { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
       grid.innerHTML = html;
       syncFavs(grid);
+      watchCards();
       if (!grid.children.length) $('[data-favs-empty]').hidden = false;
     });
   })();
@@ -331,6 +386,7 @@
       var fresh = $$('[data-grid] .card', doc).slice(grid.children.length);
       fresh.forEach(function (card) { grid.appendChild(document.adoptNode(card)); });
       syncFavs(grid);
+      watchCards();
       var nextWrap = $('[data-more-wrap]', doc);
       var wrap = $('[data-more-wrap]');
       if (nextWrap) wrap.replaceWith(document.adoptNode(nextWrap)); else wrap.remove();
