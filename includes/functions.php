@@ -119,7 +119,7 @@ function url_catalog(array $params = [], string $fragment = ''): string
         $clean[$key] = (string) $value;
     }
 
-    $url = base_url('index.php');
+    $url = base_url('loja.php');
     if ($clean !== []) {
         $url .= '?' . http_build_query($clean);
     }
@@ -476,4 +476,56 @@ function post_body_too_large(): bool
         && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0
         && $_POST === []
         && $_FILES === [];
+}
+
+// ---------------------------------------------------------------------------
+// Desenhos da marca (SVG inline, sem requisicao extra)
+// ---------------------------------------------------------------------------
+
+/** Icone de traco da loja. */
+function icon(string $name): string
+{
+    $paths = [
+        'home'   => '<path d="M4 11l8-6.5L20 11M6 10v9.5h12V10M10 19.5V14h4v5.5"/>',
+        'shop'   => '<path d="M12 8.6V7.4c1.2 0 2.1-.9 2.1-2S13.2 3.4 12 3.400s-2.1.9-2.1 2M12 8.6 3.5 15c-1 .8-.5 2.5 1 2.500h15c1.5 0 2-1.7 1-2.500z"/>',
+        'search' => '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+        'heart'  => '<path d="M12 20s-7.5-4.6-7.5-10.200A4.3 4.3 0 0 1 12 7.200a4.3 4.3 0 0 1 7.5 2.600C19.5 15.4 12 20 12 20z"/>',
+        'back'   => '<path d="M15 5l-7 7 7 7"/>',
+        'plus'   => '<path d="M12 5v14M5 12h14"/>',
+        'minus'  => '<path d="M5 12h14"/>',
+        'close'  => '<path d="M6 6l12 12M18 6L6 18"/>',
+        'share'  => '<path d="M12 15V4M8 8l4-4 4 4M6 12v8h12v-8"/>',
+        'chat'   => '<path d="M4 20.500l1.5-4A8 8 0 1 1 9 19.500z"/>',
+    ];
+    return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' . ($paths[$name] ?? '') . '</svg>';
+}
+
+/**
+ * O girassol da marca. Na sacola, cada peca acende uma petala: $lit e quantas
+ * ficam acesas (null = todas, uso decorativo).
+ */
+function sunflower(?int $lit = null, string $class = ''): string
+{
+    $petals = '';
+    for ($i = 0; $i < 12; $i++) {
+        $on = $lit === null || $i < $lit;
+        $petals .= '<path class="petal' . ($on ? ' on' : '') . '" transform="rotate(' . ($i * 30) . ' 50 50)" d="M50 34C43 26 44 11 50 3c6 8 7 23 0 31z"/>';
+    }
+    return '<svg class="sunflower ' . e($class) . '" viewBox="0 0 100 100" aria-hidden="true">' . $petals . '<circle class="seed" cx="50" cy="50" r="19"/></svg>';
+}
+
+/** Contador da sacola em forma de girassol. */
+function bag_bloom(int $count): string
+{
+    return '<span class="bloom" data-bloom data-count="' . $count . '">' . sunflower(min($count, 12)) . '<b data-bloom-n>' . $count . '</b></span>';
+}
+
+/** Fita metrica: o "sob medida" da loja. Numeros decorativos. */
+function measuring_tape(): string
+{
+    $marks = '';
+    for ($i = 1; $i <= 60; $i++) {
+        $marks .= '<span>' . $i . '</span>';
+    }
+    return '<div class="tape" aria-hidden="true"><div class="tape-run" data-tape>' . $marks . '</div></div>';
 }

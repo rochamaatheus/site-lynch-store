@@ -1,12 +1,7 @@
 <?php
 /**
- * Lynch Store - rodape do site publico (fase 3: Catalogo publico)
- *
- * Fecha o <main> aberto por includes/partials/header.php, imprime o rodape
- * (navegacao + contato vindos de site_settings) e carrega os scripts.
- *
- * Variaveis opcionais que a pagina pode definir ANTES do include:
- *   $pageScripts  array<string>  caminhos extras de JS (ex: 'assets/js/gallery.js')
+ * Rodape, barra inferior do celular, gavetas (sacola e busca) e scripts.
+ * Fecha o <main> aberto por header.php.
  */
 
 declare(strict_types=1);
@@ -19,64 +14,75 @@ if (realpath(__FILE__) === realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')
 require_once dirname(__DIR__) . '/functions.php';
 require_once dirname(__DIR__) . '/SettingsRepository.php';
 
-$pageScripts = isset($pageScripts) && is_array($pageScripts) ? $pageScripts : [];
-
 $footWa        = whatsapp_link(setting('whatsapp_message_intro', 'Olá! Vim pelo site da Lynch Store.'));
 $footInstagram = setting('instagram_url');
 $footEmail     = setting('contact_email');
-$footAbout     = setting(
-    'footer_about',
-    'Moda geek, kawaii e cosplay para vestir o que você ama. Explore o acervo e converse com a gente sobre sua próxima peça.'
-);
+$footAbout     = setting('footer_about', 'Moda geek, kawaii e cosplay para vestir o que você ama. Fale com a gente sobre a sua próxima peça.');
+$tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria-current="page"' : '';
 ?>
 </main>
 
-<footer id="contato">
-  <!-- Fase 7: o rodape usa o container ESTREITO (.inset, 860px), nao o shell
-       largo - tres colunas de links espalhadas por 1180px ficavam soltas. -->
-  <div class="inset foot">
+<footer class="foot" id="contato">
+  <?= sunflower(null, 'foot-flower') ?>
+  <div class="wrap foot-grid">
     <div>
-      <div class="logo">
-        <span class="mark"><img src="<?= e(asset_url('assets/lynch-logo.webp')) ?>" alt="Lynch Store" width="42" height="42"></span>
-        <span><b>Lynch Store</b><small>vendas pelo WhatsApp</small></span>
-      </div>
+      <p class="foot-name">Lynch Store</p>
       <p><?= e($footAbout) ?></p>
     </div>
-    <div>
-      <h3>Navegar</h3>
-      <a href="<?= e(base_url('index.php')) ?>#produtos">Produtos</a>
-      <a href="<?= e(base_url('index.php')) ?>#colecoes">Coleções</a>
-      <a href="<?= e(base_url('index.php')) ?>#brecho">Brechó</a>
+    <nav aria-label="Rodapé">
+      <h2>Comprar</h2>
+      <a href="<?= e(url_catalog()) ?>">Toda a loja</a>
+      <a href="<?= e(url_catalog(['mode' => 'pronta_entrega'])) ?>">Pronta entrega</a>
+      <a href="<?= e(url_catalog(['mode' => 'sob_encomenda'])) ?>">Sob encomenda</a>
       <a href="<?= e(base_url('informacoes.php')) ?>">Como comprar e privacidade</a>
-    </div>
+    </nav>
     <div>
-      <h3>Contato</h3>
-      <?php if ($footWa !== ''): ?>
-        <a href="<?= e($footWa) ?>" target="_blank" rel="noopener">WhatsApp</a>
-      <?php else: ?>
-        <span title="Configuração pendente" style="display:block;padding:10px 0;opacity:.55">WhatsApp (em breve)</span>
-      <?php endif; ?>
-      <?php if ($footInstagram !== ''): ?>
-        <a href="<?= e($footInstagram) ?>" target="_blank" rel="noopener">Instagram</a>
-      <?php endif; ?>
-      <?php if ($footEmail !== ''): ?>
-        <a href="mailto:<?= e($footEmail) ?>">E-mail</a>
-      <?php endif; ?>
+      <h2>Falar com a loja</h2>
+      <?php if ($footWa !== ''): ?><a href="<?= e($footWa) ?>" target="_blank" rel="noopener">WhatsApp</a><?php else: ?><span>WhatsApp em breve</span><?php endif; ?>
+      <?php if ($footInstagram !== ''): ?><a href="<?= e($footInstagram) ?>" target="_blank" rel="noopener">Instagram</a><?php endif; ?>
+      <?php if ($footEmail !== ''): ?><a href="mailto:<?= e($footEmail) ?>">E-mail</a><?php endif; ?>
     </div>
   </div>
-  <div class="inset">
-    <p class="foot-note">&copy; <?= e(date('Y')) ?> Lynch Store. Fotos reais do acervo da loja.</p>
-  </div>
-  <nav class="mobile-dock" aria-label="Atalhos da loja">
-    <a href="<?= e(base_url()) ?>#produtos"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-7 9 7M5 9v12h14V9M9 21v-7h6v7"/></svg>Catálogo</a>
-    <a href="<?= e(base_url()) ?>#colecoes"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Coleções</a>
-    <a href="<?= e(base_url('carrinho.php')) ?>"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8zM9 8a3 3 0 0 1 6 0"/></svg>Carrinho<?= cart_count() ? ' (' . e(cart_count()) . ')' : '' ?></a>
-  </nav>
+  <p class="wrap foot-note">&copy; <?= e(date('Y')) ?> Lynch Store. Fotos reais do acervo.</p>
 </footer>
 
-<script src="<?= e(asset_url('assets/js/main.js')) ?>" defer></script>
-<?php foreach ($pageScripts as $pageScript): ?>
-<script src="<?= e(asset_url((string) $pageScript)) ?>" defer></script>
-<?php endforeach; ?>
+<?php if (!$isProductPage): ?>
+<nav class="tabs" aria-label="Atalhos da loja">
+  <a href="<?= e(base_url()) ?>"<?= $isHome ? ' aria-current="page"' : '' ?>><?= icon('home') ?>Início</a>
+  <a href="<?= e(url_catalog()) ?>"<?= $tabCurrent('loja.php') ?>><?= icon('shop') ?>Loja</a>
+  <a href="<?= e(url_catalog([], 'busca')) ?>" data-open-search><?= icon('search') ?>Buscar</a>
+  <a href="<?= e(base_url('favoritos.php')) ?>"<?= $tabCurrent('favoritos.php') ?>><?= icon('heart') ?>Favoritos</a>
+  <a href="<?= e(base_url('carrinho.php')) ?>"<?= $isBagPage ? ' aria-current="page"' : ' data-open-bag' ?>><?= bag_bloom(cart_count()) ?>Sacola</a>
+</nav>
+<?php endif; ?>
+
+<dialog class="sheet" id="sacola" aria-labelledby="sacola-title">
+  <div class="sheet-grip" data-sheet-grip aria-hidden="true"></div>
+  <div class="sheet-head">
+    <h2 id="sacola-title">Sua sacola</h2>
+    <form method="dialog"><button class="round plain" aria-label="Fechar sacola"><?= icon('close') ?></button></form>
+  </div>
+  <div class="sheet-body" data-bag-body></div>
+</dialog>
+
+<dialog class="sheet sheet-search" id="busca-sheet" aria-label="Buscar na loja">
+  <form class="searchbox" action="<?= e(url_catalog()) ?>" method="get" role="search">
+    <?= icon('search') ?>
+    <label class="sr" for="busca-campo">Buscar na loja</label>
+    <input id="busca-campo" name="busca" type="search" maxlength="80" placeholder="Anime, banda, personagem" autocomplete="off" data-search-input>
+    <button class="round plain" type="button" data-sheet-close aria-label="Fechar busca"><?= icon('close') ?></button>
+  </form>
+  <div class="search-out" data-search-out aria-live="polite">
+    <div class="pills">
+      <?php foreach ($navCategories as $navCat): ?>
+      <a class="pill" href="<?= e(url_catalog(['categoria' => $navCat['slug']])) ?>"><?= e($navCat['name']) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</dialog>
+
+<div class="snack" data-snack role="status" hidden><span data-snack-text></span><a href="<?= e(base_url('carrinho.php')) ?>" data-open-bag>Ver sacola</a></div>
+
+<script src="<?= e(asset_url('assets/js/loja.js')) ?>" defer></script>
 </body>
 </html>

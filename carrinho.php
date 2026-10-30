@@ -29,8 +29,27 @@ require_once __DIR__ . '/includes/WhatsAppMessage.php';
  */
 function cart_redirect(string $url, int $status = 303): never
 {
+    // Pedido da sacola sem recarregar (assets/js/loja.js): responde o novo estado
+    // em vez de redirecionar. Sem JS o fluxo POST/Redirect/GET segue igual.
+    if (($_SERVER['HTTP_X_LYNCH_AJAX'] ?? '') === '1') {
+        $flash = flash_get();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'count'   => cart_count(),
+            'message' => $flash !== [] ? end($flash) : null,
+            'html'    => cart_lines_html(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     header('Location: ' . $url, true, $status);
     exit;
+}
+
+function cart_lines_html(): string
+{
+    ob_start();
+    include __DIR__ . '/includes/partials/cart-lines.php';
+    return (string) ob_get_clean();
 }
 
 /**
@@ -71,31 +90,31 @@ if ($requestMethod === 'POST') {
             }
 
             if (cart_add($productId, $qty)) {
-                flash_set('success', 'Produto adicionado ao carrinho.');
+                flash_set('success', 'Peça na sacola.');
             } else {
-                flash_set('error', 'O carrinho chegou ao limite de ' . CART_MAX_LINES . ' peças diferentes. Finalize este pedido e faça outro para o restante.');
+                flash_set('error', 'A sacola chegou ao limite de ' . CART_MAX_LINES . ' peças diferentes. Finalize este pedido e faça outro para o restante.');
             }
             cart_redirect(cart_back_url());
             // no break (cart_redirect nunca retorna)
 
         case 'update':
             if (!cart_update($productId, $qty)) {
-                flash_set('error', 'Não foi possível atualizar essa peça. Confira o carrinho e tente de novo.');
+                flash_set('error', 'Não foi possível atualizar essa peça. Confira a sacola e tente de novo.');
             } elseif ($qty > CART_MAX_QTY) {
                 flash_set('info', 'O máximo por peça é ' . CART_MAX_QTY . '. Ajustamos a quantidade para ' . CART_MAX_QTY . '. Para mais que isso, fale com a loja.');
             } else {
-                flash_set('info', $qty <= 0 ? 'Item removido do carrinho.' : 'Quantidade atualizada.');
+                flash_set('info', $qty <= 0 ? 'Peça removida da sacola.' : 'Quantidade atualizada.');
             }
             cart_redirect($cartUrl);
 
         case 'remove':
             cart_remove($productId);
-            flash_set('info', 'Item removido do carrinho.');
+            flash_set('info', 'Peça removida da sacola.');
             cart_redirect($cartUrl);
 
         case 'clear':
             cart_clear();
-            flash_set('info', 'Carrinho esvaziado.');
+            flash_set('info', 'Sacola esvaziada.');
             cart_redirect($cartUrl);
 
         default:
@@ -114,164 +133,26 @@ if ($action !== '') {
 // 2. GET: render
 // ---------------------------------------------------------------------------
 
-// Lido ANTES do header: cart_items() e quem descarta linhas orfas da sessao,
-// entao o contador do header ja sai correto.
-$items          = cart_items();
-$lineCount      = count($items);
-$totalCents     = cart_total_cents($items);
-$hasOnRequest   = cart_has_price_on_request($items);
-$hasFixedPrice  = cart_has_fixed_price($items);
-$omitsLinks     = $lineCount > WhatsAppMessage::MAX_ITEMS_WITH_LINKS;
-$whatsappReady  = WhatsAppMessage::normalizeNumber(whatsapp_number()) !== '';
+// Conteudo da sacola para a gaveta (sem layout).
+if (isset($_GET['sheet'])) {
+    header('Content-Type: text/html; charset=utf-8');
+    header('X-Robots-Tag: noindex');
+    echo cart_lines_html();
+    exit;
+}
 
-$pageTitle       = 'Seu carrinho';
+// Lido ANTES do header: cart_items() descarta linhas orfas e acerta o contador.
+cart_items();
+
+$pageTitle       = 'Sua sacola';
 $pageNoIndex     = true;
-$pageDescription = 'Revise os itens escolhidos e finalize o pedido pelo WhatsApp da Lynch Store.';
-$pageScripts     = ['assets/js/cart.js'];
+$pageDescription = 'Revise as peças escolhidas e envie o pedido pelo WhatsApp da Lynch Store.';
+$isBagPage       = true;
 
 require __DIR__ . '/includes/partials/header.php';
 ?>
-
-<section class="container cart-page">
-  <a class="back" href="<?= e(url_catalog([], 'produtos')) ?>">
-    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
-    Continuar comprando
-  </a>
-
-  <div class="section-head">
-    <div>
-      <span class="eyebrow">Pedido</span>
-      <h1>Seu carrinho</h1>
-    </div>
-    <?php if ($lineCount > 0): ?>
-    <p class="cart-head-note">
-      <?= e($lineCount) ?> <?= $lineCount === 1 ? 'peça' : 'peças' ?> ·
-      <?= e(cart_count()) ?> <?= cart_count() === 1 ? 'unidade' : 'unidades' ?>
-    </p>
-    <?php endif; ?>
-  </div>
-
-  <?php if ($lineCount === 0): ?>
-
-    <div class="empty">
-      <h3>Seu carrinho está vazio</h3>
-      <p>Escolha as peças que você quer e nós combinamos medidas, prazo e valor direto no WhatsApp.</p>
-      <a class="btn primary" href="<?= e(url_catalog([], 'produtos')) ?>">Ver produtos</a>
-    </div>
-
-  <?php else: ?>
-
-    <div class="cart-grid">
-      <div class="cart-lines">
-        <?php foreach ($items as $item): ?>
-        <article class="cart-row">
-          <a class="cart-thumb" href="<?= e($item['url']) ?>">
-            <img src="<?= e($item['image']) ?>" alt="<?= e($item['image_alt']) ?>" width="140" height="175" loading="lazy" decoding="async">
-          </a>
-
-          <div class="cart-info">
-            <h3><a href="<?= e($item['url']) ?>"><?= e($item['name']) ?></a></h3>
-            <span class="cart-meta">
-              <?= $item['category_name'] !== '' ? e($item['category_name']) . ' · ' : '' ?><?= e($item['availability_label']) ?>
-            </span>
-            <span class="cart-unit">Unidade: <b><?= e($item['price_label']) ?></b></span>
-          </div>
-
-          <form class="cart-qty" method="post" action="<?= e($cartUrl) ?>?action=update" data-cart-form>
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="update">
-            <input type="hidden" name="product_id" value="<?= e($item['id']) ?>">
-            <!-- Os botoes +/- nascem hidden e so aparecem se assets/js/cart.js
-                 rodar: sem JS eles nao fariam nada, e botao morto e pior que
-                 botao ausente. Sem JS o fluxo continua inteiro pelo campo
-                 numerico + "Atualizar". -->
-            <button class="qty-step" type="button" data-cart-step="-1" hidden aria-label="Diminuir quantidade de <?= e($item['name']) ?>">&minus;</button>
-            <label class="visually-hidden" for="qty-<?= e($item['id']) ?>">Quantidade de <?= e($item['name']) ?></label>
-            <input class="qty-input" id="qty-<?= e($item['id']) ?>" type="number" name="qty"
-                   value="<?= e($item['qty']) ?>" min="0" max="<?= e(CART_MAX_QTY) ?>" step="1"
-                   inputmode="numeric" data-cart-qty>
-            <button class="qty-step" type="button" data-cart-step="1" hidden aria-label="Aumentar quantidade de <?= e($item['name']) ?>">+</button>
-            <button class="qty-apply" type="submit" data-cart-apply>Atualizar</button>
-          </form>
-
-          <div class="cart-line-end">
-            <span class="cart-subtotal"><?= e($item['subtotal_label']) ?></span>
-            <form method="post" action="<?= e($cartUrl) ?>?action=remove">
-              <?= csrf_field() ?>
-              <input type="hidden" name="action" value="remove">
-              <input type="hidden" name="product_id" value="<?= e($item['id']) ?>">
-              <button class="cart-remove" type="submit" aria-label="Remover <?= e($item['name']) ?> do carrinho">Remover</button>
-            </form>
-          </div>
-        </article>
-        <?php endforeach; ?>
-
-        <form class="cart-clear" method="post" action="<?= e($cartUrl) ?>?action=clear">
-          <?= csrf_field() ?>
-          <input type="hidden" name="action" value="clear">
-          <button type="submit">Esvaziar carrinho</button>
-        </form>
-      </div>
-
-      <aside class="cart-summary">
-        <h3>Resumo</h3>
-
-        <?php if ($hasFixedPrice): ?>
-          <div class="cart-total">
-            <span><?= $hasOnRequest ? 'Total estimado' : 'Total' ?></span>
-            <b><?= e(format_price($totalCents)) ?></b>
-          </div>
-          <?php if ($hasOnRequest): ?>
-            <p class="cart-note">Itens marcados como <b>Consultar valor</b> não entram nesse total. Combinamos o preço deles na conversa.</p>
-          <?php endif; ?>
-        <?php else: ?>
-          <div class="cart-total">
-            <span>Total</span>
-            <b>A combinar</b>
-          </div>
-          <p class="cart-note">Todas as peças escolhidas são <b>Consultar valor</b>: o orçamento sai na hora, pelo WhatsApp.</p>
-        <?php endif; ?>
-
-        <?php if ($omitsLinks): ?>
-          <p class="cart-note">Como o pedido tem mais de <?= e(WhatsAppMessage::MAX_ITEMS_WITH_LINKS) ?> peças, a mensagem vai só com nome e quantidade (sem o link de cada produto) para não estourar o tamanho do link.</p>
-        <?php endif; ?>
-
-        <?php if ($whatsappReady): ?>
-          <form method="post" action="<?= e(base_url('finalizar.php')) ?>">
-            <?= csrf_field() ?>
-            <!-- Fase 7: CTA pilula + badge circular. Junto com o CTA do hero,
-                 sao os dois unicos botoes do site com esse tratamento - e o
-                 momento de maior intencao de compra. -->
-            <button class="btn primary cart-checkout cta-pill" type="submit">
-              <span class="cta-pill-text">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
-                Finalizar pedido
-              </span>
-              <span class="cta-badge" aria-hidden="true">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h13M12 6l6 6-6 6"></path></svg>
-              </span>
-            </button>
-          </form>
-          <p class="cart-note">Abre o WhatsApp da loja com a lista já escrita. Você confere e envia.</p>
-        <?php else: ?>
-          <!-- Mesmo desenho do botao ativo (pilula + badge), so que apagado: a
-               loja ainda nao cadastrou o numero. O CSS ja previa esse estado em
-               .cta-pill.is-disabled - o disco fica em --soft e nao desliza. -->
-          <span class="btn primary is-disabled cart-checkout cta-pill" title="Configuração pendente" aria-disabled="true">
-            <span class="cta-pill-text">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
-              Finalizar pedido
-            </span>
-            <span class="cta-badge" aria-hidden="true">
-              <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h13M12 6l6 6-6 6"></path></svg>
-            </span>
-          </span>
-          <p class="cart-note">A loja ainda não cadastrou o número de WhatsApp. Seu carrinho continua salvo aqui.</p>
-        <?php endif; ?>
-      </aside>
-    </div>
-
-  <?php endif; ?>
+<section class="wrap bag-page">
+  <h1 class="page-title">Sua sacola</h1>
+  <div data-bag-body><?php include __DIR__ . '/includes/partials/cart-lines.php'; ?></div>
 </section>
-
 <?php require __DIR__ . '/includes/partials/footer.php'; ?>

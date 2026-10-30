@@ -3,7 +3,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli-server') { exit; }
 $root = dirname(__DIR__);
 $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
-if (preg_match('~(?:^|/)(?:\.|includes/|db/|scripts/|tests/|docs/|dist/|storage/|vendor/|admin/partials/)|\.(?:json|md|sql|lock|log|ini|zip|ps1)$~i', $path)) {
+if (preg_match('~(?:^|/)(?:\.|_old/|includes/|db/|scripts/|tests/|docs/|dist/|storage/|vendor/|admin/partials/)|\.(?:json|md|sql|lock|log|ini|zip|ps1)$~i', $path)) {
     http_response_code(403); exit('Forbidden');
 }
 if ($path === '/robots.txt') { require $root . '/robots.php'; return true; }

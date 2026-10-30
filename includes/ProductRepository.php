@@ -42,6 +42,7 @@ final class ProductRepository
      *   search         string   busca por nome
      *   limit          int      padrao 12, teto 60
      *   offset         int      padrao 0
+     *   sort           string   'preco_asc' | 'preco_desc' | vazio = ordem da loja
      *
      * @param array<string,mixed> $opts
      * @return array<int,array<string,mixed>>
@@ -53,11 +54,18 @@ final class ProductRepository
         $limit  = self::clampLimit($opts['limit'] ?? 12);
         $offset = max(0, (int) ($opts['offset'] ?? 0));
 
+        // Lista fechada: o valor recebido nunca entra no SQL. Sem preco vai para o fim.
+        $order = match ($opts['sort'] ?? '') {
+            'preco_asc'  => 'p.price_cents IS NULL, p.price_cents ASC, p.id ASC',
+            'preco_desc' => 'p.price_cents IS NULL, p.price_cents DESC, p.id ASC',
+            default      => 'p.sort_order ASC, p.id ASC',
+        };
+
         $sql = 'SELECT ' . self::listColumns() . '
                   FROM products p
                   LEFT JOIN categories c ON c.id = p.category_id
                  WHERE ' . $where . '
-                 ORDER BY p.sort_order ASC, p.id ASC
+                 ORDER BY ' . $order . '
                  LIMIT :limit OFFSET :offset';
 
         $stmt = db()->prepare($sql);

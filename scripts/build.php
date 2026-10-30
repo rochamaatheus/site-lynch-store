@@ -46,7 +46,7 @@ $add = static function (string $relative) use ($zip, $root, &$manifest): void {
     $zip->addFile($file, 'public_html/' . $relative);
     $manifest[$relative] = hash_file('sha256', $file);
 };
-foreach (['index.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','db/schema.sql'] as $file) { $add($file); }
+foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','db/schema.sql'] as $file) { $add($file); }
 foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $folder, FilesystemIterator::SKIP_DOTS));
     foreach ($it as $file) {

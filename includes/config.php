@@ -172,7 +172,7 @@ if (PHP_SAPI !== 'cli') {
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     // Sem 'unsafe-inline' em script-src: todo JavaScript vive em assets/js, entao
     // um texto malicioso salvo no banco nao consegue executar script na pagina.
-    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com");
     header('Cache-Control: private, no-store');
     if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
         header('Strict-Transport-Security: max-age=31536000');

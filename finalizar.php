@@ -40,8 +40,8 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     echo '<!doctype html><meta charset="utf-8"><title>Método não permitido</title>'
        . '<div style="font:16px/1.6 Inter,system-ui,sans-serif;max-width:560px;margin:14vh auto;padding:0 24px">'
        . '<h1 style="font-size:1.3rem">Método não permitido</h1>'
-       . '<p>O pedido só é finalizado pelo botão do carrinho.</p>'
-       . '<p><a href="' . e($cartUrl) . '">Voltar ao carrinho</a></p></div>';
+       . '<p>O pedido só é finalizado pelo botão da sacola.</p>'
+       . '<p><a href="' . e($cartUrl) . '">Voltar à sacola</a></p></div>';
     exit;
 }
 
@@ -56,7 +56,7 @@ if (!csrf_check(isset($_POST['csrf']) ? (string) $_POST['csrf'] : null)) {
 $items = cart_items();
 
 if ($items === []) {
-    checkout_fail('Seu carrinho está vazio. Escolha uma peça antes de finalizar o pedido.', $cartUrl);
+    checkout_fail('Sua sacola está vazia. Escolha uma peça antes de enviar o pedido.', $cartUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ if ($url === null) {
     // Sem numero configurado: aviso claro e carrinho INTACTO. Melhor isso do
     // que gerar "https://wa.me/?text=..." (bug do site estatico antigo).
     checkout_fail(
-        'A loja ainda não configurou o número de WhatsApp. Seu carrinho foi mantido. Tente novamente em instantes.',
+        'A loja ainda não configurou o número de WhatsApp. Sua sacola foi mantida. Tente novamente em instantes.',
         $cartUrl
     );
 }
@@ -119,7 +119,7 @@ try {
 } catch (Throwable $e) {
     // Banco fora do ar, tabela ausente, disco cheio: o cliente nao paga por isso.
     error_log('[Lynch Store] falha ao gravar checkout_logs: ' . $e->getMessage());
-    checkout_fail('Não foi possível registrar o pedido. Seu carrinho foi mantido. Tente novamente.', $cartUrl);
+    checkout_fail('Não foi possível registrar o pedido. Sua sacola foi mantida. Tente novamente.', $cartUrl);
 }
 }
 
@@ -129,6 +129,6 @@ try {
 
 $message = 'Pedido #' . $orderId . "\n\n" . whatsapp_checkout_message($items, ['number' => $number]);
 $url = 'https://wa.me/' . rawurlencode($number) . '?text=' . rawurlencode($message);
-flash_set('info', 'Pedido #' . $orderId . ' preparado. Envie a mensagem no WhatsApp para iniciar o atendimento. Seu carrinho continua salvo.');
+flash_set('info', 'Pedido #' . $orderId . ' preparado. Envie a mensagem no WhatsApp para iniciar o atendimento. Sua sacola continua salva.');
 header('Location: ' . $url, true, 303);
 exit;

@@ -24,7 +24,7 @@ const {chromium} = require('playwright');
     assert.equal((await page.request.get(base+'/nao-existe')).status(),404);
     assert.equal((await page.request.get(base+'/index.php?busca[]=x')).status(),400);
     results.push('Rota inexistente retorna 404 e parâmetros malformados retornam 400');
-    const css=await page.request.get(base+'/assets/css/style.css',{headers:{'Accept-Encoding':'gzip'}});
+    const css=await page.request.get(base+'/assets/css/loja.css',{headers:{'Accept-Encoding':'gzip'}});
     assert.equal(css.headers()['content-encoding'],'gzip');
     assert.match(css.headers()['cache-control'],/max-age/);
     results.push('Compressão gzip e cache de assets ativos no Apache');

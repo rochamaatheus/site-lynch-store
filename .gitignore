@@ -59,3 +59,6 @@ db/*.sql
 /BUILD-STATUS.json
 /IMAGENS-STATUS.json
 /MELHORIAS-STATUS.json
+
+# Versao 1 guardada localmente (o historico do git tambem a preserva)
+/_old/

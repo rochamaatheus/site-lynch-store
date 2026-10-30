@@ -30,11 +30,11 @@ if ($product === null) {
 
     require __DIR__ . '/includes/partials/header.php';
     ?>
-    <section class="container errorpage">
-      <span class="eyebrow">erro 404</span>
-      <h1>Peça não encontrada</h1>
-      <p>O link pode ter mudado ou a peça saiu do catálogo. Dá uma olhada no que está disponível agora.</p>
-      <a class="btn primary" href="<?= e(url_catalog([], 'produtos')) ?>">Ver o catálogo</a>
+    <section class="wrap bag-empty">
+      <?= sunflower(0, 'bag-empty-flower') ?>
+      <h1 class="page-title">Essa peça saiu da arara</h1>
+      <p>O link pode ter mudado ou a peça saiu do catálogo.</p>
+      <a class="btn ink" href="<?= e(url_catalog()) ?>">Ver as peças</a>
     </section>
     <?php
     require __DIR__ . '/includes/partials/footer.php';
@@ -68,7 +68,7 @@ if ($mainImageAlt === '') {
     $mainImageAlt = $name . ' - foto real da Lynch Store';
 }
 
-$related = ProductRepository::related($product, 4);
+$related = ProductRepository::related($product, 8);
 
 // Mensagem pronta para o WhatsApp com o link desta peca
 $waMessage = setting('whatsapp_message_intro', 'Olá! Quero fazer um pedido na Lynch Store:')
@@ -79,6 +79,8 @@ $waReady = $waLink !== '';
 // Adicionar ao carrinho e POST (muda estado), nunca um link - ver fase 4.
 $cartAddUrl = base_url('carrinho.php') . '?action=add';
 $cartBackTo = (string) ($_SERVER['REQUEST_URI'] ?? '');
+$productId  = (int) $product['id'];
+$productSlug = (string) $product['slug'];
 
 // ---------------------------------------------------------------------------
 // Meta / SEO
@@ -93,7 +95,7 @@ $pageDescription   = $hasOwnDescription
 $pageOgType      = 'product';
 $pageImage       = $mainImage ?? 'assets/seo-banner.webp';
 $pageCanonical   = product_url((string) $product['slug']);
-$pageScripts     = ['assets/js/gallery.js'];
+$isProductPage   = true;
 $pageJsonLd = json_encode(array_filter([
     '@context'    => 'https://schema.org',
     '@type'       => 'Product',
@@ -120,177 +122,81 @@ $pageJsonLd = json_encode(array_filter([
 require __DIR__ . '/includes/partials/header.php';
 ?>
 
-<section class="container product-page">
-  <a class="back" href="<?= e(url_catalog([], 'produtos')) ?>">
-    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
-    Voltar à loja
-  </a>
-
-  <div class="pgrid">
-    <div>
-      <div class="gallery-main" data-gallery>
-        <!-- "detail" (1080x1350): a caixa tem zoom de 2x, entao a foto grande
-             compensa; product_image_detail_url() cai no arquivo padrao se o
-             derivado nao existir (foto legada). -->
-        <img data-gallery-image
-             src="<?= e(product_image_detail_url($mainImage)) ?>"
-             srcset="<?= e(product_image_url($mainImage)) ?> 720w, <?= e(product_image_detail_url($mainImage)) ?> 1080w"
-             sizes="(max-width:900px) calc(100vw - 32px), 50vw"
-             alt="<?= e($mainImageAlt) ?>"
-             width="1080" height="1350" fetchpriority="high" decoding="async">
-      </div>
-
-      <?php if (count($images) > 1): ?>
-      <div class="thumbs" data-thumbs>
-        <?php foreach ($images as $i => $img): ?>
-          <?php
-            $thumbAlt = (string) ($img['alt_text'] ?? '');
-            if ($thumbAlt === '') {
-                $thumbAlt = $name . ' - foto ' . ($i + 1);
-            }
-          ?>
-          <button type="button"
-                  class="<?= $i === 0 ? 'active' : '' ?>"
-                  data-thumb
-                  data-src="<?= e(product_image_detail_url($img['file_path'])) ?>"
-                  data-alt="<?= e($thumbAlt) ?>"
-                  aria-label="Ver foto <?= e($i + 1) ?> de <?= e($name) ?>">
-            <!-- data-src carrega o "detail" na caixa grande; o <img> daqui e o
-                 "thumb" de 240x300, que pesa poucos KB por miniatura. -->
-            <img src="<?= e(product_image_thumb_url($img['file_path'])) ?>" alt="" loading="lazy" decoding="async" width="240" height="300">
-          </button>
-        <?php endforeach; ?>
-      </div>
-      <?php endif; ?>
-      <!-- Com uma unica foto as miniaturas nem sao renderizadas: o site nunca
-           inventa imagens que o produto nao tem. -->
-    </div>
-
-    <div class="pinfo">
-      <span class="eyebrow">
-        <?= $categoryName !== '' ? e($categoryName) . ' · ' : '' ?><?= e($availLabel) ?>
-      </span>
-      <h1><?= e($name) ?></h1>
-      <p class="big-price"><?= e($price) ?></p>
-      <span class="chip"><i></i><b>Foto real</b> da loja</span>
-
-      <div class="modes">
-        <div class="mode <?= $avail === 'pronta_entrega' ? 'on' : '' ?>"><b>Pronta entrega</b>envio rápido</div>
-        <div class="mode <?= $avail === 'sob_encomenda' ? 'on' : '' ?>"><b>Sob encomenda</b>medidas combinadas</div>
-      </div>
-
-      <!-- Fase 7: container ESTREITO (.inset) na coluna de leitura. Abaixo de
-           900px o .pinfo ocupa a largura inteira da pagina e a descricao viraria
-           uma linha longa demais para ler confortavelmente. -->
-      <div class="inset">
-        <div class="facts">
-          <div class="fact"><span>Coleção</span><b><?= $categoryName !== '' ? e($categoryName) : 'Catálogo geral' ?></b></div>
-          <div class="fact"><span>Disponibilidade</span><b><?= e($availLabel) ?></b></div>
-          <div class="fact"><span>Valor</span><b><?= e($price) ?></b></div>
-          <div class="fact"><span>Compra</span><b>WhatsApp</b></div>
-        </div>
-
-        <p class="pdesc"><?= e($description) ?></p>
-      </div>
-
-      <div class="pcta">
-        <form class="pcta-form" method="post" action="<?= e($cartAddUrl) ?>">
-          <?= csrf_field() ?>
-          <input type="hidden" name="action" value="add">
-          <input type="hidden" name="product_id" value="<?= e((int) $product['id']) ?>">
-          <input type="hidden" name="qty" value="1">
-          <input type="hidden" name="redirect_to" value="<?= e($cartBackTo) ?>">
-          <button class="btn primary" type="submit">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"></path><path d="M9 8a3 3 0 0 1 6 0"></path></svg>
-            Adicionar ao carrinho
-          </button>
-        </form>
-        <?php if ($waReady): ?>
-          <a class="btn sun" href="<?= e($waLink) ?>" target="_blank" rel="noopener">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
-            Comprar no WhatsApp
-          </a>
-        <?php else: ?>
-          <span class="btn sun is-disabled" title="Configuração pendente" aria-disabled="true">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21l1.5-4A8 8 0 1 1 9 19.5z"></path></svg>
-            Comprar no WhatsApp
-          </span>
-        <?php endif; ?>
-      </div>
-
-      <div class="freight">
-        <button class="btn" type="button" data-share hidden>Compartilhar peça</button><span data-share-status role="status"></span>
-        <p><span class="eyebrow">frete e prazo</span><br>Calculado e combinado direto no WhatsApp, junto com o valor da peça.</p>
-        <?php if ($categorySlug !== ''): ?>
-          <a class="btn" href="<?= e(url_catalog(['categoria' => $categorySlug], 'produtos')) ?>">Ver a coleção</a>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-
-  <!-- Fase 7: accordion de FAQ (conteudo NOVO, complementar a lista .facts, que
-       continua onde estava). E institucional da loja - vale para qualquer peca,
-       nao depende de dado do produto. Fica FORA do .pinfo de proposito: aquele
-       painel e sticky no desktop e, se crescesse mais que a viewport, o final do
-       texto ficaria inalcancavel com o painel grudado no topo. -->
-  <section class="inset faq" aria-labelledby="faq-title">
-    <div class="faq-head">
-      <span class="eyebrow">antes de fechar o pedido</span>
-      <h2 id="faq-title">Perguntas <span class="hl">frequentes</span></h2>
-    </div>
-
-    <details>
-      <summary>Como funciona uma peça sob encomenda?<span class="plus" aria-hidden="true">+</span></summary>
-      <div class="faq-body">
-        <p>Você escolhe a peça aqui, manda no WhatsApp e a gente combina medidas, tecido, cores e prazo antes de qualquer pagamento. Nada é produzido sem o seu ok. Cada peça é feita para o seu corpo e para o seu personagem.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Como tiro as medidas certas?<span class="plus" aria-hidden="true">+</span></summary>
-      <div class="faq-body">
-        <p>Peça uma fita métrica emprestada e anote busto, cintura, quadril e altura, sempre por cima de roupa leve e sem apertar a fita. Na conversa a gente confere junto e pede alguma medida extra se a peça precisar (comprimento de manga, ombro a ombro, entrepernas).</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Frete, prazo e formas de pagamento<span class="plus" aria-hidden="true">+</span></summary>
-      <div class="faq-body">
-        <p>O frete é calculado pelo seu CEP na hora da conversa, e retirada combinada também é possível. Peças de pronta entrega saem assim que o pagamento é confirmado; as sob encomenda têm o prazo informado antes de você fechar o pedido.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Cuidados com a peça<span class="plus" aria-hidden="true">+</span></summary>
-      <div class="faq-body">
-        <p>Consulte as instruções de cuidado da sua peça com a loja. Tecidos, estampas e apliques podem exigir formas diferentes de lavagem e conservação.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Trocas e ajustes<span class="plus" aria-hidden="true">+</span></summary>
-      <div class="faq-body">
-        <p>Precisa de uma troca ou ajuste? Fale com a loja e conte o que aconteceu. Consulte as condições de atendimento antes de confirmar o pedido, inclusive para peças sob medida.</p>
-      </div>
-    </details>
-  </section>
-
-  <?php if ($related !== []): ?>
-  <section class="shelf related" aria-labelledby="related-title">
-    <div class="shelf-head">
-      <div>
-        <h3 id="related-title">Você também pode gostar</h3>
-        <p><?= $categoryName !== '' ? 'Outras peças de ' . e($categoryName) . '.' : 'Outras peças do catálogo.' ?></p>
-      </div>
-      <span class="shelf-count"><?= e(count($related)) ?> itens</span>
-    </div>
-    <div class="product-grid">
-      <?php foreach ($related as $product): ?>
-        <?php include __DIR__ . '/includes/partials/product-card.php'; ?>
+<article class="pdp">
+  <div class="pdp-media">
+    <div class="pdp-gallery" data-gallery tabindex="0" role="group" aria-label="Fotos de <?= e($name) ?>">
+      <?php foreach ($images ?: [['file_path' => null, 'alt_text' => '']] as $i => $img): ?>
+      <?php $alt = (string) ($img['alt_text'] ?? ''); ?>
+      <figure class="photo pdp-photo"<?= $i === 0 ? ' data-morph="' . e($productSlug) . '"' : '' ?>>
+        <img src="<?= e(product_image_detail_url($img['file_path'])) ?>" srcset="<?= e(product_image_url($img['file_path'])) ?> 720w, <?= e(product_image_detail_url($img['file_path'])) ?> 1080w" sizes="(max-width:899px) 100vw, 50vw" alt="<?= e($alt !== '' ? $alt : $name . ', foto ' . ($i + 1)) ?>" width="1080" height="1350"<?= $i === 0 ? ' fetchpriority="high"' : ' loading="lazy"' ?> decoding="async">
+      </figure>
       <?php endforeach; ?>
     </div>
-  </section>
-  <?php endif; ?>
+    <?php if (count($images) > 1): ?>
+    <div class="dots" data-dots aria-hidden="true"><?php foreach ($images as $i => $_): ?><i<?= $i === 0 ? ' class="on"' : '' ?>></i><?php endforeach; ?></div>
+    <?php endif; ?>
+    <span class="tag tag-big" data-swing><?= e($availLabel) ?></span>
+    <button class="round fav" type="button" data-fav="<?= e($productId) ?>" aria-pressed="false" aria-label="Favoritar <?= e($name) ?>" hidden><?= icon('heart') ?></button>
+  </div>
+
+  <div class="wrap pdp-info">
+    <?php if ($categoryName !== ''): ?>
+    <a class="pdp-cat" href="<?= e(url_catalog(['categoria' => $categorySlug])) ?>"><?= e($categoryName) ?></a>
+    <?php endif; ?>
+    <h1 class="pdp-name"><?= e($name) ?></h1>
+    <p class="pdp-price"><?= e($price) ?></p>
+    <p class="pdp-desc"><?= e($description) ?></p>
+
+    <div class="buybar">
+      <a class="top-bag" href="<?= e(base_url('carrinho.php')) ?>" data-open-bag aria-label="Abrir sacola"><?= bag_bloom(cart_count()) ?></a>
+      <form method="post" action="<?= e($cartAddUrl) ?>" data-add-form>
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="add">
+        <input type="hidden" name="product_id" value="<?= e($productId) ?>">
+        <input type="hidden" name="qty" value="1">
+        <input type="hidden" name="redirect_to" value="<?= e($cartBackTo) ?>">
+        <button class="btn ink wide" type="submit">Colocar na sacola</button>
+      </form>
+    </div>
+
+    <div class="pdp-links">
+      <?php if ($waReady): ?><a class="btn line" href="<?= e($waLink) ?>" target="_blank" rel="noopener"><?= icon('chat') ?> Perguntar no WhatsApp</a><?php endif; ?>
+      <button class="btn line" type="button" data-share hidden><?= icon('share') ?> Compartilhar</button>
+      <span class="sr" data-share-status role="status"></span>
+    </div>
+
+    <div class="pdp-faq">
+      <details>
+        <summary><?= $avail === 'sob_encomenda' ? 'Como funciona a encomenda' : 'Como funciona a compra' ?></summary>
+        <div><p><?= $avail === 'sob_encomenda'
+            ? 'Você envia a peça pelo WhatsApp e combina medidas, tecido, cores e prazo antes de qualquer pagamento. Nada é produzido sem o seu ok.'
+            : 'Você envia a peça pelo WhatsApp, a loja confirma a disponibilidade e vocês combinam pagamento, envio ou retirada.' ?></p></div>
+      </details>
+      <details>
+        <summary>Como tirar as medidas</summary>
+        <div><p>Use uma fita métrica e anote busto, cintura, quadril e altura, por cima de roupa leve e sem apertar. Na conversa a loja confere com você e pede alguma medida extra, se a peça precisar.</p></div>
+      </details>
+      <details>
+        <summary>Frete, prazo e pagamento</summary>
+        <div><p>O frete é calculado pelo seu CEP na conversa, e a retirada pode ser combinada. O prazo das encomendas é informado antes de você fechar o pedido.</p></div>
+      </details>
+      <details>
+        <summary>Cuidados, trocas e ajustes</summary>
+        <div><p>Tecidos, estampas e apliques podem pedir cuidados diferentes: consulte a loja sobre a sua peça. Para troca ou ajuste, confira as condições antes de confirmar o pedido, inclusive em peças sob medida.</p></div>
+      </details>
+    </div>
+  </div>
+</article>
+
+<?php if ($related !== []): ?>
+<section class="band band-kraft" aria-labelledby="related-title">
+  <div class="wrap band-head"><h2 class="title" id="related-title">Combina com esta</h2></div>
+  <div class="shelf" tabindex="0" role="group" aria-labelledby="related-title">
+    <?php foreach ($related as $product): ?>
+      <?php include __DIR__ . '/includes/partials/product-card.php'; ?>
+    <?php endforeach; ?>
+  </div>
 </section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/includes/partials/footer.php'; ?>
