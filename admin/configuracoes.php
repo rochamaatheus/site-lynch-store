@@ -174,7 +174,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $novos['address_state'] = $uf;
     $cep = (string) preg_replace('/\D/', '', (string) ($_POST['address_zip'] ?? ''));
     if ($cep !== '' && strlen($cep) !== 8) {
-        flash_set('error', 'O CEP precisa ter 8 números, por exemplo 89226-600. Nada foi salvo.'); cfg_fail($selfUrl, 'address_zip');
+        flash_set('error', 'O CEP precisa ter 8 números, por exemplo 89226-638. Nada foi salvo.'); cfg_fail($selfUrl, 'address_zip');
     }
     $novos['address_zip'] = $cep === '' ? '' : substr($cep, 0, 5) . '-' . substr($cep, 5);
     [$hoursJson, $hoursError] = cfg_parse_hours($_POST);

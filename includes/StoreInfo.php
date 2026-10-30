@@ -115,7 +115,7 @@ function store_address(): array
     ];
 }
 
-/** Duas linhas: "Avenida Júpiter, 146, Jardim Paraíso" e "Joinville - SC, CEP 89226-600". */
+/** Duas linhas: "Rua Laura Maria Schneider, 77, Jardim Paraíso" e "Joinville - SC, CEP 89226-638". */
 function store_address_lines(): array
 {
     $a = store_address();

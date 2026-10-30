@@ -264,9 +264,9 @@ try {
 
 SettingsRepository::flush();
 $check(whatsapp_display('5547991781461') === '+55 47 99178-1461' && instagram_handle('https://instagram.com/lynchstore') === '@lynchstore', 'WhatsApp e Instagram exibidos como no aplicativo');
-$check(store_hours_lines() === [['Segunda a sexta', '09:00 às 12:00 e 14:00 às 18:30'], ['Sábado', '09:00 às 12:00'], ['Domingo', 'Fechado']] && store_address_lines() === ['Avenida Júpiter, 146, Jardim Paraíso', 'Joinville - SC, CEP 89226-600'], 'Horário e endereço da Lynch lidos das configurações');
+$check(store_hours_lines() === [['Segunda a sexta', '09:00 às 12:00 e 14:00 às 18:30'], ['Sábado', '09:00 às 12:00'], ['Domingo', 'Fechado']] && store_address_lines() === ['Rua Laura Maria Schneider, 77, Jardim Paraíso', 'Joinville - SC, CEP 89226-638'], 'Horário e endereço da Lynch lidos das configurações');
 $ld = store_jsonld();
-$check($ld['address']['postalCode'] === '89226-600' && count($ld['openingHoursSpecification']) === 3 && $ld['telephone'] === '+55 47 99178-1461' && !isset($ld['email']), 'JSON-LD com endereço, horário e telefone, sem e-mail');
+$check($ld['address']['postalCode'] === '89226-638' && count($ld['openingHoursSpecification']) === 3 && $ld['telephone'] === '+55 47 99178-1461' && !isset($ld['email']), 'JSON-LD com endereço, horário e telefone, sem e-mail');
 $check(store_hours('{"seg_sex":[["12:00","09:00"],["xx","10:00"]]}')['seg_sex'] === [], 'Horário inválido no banco é ignorado na vitrine');
 
 // Importacao com as colunas novas (fora da transacao: apply abre a sua)

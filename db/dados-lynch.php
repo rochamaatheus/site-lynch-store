@@ -34,11 +34,11 @@ function lynch_store_settings(): array
             'dom'     => [],
         ], JSON_THROW_ON_ERROR),
         'appointment_note' => 'Entre em contato para agendar seu horário.',
-        'address_street'   => 'Avenida Júpiter, 146',
+        'address_street'   => 'Rua Laura Maria Schneider, 77',
         'address_district' => 'Jardim Paraíso',
         'address_city'     => 'Joinville',
         'address_state'    => 'SC',
-        'address_zip'      => '89226-600',
+        'address_zip'      => '89226-638',
     ];
 }
 
