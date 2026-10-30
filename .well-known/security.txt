@@ -1,7 +1,6 @@
 # Lynch Store - como avisar sobre uma falha de seguranca (RFC 9116).
-# PREENCHER antes de publicar: troque o contato abaixo por um e-mail ou
-# formulario da loja/agencia (nao use e-mail pessoal) e renove Expires todo ano.
-Contact: mailto:seguranca@SEU-DOMINIO.com.br
+# Se o contato mudar, atualize abaixo e renove Expires todo ano.
+Contact: https://lynchstore.com.br/informacoes.php
 Expires: 2027-10-30T00:00:00.000Z
 Preferred-Languages: pt-BR, en
-Canonical: https://SEU-DOMINIO.com.br/.well-known/security.txt
+Canonical: https://lynchstore.com.br/.well-known/security.txt

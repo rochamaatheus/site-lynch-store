@@ -53,6 +53,7 @@ $add = static function (string $relative) use ($zip, $root, &$manifest): void {
 };
 foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','.user.ini','.well-known/security.txt','db/schema.sql'] as $file) { $add($file); }
 foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
+    if (!is_dir($root . '/' . $folder)) { continue; }
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $folder, FilesystemIterator::SKIP_DOTS));
     foreach ($it as $file) {
         if (!$file->isFile() || $file->isLink()) { continue; }
