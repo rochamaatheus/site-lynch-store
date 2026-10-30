@@ -72,7 +72,7 @@ $tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria
     </div>
     <?php endif; ?>
   </div>
-  <p class="wrap foot-note">&copy; <?= e(date('Y')) ?> <?= e($footName) ?>. Fotos reais do acervo.</p>
+  <p class="wrap foot-note">&copy; <?= e(date('Y')) ?> <?= e($footName) ?>. Fotos reais do acervo. Site feito por Matheus Rocha. <a href="https://rochamaatheus.github.io/" target="_blank" rel="noopener">Ver portfólio</a></p>
 </footer>
 
 <?php if (!$isProductPage): ?>

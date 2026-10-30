@@ -357,6 +357,7 @@ details>div{padding-bottom:6px}
 .foot h2{font-size:14px;font-weight:700;color:var(--sun);margin-bottom:4px}
 .foot-grid a,.foot-grid span{display:flex;align-items:center;min-height:44px}
 .foot-note{font-size:13px;color:color-mix(in srgb,var(--cream) 70%,transparent);margin-top:18px}
+.foot-note a{color:var(--sun);font-weight:700;text-decoration:underline;text-underline-offset:3px;display:inline-block;padding-block:12px;margin-block:-12px}
 
 /* Transicoes entre paginas */
 ::view-transition-old(root){animation:page-out .16s ease both}
