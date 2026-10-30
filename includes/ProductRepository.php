@@ -48,7 +48,7 @@ final class ProductRepository
     public static function stockReady(): bool
     {
         if (self::$stockReady === null) {
-            self::$stockReady = db()->query("SHOW COLUMNS FROM products LIKE 'sale_ends_on'")->fetch() !== false;
+            self::$stockReady = db_schema_ready('stock', static fn (): bool => db()->query("SHOW COLUMNS FROM products LIKE 'sale_ends_on'")->fetch() !== false);
         }
         return self::$stockReady;
     }
@@ -99,9 +99,17 @@ final class ProductRepository
         $offset = max(0, (int) ($opts['offset'] ?? 0));
 
         // Lista fechada: o valor recebido nunca entra no SQL. Sem preco vai para o fim.
+        // A ordem por preco usa o preco VIGENTE (promocao valida hoje), o mesmo que o
+        // card mostra; CURDATE() segue o fuso que db() aplica na conexao.
+        $price = self::stockReady()
+            ? '(CASE WHEN p.price_on_request = 1 THEN NULL
+                     WHEN p.sale_price_cents IS NOT NULL AND p.sale_price_cents < p.price_cents
+                          AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= CURDATE()) THEN p.sale_price_cents
+                     ELSE p.price_cents END)'
+            : '(CASE WHEN p.price_on_request = 1 THEN NULL ELSE p.price_cents END)';
         $order = match ($opts['sort'] ?? '') {
-            'preco_asc'  => 'p.price_cents IS NULL, p.price_cents ASC, p.id ASC',
-            'preco_desc' => 'p.price_cents IS NULL, p.price_cents DESC, p.id ASC',
+            'preco_asc'  => $price . ' IS NULL, ' . $price . ' ASC, p.id ASC',
+            'preco_desc' => $price . ' IS NULL, ' . $price . ' DESC, p.id ASC',
             default      => 'p.sort_order ASC, p.id ASC',
         };
 

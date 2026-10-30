@@ -23,7 +23,21 @@ const pass = text => results.push(text);
     await Promise.all([page.waitForURL('**/admin/index.php'),page.getByRole('button',{name:'Entrar',exact:true}).click()]);
   };
   const creds = JSON.parse(fs.readFileSync(path.join(__dirname,'../.qa-credentials.json')));
+  await ctx.addInitScript(() => document.addEventListener('securitypolicyviolation', e => (window.__csp = window.__csp || []).push(e.violatedDirective + ' ' + e.blockedURI)));
   try {
+    for (const route of ['/', '/produto.php?slug=peca-de-cosplay-01', '/carrinho.php', '/admin/login.php']) {
+      const h = (await ctx.request.get(base + route)).headers();
+      assert.doesNotMatch(h['content-security-policy'] || 'ausente', /unsafe-inline|ausente/, 'CSP sem unsafe-inline em ' + route);
+      assert.match(h['content-security-policy'], /style-src 'self' 'sha256-SREix9zPMZHrSuo8zRSjb672r1gsHIh96MJuaZq6iJo=';/);
+      assert.equal(h['x-powered-by'], undefined, 'Sem X-Powered-By em ' + route);
+    }
+    await go('/');
+    assert.deepEqual(await page.locator('[data-hanging]').evaluateAll(els => els.map(el => getComputedStyle(el).getPropertyValue('--i').trim())), ['0','1','2','3']);
+    assert.deepEqual(await page.evaluate(() => window.__csp || []), []);
+    await go('/produto.php?slug=peca-de-cosplay-01');
+    assert.equal(await page.locator('.pdp-photo[data-morph]').evaluate(el => getComputedStyle(el).viewTransitionName), 'peca');
+    assert.deepEqual(await page.evaluate(() => window.__csp || []), []);
+    pass('CSP sem unsafe-inline (script e estilo), sem X-Powered-By; arara e foto do produto mantêm o motion pelo CSS, sem violação');
     await go('/');
     await page.locator('.tabs [data-open-search]').click();
     assert.equal(await page.locator('#busca-sheet').evaluate(e=>e.open),true);

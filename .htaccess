@@ -34,7 +34,7 @@ DirectoryIndex index.php
     # servido pelo navegador. Em .htaccess nao existe <Directory>, entao o
     # bloqueio por pasta e feito com mod_rewrite (403 antes de qualquer coisa).
     # -----------------------------------------------------------------------
-    RewriteRule ^(?:_old|includes|db|vendor|scripts|tests|docs|dist|storage)(?:/|$) - [F,L]
+    RewriteRule ^(?:_old|includes|db|vendor|scripts|tests|docs|dist|storage|node_modules)(?:/|$) - [F,L]
     RewriteRule ^robots\.txt$ robots.php [L]
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
     RewriteRule ^index\.html$ index.php [R=301,L]
@@ -113,22 +113,35 @@ DirectoryIndex index.php
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Versao do PHP/servidor nao vai para o visitante
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
 </IfModule>
 
 # Acesso negado sem a pagina padrao do servidor (que pode mostrar versao e caminhos)
 ErrorDocument 403 "Acesso negado."
 
+# Compressao: brotli quando o servidor tiver (menor), senao gzip. Fontes woff2 e
+# imagens webp ja vem comprimidas e ficam de fora.
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml application/manifest+json
+</IfModule>
 <IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml application/manifest+json
 </IfModule>
 AddType application/manifest+json .webmanifest
 
+# Cache: CSS, JS e imagens saem sempre com ?v=<data do arquivo> (asset_url e
+# product_image_url), entao um ano e seguro; trocar o arquivo muda a URL.
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType text/css "access plus 1 year"
     ExpiresByType application/javascript "access plus 1 year"
     ExpiresByType text/javascript "access plus 1 year"
-    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 year"
     ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/manifest+json "access plus 1 day"
 </IfModule>

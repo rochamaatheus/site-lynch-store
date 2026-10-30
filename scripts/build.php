@@ -17,10 +17,15 @@ $tables = [
 $uploads = ['uploads/.htaccess' => true, 'uploads/.gitkeep' => true, 'uploads/products/.gitkeep' => true];
 if (!in_array('--empty', $argv, true)) {
     $pdo = db();
+    // Estoque e promocao vao junto quando o banco de origem ja tem as colunas
+    // (db/upgrade.php); instalar.php aceita o catalogo com ou sem elas.
+    if ($pdo->query("SHOW COLUMNS FROM products LIKE 'sale_ends_on'")->fetch()) {
+        $tables['products'] .= ',stock_qty,show_stock,sold_out,sale_price_cents,sale_ends_on';
+    }
     $pdo->beginTransaction();
     try {
         foreach ($tables as $table => $columns) { $catalog[$table] = $pdo->query("SELECT $columns FROM $table")->fetchAll(); }
-        $publicSettings = ['whatsapp_number','hero_title','hero_subtitle','hero_cta_label','hero_chip','hero_banner_path','whatsapp_message_intro','footer_about','store_policies','contact_email','instagram_url','store_name','store_slogan','store_bio','opening_hours','appointment_note','address_street','address_district','address_city','address_state','address_zip'];
+        $publicSettings = ['whatsapp_number','hero_title','hero_subtitle','hero_cta_label','hero_chip','hero_banner_path','whatsapp_message_intro','footer_about','store_policies','contact_email','instagram_url','store_name','store_slogan','store_bio','opening_hours','appointment_note','address_street','address_district','address_city','address_state','address_zip','low_stock_threshold'];
         $catalog['site_settings'] = array_values(array_filter($catalog['site_settings'], static fn($s) => in_array($s['setting_key'], $publicSettings, true)));
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }
@@ -53,6 +58,9 @@ foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
         if (!$file->isFile() || $file->isLink()) { continue; }
         $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1));
         if (preg_match('~(?:^|/)(?:\.git|node_modules)(?:/|$)|\.(?:log|bak|zip)$~', $relative)) { continue; }
+        // Fotos de exemplo do seed e originais do hero (so geram os derivados -360/-720):
+        // nada na loja aponta para eles.
+        if (preg_match('~^assets/products/|^assets/hero/cutout-\d+\.webp$~', $relative)) { continue; }
         if (str_starts_with($relative, 'uploads/') && !isset($uploads[$relative])) { continue; }
         $add($relative);
     }

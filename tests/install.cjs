@@ -1,8 +1,10 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const assert = require('node:assert/strict');
 const {chromium} = require('playwright');
 (async()=>{
   const fixture=JSON.parse(fs.readFileSync('.cache/install-test.json'));
+  const catalog=JSON.parse(fs.readFileSync(path.join(fixture.root,'db/catalog.json')));
   const browser=await chromium.launch({channel:'chrome',headless:true});
   const page=await browser.newPage({viewport:{width:390,height:844}});
   const base='http://localhost:8082';
@@ -17,32 +19,52 @@ const {chromium} = require('playwright');
     results.push('ZIP instala schema, catálogo e admin em banco vazio');
     assert.equal((await page.request.get(base+'/instalar.php')).status(),403);
     results.push('Instalador bloqueado após concluir');
-    for(const route of ['/.env','/db/catalog.json','/db/schema.sql','/includes/config.php','/vendor/autoload.php','/install-secret.php','/uploads/.htaccess','/admin/partials/admin-header.php']){
+    for(const route of ['/.env','/.installed','/db/catalog.json','/db/schema.sql','/includes/config.php','/vendor/autoload.php','/install-secret.php','/uploads/.htaccess','/admin/partials/admin-header.php','/composer.json','/node_modules/x.js','/tests/run.php','/docs/QA.md','/scripts/build.php']){
       assert.equal((await page.request.get(base+route)).status(),403,route);
     }
     results.push('Apache aplica .htaccess e bloqueia todos os arquivos sensíveis');
+    for(const route of ['/tests/run.php','/scripts/build.php','/docs/QA.md','/STATUS.json','/README.md','/.env.example','/composer.json','/package.json','/assets/products/product-01.webp','/assets/hero/cutout-01.webp']){
+      assert.ok(!fs.existsSync(path.join(fixture.root,route)),'fora do pacote: '+route);
+    }
+    results.push('Pacote sem testes, scripts, docs, STATUS, README, composer, package, fotos de exemplo nem originais do hero');
     assert.equal((await page.request.get(base+'/nao-existe')).status(),404);
     assert.equal((await page.request.get(base+'/index.php?busca[]=x')).status(),400);
     results.push('Rota inexistente retorna 404 e parâmetros malformados retornam 400');
     const css=await page.request.get(base+'/assets/css/loja.css',{headers:{'Accept-Encoding':'gzip'}});
     assert.equal(css.headers()['content-encoding'],'gzip');
-    assert.match(css.headers()['cache-control'],/max-age/);
-    results.push('Compressão gzip e cache de assets ativos no Apache');
+    assert.match(css.headers()['cache-control'],/max-age=31536000/);
+    const home=await page.request.get(base+'/');
+    assert.doesNotMatch(home.headers()['content-security-policy'],/unsafe-inline/);
+    assert.equal(home.headers()['x-powered-by'],undefined);
+    results.push('Compressão gzip, cache de assets, CSP sem unsafe-inline e sem X-Powered-By no Apache');
     assert.match(await (await page.request.get(base+'/robots.txt')).text(),/Sitemap: http:\/\/localhost:8082\/sitemap.xml/);
     const sitemap=await page.request.get(base+'/sitemap.xml');
     assert.equal(sitemap.status(),200);
-    assert.equal(((await sitemap.text()).match(/<loc>/g)||[]).length,51);
-    results.push('Robots e sitemap usam domínio da instalação e 46 produtos');
+    const activeProducts=catalog.products.filter(p=>Number(p.active)===1);
+    const filledCategories=catalog.categories.filter(c=>Number(c.active)===1&&activeProducts.some(p=>Number(p.category_id)===Number(c.id)));
+    const xml=await sitemap.text();
+    assert.equal((xml.match(/<loc>/g)||[]).length,3+filledCategories.length+activeProducts.length);
+    assert.match(xml,/loja\.php<\/loc>/);
+    assert.match(xml,/informacoes\.php<\/loc>/);
+    results.push('Robots e sitemap usam o domínio da instalação, com início, loja, informações, coleções com peças e '+activeProducts.length+' produtos');
     await page.goto(base+'/admin/login.php');
     await page.locator('[name=username]').fill(fixture.admin_user);
     await page.locator('[name=password]').fill(fixture.admin_password);
     await page.getByRole('button',{name:'Entrar',exact:true}).click();
     assert.match(page.url(),/admin\/index.php/);
     await page.goto(base+'/admin/importar.php');
-    assert.match(await page.locator('h1').innerText(),/Importar produtos/);
-    results.push('Admin novo e importador funcionam sem Composer no servidor');
-    await page.goto(base+'/produto.php?slug=peca-de-cosplay-01');
-    assert.ok(await page.locator('[data-gallery-image]').evaluate(img=>img.complete && img.naturalWidth>0));
+    assert.match(await page.locator('h1').innerText(),/Importar planilha/);
+    await page.goto(base+'/admin/cupons.php');
+    assert.match(await page.locator('main').innerText(),/Criar cupom/);
+    results.push('Admin novo, importador e cupons funcionam sem Composer no servidor');
+    const withStock=catalog.products.filter(p=>p.stock_qty!==undefined&&p.stock_qty!==null).length;
+    const withSale=catalog.products.filter(p=>p.sale_price_cents!==undefined&&p.sale_price_cents!==null).length;
+    await page.goto(base+'/admin/produtos.php?aba=promocao');
+    const promoTab=await page.locator('main').innerText();
+    assert.ok(withSale===0||!/Nenhum produto/.test(promoTab),'promoções do catálogo instaladas');
+    results.push('Estoque e promoção do catálogo entram na instalação ('+withStock+' com estoque, '+withSale+' em promoção)');
+    await page.goto(base+'/produto.php?slug='+activeProducts[0].slug);
+    assert.ok(await page.locator('.pdp-photo img').first().evaluate(img=>img.complete && img.naturalWidth>0));
     results.push('Fotos do catálogo presentes no pacote');
     fs.writeFileSync('docs/install-tests.json',JSON.stringify({database:fixture.database,passed:results,count:results.length,at:new Date().toISOString()},null,2));
     console.log(JSON.stringify(results,null,2));

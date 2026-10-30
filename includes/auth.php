@@ -21,12 +21,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/RateLimit.php';
 
 // ---------------------------------------------------------------------------
 // Parametros do throttling
 // ---------------------------------------------------------------------------
 if (!defined('AUTH_MAX_ATTEMPTS')) {
     define('AUTH_MAX_ATTEMPTS', 5);      // falhas toleradas antes do bloqueio
+}
+if (!defined('AUTH_IP_MAX_ATTEMPTS')) {
+    define('AUTH_IP_MAX_ATTEMPTS', 10);  // falhas do mesmo IP (qualquer usuario) por janela
 }
 if (!defined('AUTH_LOCK_SECONDS')) {
     define('AUTH_LOCK_SECONDS', 600);    // 10 minutos
@@ -179,6 +183,14 @@ function attempt_login(string $username, string $password): array
         return ['ok' => false, 'error' => $genericError];
     }
 
+    // Limite por endereco de rede, somando todos os usuarios tentados: o bloqueio
+    // por conta (abaixo) nao segura quem chuta varios logins diferentes.
+    if (RateLimit::tooMany('login', AUTH_IP_MAX_ATTEMPTS, AUTH_LOCK_SECONDS)) {
+        password_verify($password, AUTH_DUMMY_HASH);
+        RateLimit::hit('login', AUTH_LOCK_SECONDS);
+        return ['ok' => false, 'error' => $genericError];
+    }
+
     $pdo = db();
 
     $stmt = $pdo->prepare(
@@ -194,6 +206,7 @@ function attempt_login(string $username, string $password): array
     // e devolve exatamente a mesma mensagem de senha errada.
     if (!is_array($user) || (int) $user['active'] !== 1) {
         password_verify($password, AUTH_DUMMY_HASH);
+        RateLimit::hit('login', AUTH_LOCK_SECONDS);
         return ['ok' => false, 'error' => $genericError];
     }
 
@@ -204,6 +217,7 @@ function attempt_login(string $username, string $password): array
         $lockedUntil = strtotime((string) $user['locked_until']);
         if ($lockedUntil !== false && $lockedUntil > $now) {
             password_verify($password, AUTH_DUMMY_HASH);
+            RateLimit::hit('login', AUTH_LOCK_SECONDS);
             return ['ok' => false, 'error' => $genericError];
         }
 
@@ -216,10 +230,12 @@ function attempt_login(string $username, string $password): array
 
     if (!password_verify($password, (string) $user['password_hash'])) {
         auth_register_failure($pdo, (int) $user['id']);
+        RateLimit::hit('login', AUTH_LOCK_SECONDS);
         return ['ok' => false, 'error' => $genericError];
     }
 
     // ---- Sucesso -----------------------------------------------------------
+    RateLimit::clear('login');
     // ID novo para a sessao autenticada (session fixation) e token CSRF novo.
     session_regenerate_id(true);
     unset($_SESSION['csrf']);

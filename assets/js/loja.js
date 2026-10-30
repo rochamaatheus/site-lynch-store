@@ -99,13 +99,14 @@
       /* Rumo a pagina sem transicao (painel), o navegador aborta: nao e erro. */
       var vt = event.viewTransition, skip = function () {};
       vt.ready.catch(skip); vt.finished.catch(skip); vt.updateCallbackDone.catch(skip);
-      /* Nome repetido cancela a transicao inteira. */
-      $$('[data-morph]').forEach(function (el) { el.style.viewTransitionName = ''; });
+      /* Nome repetido cancela a transicao inteira. 'none' (e nao '') porque a
+         foto principal do produto recebe o nome pelo CSS. */
+      $$('[data-morph]').forEach(function (el) { el.style.viewTransitionName = 'none'; });
       if (clicked) clicked.style.viewTransitionName = 'peca';
     });
     window.addEventListener('pageshow', function (event) {
       if (event.persisted) {
-        $$('.card [data-morph]').forEach(function (el) { el.style.viewTransitionName = ''; });
+        $$('.card [data-morph]').forEach(function (el) { el.style.viewTransitionName = 'none'; });
         var main = $('.pdp-photo[data-morph]');
         if (main) main.style.viewTransitionName = 'peca';
       }

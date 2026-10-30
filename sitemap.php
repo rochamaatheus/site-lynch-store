@@ -13,7 +13,10 @@ $emit = static function (string $url, ?string $updated = null): void {
     echo '</url>';
 };
 $emit(base_url());
-$stmt = db()->query('SELECT slug,updated_at FROM categories WHERE active=1 ORDER BY id');
+$emit(url_catalog());
+$emit(base_url('informacoes.php'));
+// Colecao sem peca ativa nao aparece no menu da loja, entao tambem fica fora daqui.
+$stmt = db()->query('SELECT c.slug,c.updated_at FROM categories c WHERE c.active=1 AND EXISTS (SELECT 1 FROM products p WHERE p.category_id=c.id AND p.active=1) ORDER BY c.id');
 while ($row = $stmt->fetch()) { $emit(url_catalog(['categoria' => $row['slug']]), $row['updated_at']); }
 $stmt = db()->query('SELECT slug,updated_at FROM products WHERE active=1 ORDER BY id');
 while ($row = $stmt->fetch()) { $emit(product_url($row['slug']), $row['updated_at']); }

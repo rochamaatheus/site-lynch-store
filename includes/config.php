@@ -166,18 +166,33 @@ if (PHP_SAPI !== 'cli') {
             http_response_code(400); exit('Formulário inválido.');
         }
     }
+    // Versao do PHP nao e da conta de ninguem (expose_php so muda no php.ini).
+    header_remove('X-Powered-By');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
-    // Sem 'unsafe-inline' em script-src: todo JavaScript vive em assets/js, entao
-    // um texto malicioso salvo no banco nao consegue executar script na pagina.
-    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com");
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+    // Sem 'unsafe-inline' em script-src nem em style-src: todo JavaScript vive em
+    // assets/js e todo CSS em assets/css (o JS so mexe em estilo pelo CSSOM, que a
+    // CSP permite), entao um texto malicioso salvo no banco nao executa script nem
+    // injeta estilo na pagina. Unica excecao: o hash do <style> de uma linha com
+    // @view-transition (header.php), que precisa estar no HTML para a transicao
+    // entre paginas valer antes do CSS externo carregar. Se mudar o texto, recalcule
+    // o hash (sha256 em base64).
+    header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'sha256-SREix9zPMZHrSuo8zRSjb672r1gsHIh96MJuaZq6iJo='; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://wa.me https://api.whatsapp.com");
     header('Cache-Control: private, no-store');
-    if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+    // HSTS tambem atras do proxy/CDN da hospedagem, que termina o TLS e avisa por
+    // X-Forwarded-Proto (o .htaccess ja redireciona http para https fora do localhost).
+    if ((!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+        || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') {
         header('Strict-Transport-Security: max-age=31536000');
     }
 }
+
+// Rastro de excecao no log sem os argumentos das funcoes (attempt_login recebe a
+// senha; um erro de banco no meio do login nao pode grava-la no error_log).
+ini_set('zend.exception_ignore_args', '1');
 
 set_exception_handler(static function (Throwable $error): void {
     error_log('[Lynch Store] ' . $error);

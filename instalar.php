@@ -11,6 +11,9 @@ header('X-Robots-Tag: noindex, nofollow');
 header('Cache-Control: no-store');
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+header("Content-Security-Policy: default-src 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+header_remove('X-Powered-By');
 session_name('LYNCHINSTALL');
 session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Strict', 'cookie_secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'use_strict_mode' => true]);
 $_SESSION['csrf'] ??= bin2hex(random_bytes(24));
@@ -61,14 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$requirements) {
             $catalog = json_decode(file_get_contents($root . '/db/catalog.json'), true, 512, JSON_THROW_ON_ERROR);
             $allowed = [
                 'categories' => ['id','name','slug','description','sort_order','active'],
-                'products' => ['id','category_id','name','slug','short_description','description','price_cents','price_on_request','availability','active','featured','sort_order'],
+                'products' => ['id','category_id','name','slug','short_description','description','price_cents','price_on_request','availability','active','featured','sort_order','stock_qty','show_stock','sold_out','sale_price_cents','sale_ends_on'],
                 'product_images' => ['id','product_id','file_path','source_path','focal_y','alt_text','is_primary','sort_order'],
                 'site_settings' => ['setting_key','setting_value'],
             ];
+            // Catalogo de um build antigo (sem estoque/promocao): colunas NOT NULL
+            // recebem o mesmo padrao do schema em vez de NULL.
+            $defaults = ['products' => ['show_stock' => 0, 'sold_out' => 0, 'price_on_request' => 1, 'active' => 1, 'featured' => 0, 'sort_order' => 0], 'categories' => ['sort_order' => 0, 'active' => 1], 'product_images' => ['focal_y' => 15, 'is_primary' => 0, 'sort_order' => 0]];
             foreach ($allowed as $table => $columns) {
                 $stmt = $pdo->prepare('INSERT INTO ' . $table . ' (' . implode(',', $columns) . ') VALUES (' . implode(',', array_fill(0, count($columns), '?')) . ')');
                 foreach ($catalog[$table] ?? [] as $row) {
-                    $stmt->execute(array_map(static fn($c) => $row[$c] ?? null, $columns));
+                    $stmt->execute(array_map(static fn($c) => $row[$c] ?? $defaults[$table][$c] ?? null, $columns));
                 }
             }
             $pdo->prepare('INSERT INTO admin_users (username,password_hash,display_name) VALUES (?,?,?)')->execute([$fields['admin_user'], password_hash($fields['admin_password'], PASSWORD_DEFAULT), $fields['admin_user']]);

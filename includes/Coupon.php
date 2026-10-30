@@ -20,6 +20,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/RateLimit.php';
 
 final class CouponRepository
 {
@@ -27,6 +28,7 @@ final class CouponRepository
     public const VALUE_MAX = 16777215;   // MEDIUMINT UNSIGNED
     public const USES_MAX = 65535;       // SMALLINT UNSIGNED
     public const MAX_FAILS = 5;
+    public const IP_MAX_FAILS = 20;      // mesmo IP, somando sessoes (wi-fi compartilhado tem folga)
     public const FAIL_WINDOW = 600;      // segundos
     public const FAIL_DELAY_US = 400000; // 0,4 s por tentativa errada
 
@@ -38,7 +40,7 @@ final class CouponRepository
     {
         if (self::$ready === null) {
             try {
-                self::$ready = db()->query("SHOW TABLES LIKE 'coupons'")->fetch() !== false;
+                self::$ready = db_schema_ready('coupons', static fn (): bool => db()->query("SHOW TABLES LIKE 'coupons'")->fetch() !== false);
             } catch (Throwable) {
                 self::$ready = false;
             }
@@ -328,21 +330,27 @@ final class CouponRepository
 // Tentativas por sessao (contra adivinhar codigos)
 // ---------------------------------------------------------------------------
 
-/** true quando a sessao errou demais nos ultimos 10 minutos. */
+/**
+ * true quando a sessao errou demais nos ultimos 10 minutos, ou quando o mesmo
+ * endereco de rede errou demais somando todas as sessoes (um robo que descarta
+ * o cookie a cada tentativa ganharia 5 chances novas por sessao).
+ */
 function coupon_locked(): bool
 {
     $now = time();
     $fails = array_filter((array) ($_SESSION['coupon_fails'] ?? []), static fn ($t): bool => is_int($t) && $now - $t < CouponRepository::FAIL_WINDOW);
     $_SESSION['coupon_fails'] = array_values($fails);
-    return count($fails) >= CouponRepository::MAX_FAILS;
+    return count($fails) >= CouponRepository::MAX_FAILS
+        || RateLimit::tooMany('cupom', CouponRepository::IP_MAX_FAILS, CouponRepository::FAIL_WINDOW);
 }
 
-/** Registra um erro e segura a resposta um instante. */
+/** Registra um erro (na sessao e no endereco de rede) e segura a resposta um instante. */
 function coupon_register_fail(): void
 {
     $fails = (array) ($_SESSION['coupon_fails'] ?? []);
     $fails[] = time();
     $_SESSION['coupon_fails'] = array_slice($fails, -CouponRepository::MAX_FAILS * 2);
+    RateLimit::hit('cupom', CouponRepository::FAIL_WINDOW);
     if (PHP_SAPI !== 'cli') {
         usleep(CouponRepository::FAIL_DELAY_US);
     }

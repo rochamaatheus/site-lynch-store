@@ -59,3 +59,25 @@ function db(): PDO
 
     return $pdo;
 }
+
+/**
+ * Confere se uma parte do schema ja existe (colunas de estoque, tabela de
+ * cupons) sem repetir o SHOW COLUMNS/SHOW TABLES a cada visita quando a
+ * hospedagem tem APCu: o "sim" fica guardado por 10 minutos. O "nao" nunca e
+ * guardado, entao rodar db/upgrade.php vale na visita seguinte. Sem APCu (e na
+ * linha de comando) consulta sempre; quem chama ja guarda o resultado durante a
+ * requisicao.
+ */
+function db_schema_ready(string $part, callable $probe): bool
+{
+    $useApcu = PHP_SAPI !== 'cli' && function_exists('apcu_fetch') && function_exists('apcu_enabled') && apcu_enabled();
+    $key = 'lynch-schema:' . hash('sha256', DB_HOST . '|' . DB_PORT . '|' . DB_NAME . '|' . APP_ROOT) . ':' . $part;
+    if ($useApcu && apcu_fetch($key) === true) {
+        return true;
+    }
+    $ready = (bool) $probe();
+    if ($ready && $useApcu) {
+        apcu_store($key, true, 600);
+    }
+    return $ready;
+}

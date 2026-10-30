@@ -100,23 +100,23 @@ final class ImageProcessor
         int $focalX = self::FOCAL_CENTER
     ): array {
         if (!function_exists('imagewebp')) {
-            return self::fail('O servidor nao tem suporte a WEBP no GD.');
+            return self::fail('O servidor não tem suporte a WEBP no GD.');
         }
 
         $dir = self::resolveDir($destDir);
         if ($dir === null) {
-            return self::fail('Pasta de destino invalida ou sem permissao de escrita.');
+            return self::fail('Pasta de destino inválida ou sem permissão de escrita.');
         }
         [$absDir, $relDir] = $dir;
 
         $baseName = self::sanitizeBase($baseName);
         if ($baseName === '') {
-            return self::fail('Nome base invalido.');
+            return self::fail('Nome base inválido.');
         }
 
         $img = self::load($srcAbsPath, $mime);
         if ($img === null) {
-            return self::fail('Nao foi possivel abrir a imagem para processamento.');
+            return self::fail('Não foi possível abrir a imagem para processamento.');
         }
 
         $img = self::applyExifRotation($img, $srcAbsPath, $mime);
@@ -162,6 +162,39 @@ final class ImageProcessor
     }
 
     /**
+     * Imagem avulsa (banner do hero): regrava em WEBP, ja na orientacao certa e
+     * com no maximo $maxSide de lado. Regravar pelo GD descarta EXIF/XMP (GPS,
+     * modelo do celular, data) que viriam junto com o arquivo original.
+     *
+     * @return bool false quando nao deu para abrir ou gravar (quem chama decide)
+     */
+    public static function writeNormalizedWebp(string $srcAbsPath, string $mime, string $destAbsPath, int $maxSide = 1600): bool
+    {
+        if (!function_exists('imagewebp')) {
+            return false;
+        }
+        $img = self::load($srcAbsPath, $mime);
+        if ($img === null) {
+            return false;
+        }
+        $img = self::applyExifRotation($img, $srcAbsPath, $mime);
+        $out = self::downscaleToBox($img, $maxSide);
+        $ok  = self::writeWebp($out, $destAbsPath, self::QUALITY_CARD);
+        self::destroy($out, $img);
+
+        return $ok;
+    }
+
+    /**
+     * Memoria que o GD vai precisar para decodificar e girar uma foto: 4 bytes
+     * por pixel, duas copias no pico (original + girada) e folga para o resto.
+     */
+    public static function memoryNeeded(int $width, int $height): int
+    {
+        return $width * $height * 8 + 24 * 1048576;
+    }
+
+    /**
      * Regera SO os 3 derivados a partir de um arquivo "-src" ja gravado.
      * E o que a acao "Recortar: Topo/Centro/Base" do admin usa - sobrescreve os
      * mesmos nomes de arquivo, entao nenhuma URL do banco muda.
@@ -176,12 +209,12 @@ final class ImageProcessor
     ): array {
         $rel = trim(str_replace('\\', '/', $sourceRelPath), '/');
         if ($rel === '' || str_contains($rel, '..') || !str_starts_with($rel, 'uploads/')) {
-            return self::fail('Caminho de origem invalido.');
+            return self::fail('Caminho de origem inválido.');
         }
 
         $abs = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
         if (!is_file($abs)) {
-            return self::fail('Arquivo de origem nao encontrado no servidor.');
+            return self::fail('Arquivo de origem não encontrado no servidor.');
         }
 
         $relDir  = dirname($rel);
@@ -192,12 +225,12 @@ final class ImageProcessor
         $base = preg_replace('/-src\.[A-Za-z0-9]+$/', '', $fileName) ?? '';
         $base = self::sanitizeBase($base);
         if ($base === '' || $base === $fileName) {
-            return self::fail('Nome do arquivo de origem fora do padrao esperado.');
+            return self::fail('Nome do arquivo de origem fora do padrão esperado.');
         }
 
         $img = self::load($abs, null);
         if ($img === null) {
-            return self::fail('Nao foi possivel abrir a imagem de origem.');
+            return self::fail('Não foi possível abrir a imagem de origem.');
         }
 
         $result = self::renderDerivatives($img, $absDir, $relDir, $base, $focalY, $focalX);

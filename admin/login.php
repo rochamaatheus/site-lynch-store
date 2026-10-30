@@ -68,7 +68,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 <meta name="robots" content="noindex, nofollow">
 <title>Entrar | Lynch Store</title>
 <link rel="manifest" href="<?= $h(APP_BASE_URL) ?>/admin/manifest.webmanifest">
-<link rel="icon" href="<?= $h(APP_BASE_URL) ?>/assets/lynch-logo.webp">
+<link rel="icon" href="<?= $h(asset_url('assets/lynch-logo.webp')) ?>">
 <link rel="apple-touch-icon" href="<?= $h(APP_BASE_URL) ?>/admin/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="<?= $h(asset_url('assets/css/admin.css')) ?>">
 </head>

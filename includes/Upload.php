@@ -30,6 +30,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/ImageProcessor.php';
 
 final class Upload
@@ -48,8 +49,11 @@ final class Upload
         'image/png'  => 'png',
     ];
 
-    /** Qualidade usada na conversao para webp. */
-    private const WEBP_QUALITY = 82;
+    /** Lado maior do banner regravado (o hero mostra no maximo ~720px, 2x em tela retina). */
+    public const BANNER_MAX_SIDE = 1600;
+
+    /** Teto de memoria que o upload pode pedir ao PHP para abrir uma foto grande. */
+    private const MEMORY_CEILING = 512 * 1048576;
 
     /**
      * Valida e grava UM arquivo.
@@ -74,19 +78,22 @@ final class Upload
         // --- 7. destino + nome aleatorio --------------------------------------
         $relDir = trim(str_replace('\\', '/', $destDir), '/');
         if ($relDir === '' || str_contains($relDir, '..')) {
-            return self::fail('Pasta de destino invalida.');
+            return self::fail('Pasta de destino inválida.');
         }
 
         $absDir = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relDir);
         if (!is_dir($absDir) && !@mkdir($absDir, 0755, true) && !is_dir($absDir)) {
-            return self::fail('Nao foi possivel criar a pasta de destino.');
+            return self::fail('Não foi possível criar a pasta de destino.');
         }
         if (!is_writable($absDir)) {
-            return self::fail('Sem permissao de escrita na pasta de destino.');
+            return self::fail('Sem permissão de escrita na pasta de destino.');
         }
 
         $ext      = self::ALLOWED[$mime];
-        $convert  = $ext !== 'webp' && self::canConvertToWebp($mime);
+        // Todo formato e regravado pelo GD, inclusive WEBP: isso tira EXIF/XMP
+        // (GPS, aparelho, data), corrige a orientacao da foto de celular e limita
+        // o tamanho do banner a 1600px, em vez de servir o original de ate 5 MB.
+        $convert  = self::canConvertToWebp($mime);
         $finalExt = $convert ? 'webp' : $ext;
 
         // random_bytes: o nome enviado pelo cliente e descartado por completo
@@ -97,7 +104,7 @@ final class Upload
         } while (file_exists($abs));
 
         // --- gravacao ----------------------------------------------------------
-        if ($convert && self::convertToWebp($tmp, $abs, $mime)) {
+        if ($convert && ImageProcessor::writeNormalizedWebp($tmp, $mime, $abs, self::BANNER_MAX_SIDE)) {
             @chmod($abs, 0644);
 
             return ['ok' => true, 'path' => $relDir . '/' . $name, 'error' => null];
@@ -166,12 +173,12 @@ final class Upload
 
         $relDir = trim(str_replace('\\', '/', $destDir), '/');
         if ($relDir === '' || str_contains($relDir, '..')) {
-            return self::failPhoto('Pasta de destino invalida.');
+            return self::failPhoto('Pasta de destino inválida.');
         }
 
         $absDir = APP_ROOT . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relDir);
         if (!is_dir($absDir) && !@mkdir($absDir, 0755, true) && !is_dir($absDir)) {
-            return self::failPhoto('Nao foi possivel criar a pasta de destino.');
+            return self::failPhoto('Não foi possível criar a pasta de destino.');
         }
 
         // Mesma politica de nome de handle(): aleatorio, o nome do cliente morre
@@ -212,14 +219,14 @@ final class Upload
 
         $tmp = (string) ($file['tmp_name'] ?? '');
         if ($tmp === '' || !is_file($tmp)) {
-            return self::fail('Arquivo temporario nao encontrado no servidor.');
+            return self::fail('Arquivo temporário não encontrado no servidor.');
         }
 
         // --- 2. veio mesmo de um upload HTTP? --------------------------------
         // Sem isso, um bug em outro ponto do codigo que deixasse o atacante
         // controlar tmp_name viraria leitura de arquivo arbitrario do servidor.
         if (PHP_SAPI !== 'cli' && !is_uploaded_file($tmp)) {
-            return self::fail('Arquivo invalido (nao veio de um envio de formulario).');
+            return self::fail('Arquivo inválido (não veio de um envio de formulário).');
         }
 
         // --- 3. tamanho -------------------------------------------------------
@@ -229,7 +236,7 @@ final class Upload
         }
         if ($size > self::MAX_BYTES) {
             return self::fail(sprintf(
-                'Arquivo muito grande (%s). O limite e %s.',
+                'Arquivo muito grande (%s). O limite é %s.',
                 self::humanBytes($size),
                 self::humanBytes(self::MAX_BYTES)
             ));
@@ -238,30 +245,30 @@ final class Upload
         // --- 4. MIME REAL (nunca $file['type']) -------------------------------
         $mime = self::detectMime($tmp);
         if ($mime === null) {
-            return self::fail('Nao foi possivel identificar o tipo do arquivo.');
+            return self::fail('Não foi possível identificar o tipo do arquivo.');
         }
         if (!isset(self::ALLOWED[$mime])) {
-            return self::fail('Formato nao aceito (' . $mime . '). Envie JPG, PNG ou WEBP.');
+            return self::fail('Formato não aceito (' . $mime . '). Envie JPG, PNG ou WEBP.');
         }
 
         // --- 5. segunda opiniao: getimagesize() -------------------------------
         $info = @getimagesize($tmp);
         if ($info === false || empty($info[0]) || empty($info[1])) {
-            return self::fail('O arquivo nao e uma imagem valida.');
+            return self::fail('O arquivo não é uma imagem válida.');
         }
 
         // O MIME que o getimagesize deduz do CONTEUDO tem que bater com o do
         // finfo. Divergencia = arquivo hibrido/adulterado.
         $gdMime = strtolower((string) ($info['mime'] ?? ''));
         if ($gdMime !== $mime) {
-            return self::fail('Arquivo de imagem inconsistente (recusado por seguranca).');
+            return self::fail('Arquivo de imagem inconsistente (recusado por segurança).');
         }
 
         // --- 6. dimensoes -----------------------------------------------------
         [$width, $height] = [(int) $info[0], (int) $info[1]];
         if ($width > self::MAX_WIDTH || $height > self::MAX_HEIGHT) {
             return self::fail(sprintf(
-                'Imagem grande demais (%dx%d). O maximo e %dx%d pixels.',
+                'Imagem grande demais (%dx%d). O máximo é %dx%d pixels.',
                 $width,
                 $height,
                 self::MAX_WIDTH,
@@ -269,7 +276,40 @@ final class Upload
             ));
         }
 
+        // --- 7. memoria para abrir a foto -----------------------------------
+        // Estourar memory_limit dentro do GD e um erro fatal (tela 500, nada de
+        // mensagem). Antes de decodificar: pede mais memoria ate um teto e, se
+        // nao der, recusa com uma mensagem que a Ray entende.
+        if (!self::ensureMemory(ImageProcessor::memoryNeeded($width, $height))) {
+            return self::fail(sprintf(
+                'Foto com pixels demais para o servidor (%dx%d). Reduza para no máximo 4000 pixels no lado maior e envie de novo.',
+                $width,
+                $height
+            ));
+        }
+
         return ['ok' => true, 'tmp' => $tmp, 'mime' => $mime, 'error' => null];
+    }
+
+    /**
+     * true quando ha (ou foi possivel liberar) memoria para $needed bytes alem
+     * do que a requisicao ja usa. Nunca pede acima de MEMORY_CEILING.
+     * $limit simula um memory_limit (testes): so confere, nao tenta aumentar.
+     */
+    public static function ensureMemory(int $needed, ?string $limit = null): bool
+    {
+        $raw = trim($limit ?? (string) ini_get('memory_limit'));
+        if ($raw === '-1') {
+            return true;
+        }
+        $want = memory_get_usage(true) + $needed;
+        if ($want <= ini_bytes($raw)) {
+            return true;
+        }
+        if ($limit !== null || $want > self::MEMORY_CEILING) {
+            return false;
+        }
+        return @ini_set('memory_limit', (string) $want) !== false && ini_bytes((string) ini_get('memory_limit')) >= $want;
     }
 
     /**
@@ -414,37 +454,9 @@ final class Upload
         return match ($mime) {
             'image/jpeg' => function_exists('imagecreatefromjpeg'),
             'image/png'  => function_exists('imagecreatefrompng'),
+            'image/webp' => function_exists('imagecreatefromwebp'),
             default      => false,
         };
-    }
-
-    private static function convertToWebp(string $src, string $dest, string $mime): bool
-    {
-        $img = match ($mime) {
-            'image/jpeg' => @imagecreatefromjpeg($src),
-            'image/png'  => @imagecreatefrompng($src),
-            default      => false,
-        };
-
-        if (!$img instanceof GdImage) {
-            return false;
-        }
-
-        // PNG com transparencia perderia o canal alfa sem estas duas linhas.
-        if ($mime === 'image/png') {
-            imagepalettetotruecolor($img);
-            imagealphablending($img, false);
-            imagesavealpha($img, true);
-        }
-
-        $ok = @imagewebp($img, $dest, self::WEBP_QUALITY);
-        imagedestroy($img);
-
-        if (!$ok && is_file($dest)) {
-            @unlink($dest);   // nao deixa arquivo pela metade no disco
-        }
-
-        return (bool) $ok;
     }
 
     /**
@@ -470,10 +482,10 @@ final class Upload
                 'Arquivo maior que o limite do servidor (' . ini_get('upload_max_filesize') . ').',
             UPLOAD_ERR_PARTIAL    => 'O envio foi interrompido. Tente de novo.',
             UPLOAD_ERR_NO_FILE    => 'Nenhum arquivo foi enviado.',
-            UPLOAD_ERR_NO_TMP_DIR => 'Servidor sem pasta temporaria configurada.',
-            UPLOAD_ERR_CANT_WRITE => 'O servidor nao conseguiu gravar o arquivo em disco.',
-            UPLOAD_ERR_EXTENSION  => 'Envio bloqueado por uma extensao do PHP.',
-            default               => 'Falha no envio do arquivo (codigo ' . $code . ').',
+            UPLOAD_ERR_NO_TMP_DIR => 'Servidor sem pasta temporária configurada.',
+            UPLOAD_ERR_CANT_WRITE => 'O servidor não conseguiu gravar o arquivo em disco.',
+            UPLOAD_ERR_EXTENSION  => 'Envio bloqueado por uma extensão do PHP.',
+            default               => 'Falha no envio do arquivo (código ' . $code . ').',
         };
     }
 

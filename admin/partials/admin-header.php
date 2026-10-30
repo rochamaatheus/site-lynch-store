@@ -90,7 +90,7 @@ $adminFlash = flash_get();
 <meta name="format-detection" content="telephone=no">
 <title><?= e($pageTitle) ?> | Lynch Store</title>
 <link rel="manifest" href="<?= e($base) ?>/admin/manifest.webmanifest">
-<link rel="icon" href="<?= e($base) ?>/assets/lynch-logo.webp">
+<link rel="icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
 <link rel="apple-touch-icon" href="<?= e($base) ?>/admin/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="<?= e(asset_url('assets/css/admin.css')) ?>">
 <script src="<?= e(asset_url('assets/js/admin.js')) ?>" defer></script>

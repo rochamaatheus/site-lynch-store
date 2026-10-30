@@ -8,6 +8,8 @@ require_once dirname(__DIR__) . '/includes/ProductRepository.php';
 require_once dirname(__DIR__) . '/includes/Cart.php';
 require_once dirname(__DIR__) . '/includes/WhatsAppMessage.php';
 require_once dirname(__DIR__) . '/includes/OrderRepository.php';
+require_once dirname(__DIR__) . '/includes/Upload.php';
+require_once dirname(__DIR__) . '/includes/RateLimit.php';
 if (!str_contains(DB_NAME, '_teste_')) { throw new RuntimeException('Testes exigem banco _teste_.'); }
 $passed = [];
 $check = static function (bool $ok, string $label) use (&$passed): void { if (!$ok) { throw new RuntimeException('FAIL: ' . $label); } $passed[] = $label; };
@@ -241,6 +243,23 @@ try {
     for ($i = 0; $i < CouponRepository::MAX_FAILS; $i++) { coupon_register_fail(); }
     $check(coupon_locked(), 'Cinco cupons errados seguidos bloqueiam novas tentativas por 10 minutos');
     $_SESSION['coupon_fails'] = [];
+    RateLimit::clear('cupom');
+    // Robo que descarta o cookie: a sessao nova nao zera o limite do endereco de rede.
+    for ($i = 0; $i < CouponRepository::IP_MAX_FAILS; $i++) { RateLimit::hit('cupom', CouponRepository::FAIL_WINDOW); }
+    $check(coupon_locked(), 'Cupom: sessão nova não escapa do limite por endereço de rede');
+    RateLimit::clear('cupom');
+    $check(!coupon_locked(), 'Cupom: limite por endereço some depois da janela (limpo no teste)');
+
+    // Ordem por preco usa o preco vigente (promocao), o mesmo que o card mostra
+    $cat->execute(['QA ordem', 'qa-ordem-' . $suffix]);
+    $sortCat = (int) $pdo->lastInsertId();
+    $promoId = ProductRepository::create(['name' => 'QA ordem promo', 'slug' => 'qa-ordem-promo-' . $suffix, 'category_id' => $sortCat, 'active' => true, 'price_on_request' => false, 'price_cents' => 10000, 'sale_price_cents' => 3000, 'availability' => 'pronta_entrega']);
+    $plainId = ProductRepository::create(['name' => 'QA ordem normal', 'slug' => 'qa-ordem-normal-' . $suffix, 'category_id' => $sortCat, 'active' => true, 'price_on_request' => false, 'price_cents' => 5000, 'availability' => 'pronta_entrega']);
+    $expiredId = ProductRepository::create(['name' => 'QA ordem vencida', 'slug' => 'qa-ordem-vencida-' . $suffix, 'category_id' => $sortCat, 'active' => true, 'price_on_request' => false, 'price_cents' => 8000, 'availability' => 'pronta_entrega']);
+    $pdo->prepare('UPDATE products SET sale_price_cents = 1000, sale_ends_on = ? WHERE id = ?')->execute([date('Y-m-d', strtotime('-2 days')), $expiredId]);
+    $asc = array_column(ProductRepository::listActive(['category_id' => $sortCat, 'sort' => 'preco_asc']), 'id');
+    $desc = array_column(ProductRepository::listActive(['category_id' => $sortCat, 'sort' => 'preco_desc']), 'id');
+    $check($asc === [$promoId, $plainId, $expiredId] && $desc === [$expiredId, $plainId, $promoId], 'Menor e maior preço seguem o preço vigente (promoção ativa conta, vencida não)');
 } finally { $pdo->rollBack(); cart_bag('cart_direct'); cart_clear(); cart_bag('cart'); cart_clear(); }
 
 SettingsRepository::flush();
@@ -277,6 +296,44 @@ $check(ProductImport::read($csvNew, 'csv')['products'][0]['stock_qty'] === 4, 'C
 $password = bin2hex(random_bytes(14));
 $pdo->prepare('INSERT INTO admin_users (username,password_hash,display_name) VALUES (?,?,?) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash),active=1,failed_attempts=0,locked_until=NULL')->execute(['qa_runner', password_hash($password, PASSWORD_DEFAULT), 'QA']);
 file_put_contents(dirname(__DIR__) . '/.qa-credentials.json', json_encode(['username' => 'qa_runner', 'password' => $password]));
+
+// --- Seguranca: limite por endereco de rede, memoria de upload, metadados ---
+$rl = 'qa' . $suffix;
+$check(!RateLimit::tooMany($rl, 3, 60, 'cliente-a'), 'Limite por IP começa livre');
+for ($i = 0; $i < 3; $i++) { RateLimit::hit($rl, 60, 'cliente-a'); }
+$check(RateLimit::tooMany($rl, 3, 60, 'cliente-a') && !RateLimit::tooMany($rl, 3, 60, 'cliente-b'), 'Limite por IP conta cada endereço separado');
+RateLimit::clear($rl, 'cliente-a');
+$check(!RateLimit::tooMany($rl, 3, 60, 'cliente-a'), 'Limite por IP pode ser limpo');
+$check(RateLimit::clientId('2001:db8:1:2::1') === RateLimit::clientId('2001:db8:1:2:ffff::9') && RateLimit::clientId('2001:db8:1:3::1') !== RateLimit::clientId('2001:db8:1:2::1') && RateLimit::clientId('203.0.113.7') !== RateLimit::clientId('203.0.113.8'), 'IPv6 conta pelo /64 e IPv4 pelo endereço inteiro');
+RateLimit::clear('login');
+for ($i = 0; $i < AUTH_IP_MAX_ATTEMPTS; $i++) { RateLimit::hit('login', AUTH_LOCK_SECONDS); }
+$blocked = attempt_login('qa_runner', $password);
+$lockRow = $pdo->query("SELECT failed_attempts FROM admin_users WHERE username = 'qa_runner'")->fetch();
+$check(!$blocked['ok'] && str_contains((string) $blocked['error'], 'Usuário ou senha inválidos') && (int) $lockRow['failed_attempts'] === 0, 'Login: IP com tentativas demais é recusado com a mensagem de sempre, sem travar a conta');
+RateLimit::clear('login');
+$check(attempt_login('qa_runner', $password)['ok'], 'Login: senha certa entra quando o IP está livre');
+unset($_SESSION['admin_id']);
+$check(Upload::ensureMemory(1048576, '128M') && !Upload::ensureMemory(6000 * 6000 * 8, '128M') && Upload::ensureMemory(PHP_INT_MAX >> 8, '-1'), 'Upload confere a memória antes de abrir a foto');
+
+// Banner WEBP com EXIF (GPS): regravado sem metadado e com no máximo 1600px.
+$gd = imagecreatetruecolor(2000, 1000);
+imagefill($gd, 0, 0, imagecolorallocate($gd, 221, 174, 53));
+ob_start(); imagewebp($gd, null, 80); $plain = (string) ob_get_clean();
+imagedestroy($gd);
+$chunk = static fn (string $id, string $data): string => $id . pack('V', strlen($data)) . $data . (strlen($data) % 2 ? "\0" : '');
+$vp8x = $chunk('VP8X', chr(0x08) . "\0\0\0" . substr(pack('V', 1999), 0, 3) . substr(pack('V', 999), 0, 3));
+$body = 'WEBP' . $vp8x . substr($plain, 12) . $chunk('EXIF', "II*\0" . 'GPS-LYNCH-QA -26.3,-48.8');
+$withExif = __DIR__ . '/fixtures/banner-exif.webp';
+file_put_contents($withExif, 'RIFF' . pack('V', strlen($body)) . $body);
+$check(str_contains((string) file_get_contents($withExif), 'GPS-LYNCH-QA') && @imagecreatefromwebp($withExif) instanceof GdImage, 'Fixture: WEBP com bloco EXIF legível pelo GD');
+$bannerDir = 'uploads/qa-' . $suffix;
+$saved = Upload::handle(['error' => UPLOAD_ERR_OK, 'tmp_name' => $withExif, 'name' => 'foto.webp', 'size' => filesize($withExif)], $bannerDir);
+$savedAbs = $saved['ok'] ? dirname(__DIR__) . '/' . $saved['path'] : '';
+$savedInfo = $savedAbs !== '' ? getimagesize($savedAbs) : false;
+$check($saved['ok'] && !str_contains((string) file_get_contents($savedAbs), 'GPS-LYNCH-QA') && is_array($savedInfo) && max($savedInfo[0], $savedInfo[1]) === Upload::BANNER_MAX_SIDE && str_ends_with($saved['path'], '.webp'), 'Banner WEBP é regravado sem EXIF/GPS e reduzido para 1600px');
+if ($savedAbs !== '') { @unlink($savedAbs); }
+@rmdir(dirname(__DIR__) . '/' . $bannerDir);
+@unlink($withExif);
 $img = imagecreatetruecolor(400, 500);
 imagefill($img, 0, 0, imagecolorallocate($img, 166, 78, 46));
 imagepng($img, __DIR__ . '/fixtures/upload.png');

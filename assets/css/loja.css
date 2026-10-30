@@ -5,6 +5,9 @@
 @font-face{font-family:'Shrikhand';src:url('../fonts/Shrikhand-latin.woff2') format('woff2');font-display:swap}
 @font-face{font-family:'Inter';font-weight:400 800;font-display:swap;src:url('../fonts/Inter-Loja.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
 @font-face{font-family:'Inter';font-weight:100 900;font-display:swap;src:url('../fonts/Inter-Variable-latin-ext.woff2') format('woff2');unicode-range:U+0100-02BA,U+1E00-1E9F}
+/* Transicao entre paginas da loja. Fica aqui (e nao num <style> no HTML) para a
+   CSP nao precisar de 'unsafe-inline' em style-src. */
+@view-transition{navigation:auto}
 
 :root{
   --ink:#171210;
@@ -112,6 +115,8 @@ main:focus{outline:0}
 .rack{-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
 .rack-banner{justify-content:center;overflow:hidden}
 .rack-banner img{height:100%;width:auto;border-radius:10px}
+.hanging:nth-child(1){--i:0}.hanging:nth-child(2){--i:1}.hanging:nth-child(3){--i:2}.hanging:nth-child(4){--i:3}.hanging:nth-child(n+5){--i:4}
+.pdp-photo[data-morph]{view-transition-name:peca}
 .hanging{flex:none;width:46vw;max-width:250px;transform-origin:50% 8px;transform:rotate(var(--swing,0deg));animation:hang-in 2.2s ease-in-out backwards,breeze calc(4.6s + var(--i) * .7s) ease-in-out calc(1.6s + var(--i) * .3s) infinite alternate;animation-delay:calc(var(--i) * 90ms),calc(1.6s + var(--i) * .3s)}
 .hanging.is-long{width:38vw;max-width:210px}
 .hanger{display:block;width:58%;margin:0 auto -6px;fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}

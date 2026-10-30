@@ -42,11 +42,12 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
     http_response_code(405);
     header('Allow: POST');
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><meta charset="utf-8"><title>Método não permitido</title>'
-       . '<div style="font:16px/1.6 Inter,system-ui,sans-serif;max-width:560px;margin:14vh auto;padding:0 24px">'
-       . '<h1 style="font-size:1.3rem">Método não permitido</h1>'
+    // Sem estilo inline: a CSP do site nao libera 'unsafe-inline' em style-src.
+    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+       . '<meta name="robots" content="noindex"><title>Método não permitido</title>'
+       . '<h1>Método não permitido</h1>'
        . '<p>O pedido só é finalizado pelo botão da sacola.</p>'
-       . '<p><a href="' . e($cartUrl) . '">Voltar à sacola</a></p></div>';
+       . '<p><a href="' . e($cartUrl) . '">Voltar à sacola</a></p></html>';
     exit;
 }
 
