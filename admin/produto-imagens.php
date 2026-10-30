@@ -107,7 +107,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 flash_set('success', $ok . ' foto' . ($ok === 1 ? '' : 's') . ' enviada' . ($ok === 1 ? '' : 's') . ' com sucesso.');
             }
             foreach ($erros as $erro) {
-                flash_set('error', 'Foto recusada - ' . $erro);
+                flash_set('error', 'Foto recusada: ' . $erro);
             }
 
             pi_back($selfUrl);
@@ -120,7 +120,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if ($imageId > 0 && ProductRepository::setPrimaryImage($id, $imageId)) {
                 flash_set('success', 'Capa atualizada. E essa foto que aparece na vitrine.');
             } else {
-                flash_set('error', 'Nao foi possivel definir essa foto como capa.');
+                flash_set('error', 'Não foi possível definir essa foto como capa.');
             }
 
             pi_back($selfUrl);
@@ -145,7 +145,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 );
                 flash_set('success', 'Foto removida.');
             } else {
-                flash_set('error', 'Nao foi possivel remover a foto.');
+                flash_set('error', 'Não foi possível remover a foto.');
             }
 
             pi_back($selfUrl);
@@ -199,7 +199,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $r = ImageProcessor::remakeDerivatives($origem, $foco);
 
             if (!$r['ok']) {
-                flash_set('error', 'Nao foi possivel recortar a foto: ' . (string) $r['error']);
+                flash_set('error', 'Não foi possível recortar a foto: ' . (string) $r['error']);
                 pi_back($selfUrl);
             }
 
@@ -210,7 +210,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         // -------------------------------------------------------------------
         default:
-            flash_set('error', 'Acao desconhecida.');
+            flash_set('error', 'Ação desconhecida.');
             pi_back($selfUrl);
     }
 }
@@ -261,7 +261,7 @@ require __DIR__ . '/partials/admin-header.php';
   <div>
     <p class="eyebrow">Galeria do produto</p>
     <h1><?= e((string) $produto['name']) ?></h1>
-    <p class="muted" style="margin:6px 0 0;font-size:14px">
+    <p class="muted">
       <?= count($imagens) ?> foto<?= count($imagens) === 1 ? '' : 's' ?>
       &middot; <span class="badge <?= $produto['active'] ? 'on' : 'off' ?>"><?= $produto['active'] ? 'Ativo' : 'Inativo' ?></span>
     </p>
@@ -276,11 +276,11 @@ require __DIR__ . '/partials/admin-header.php';
 
 <div class="card">
   <h2 class="sec">Enviar fotos</h2>
-  <p class="muted" style="font-size:14px;margin:4px 0 16px">
+  <p class="lede">
     JPG, PNG ou WEBP, até <?= $maxMb ?> MB por arquivo. Pode selecionar várias de uma vez.
     <?php if (function_exists('imagewebp')): ?>
-      As fotos sao recortadas automaticamente no formato da vitrine (4:5), geradas em
-      tres tamanhos e convertidas para WEBP - carrega mais rapido e sai bem enquadrada.
+      As fotos são recortadas automaticamente no formato da vitrine (4:5), geradas em
+      três tamanhos e convertidas para WEBP: carregam mais rápido e saem bem enquadradas.
       Se o corte cair errado, ajuste o enquadramento na tabela abaixo (sem reenviar a foto).
     <?php endif; ?>
   </p>
@@ -297,7 +297,7 @@ require __DIR__ . '/partials/admin-header.php';
              data-max-mb="<?= $maxMb ?>"<?= $postLimitMb > 0 ? ' data-max-total-mb="' . $postLimitMb . '"' : '' ?>>
     </div>
 
-    <div class="form-actions" style="margin-top:16px">
+    <div class="form-actions">
       <button class="btn primary" type="submit">Enviar fotos</button>
       <span class="hint">Não feche esta página enquanto as fotos sobem.</span>
       <?php if ($imagens === []): ?>
@@ -311,13 +311,13 @@ require __DIR__ . '/partials/admin-header.php';
   <h2 class="sec">Fotos cadastradas</h2>
 
 <?php if ($imagens === []): ?>
-  <div class="empty-state" style="margin-top:14px">
-    Este produto ainda nao tem fotos. Na loja ele aparece com a imagem padrao da marca.
+  <div class="empty-state">
+    Este produto ainda não tem fotos. Na loja ele aparece com a imagem padrão da marca.
   </div>
 <?php else: ?>
-  <p class="muted" style="font-size:14px;margin:4px 0 18px">
-    A capa e a foto que aparece na vitrine e nos resultados de busca. Para mudar a
-    sequencia da galeria, ajuste os numeros de ordem e clique em "Salvar ordem"
+  <p class="lede">
+    A capa é a foto que aparece na vitrine e nos resultados de busca. Para mudar a
+    sequência da galeria, ajuste os números de ordem e clique em "Salvar ordem"
     (menor aparece primeiro).
   </p>
 
@@ -339,7 +339,7 @@ require __DIR__ . '/partials/admin-header.php';
           <div class="row">
             <label class="ord" for="ord-<?= $imgId ?>">Ordem</label>
             <input type="number" id="ord-<?= $imgId ?>" name="ordem[<?= $imgId ?>]"
-                   value="<?= (int) $img['sort_order'] ?>" step="1" style="width:78px">
+                   value="<?= (int) $img['sort_order'] ?>" step="1" class="ord-input">
           </div>
         </div>
       </div>
@@ -351,25 +351,25 @@ require __DIR__ . '/partials/admin-header.php';
     </div>
   </form>
 
-  <p class="muted" style="font-size:14px;margin:26px 0 10px">
-    <strong>Enquadramento:</strong> a foto e recortada no formato da vitrine (retrato 4:5).
-    "Topo" mantem a parte de cima da imagem (o padrao, bom para roupa em cabide ou manequim),
+  <p class="lede lede-gap">
+    <strong>Enquadramento:</strong> a foto é recortada no formato da vitrine (retrato 4:5).
+    "Topo" mantém a parte de cima da imagem (o padrão, bom para roupa em cabide ou manequim),
     "Centro" pega o meio e "Base" a parte de baixo. Trocar aqui refaz o corte na hora, sem
     reenviar o arquivo.
   </p>
 
   <!-- Capa, enquadramento e exclusao ficam FORA do form de ordem: HTML nao
        permite form aninhado, e cada uma e uma acao independente. -->
-  <div class="table-wrap" style="margin-top:26px">
+  <div class="table-wrap">
     <table class="data">
       <thead>
         <tr>
-          <th scope="col" style="width:64px">Foto</th>
+          <th scope="col" class="col-photo">Foto</th>
           <th scope="col">Arquivo</th>
           <th scope="col">Ordem</th>
           <th scope="col">Capa</th>
           <th scope="col">Enquadramento</th>
-          <th scope="col" style="text-align:right">Acoes</th>
+          <th scope="col" class="col-actions">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -384,18 +384,18 @@ require __DIR__ . '/partials/admin-header.php';
           <td><img class="thumb" src="<?= e(pi_preview_url((string) $img['file_path'])) ?>" alt="" loading="lazy"></td>
           <td class="cell-name"><small><?= e(basename((string) $img['file_path'])) ?></small></td>
           <td><?= (int) $img['sort_order'] ?></td>
-          <td><?= $capa ? '<span class="badge on">Capa</span>' : '<span class="badge off">-</span>' ?></td>
+          <td><?= $capa ? '<span class="badge on">Capa</span>' : '<span class="badge off">Não</span>' ?></td>
           <td>
             <?php if ($origem === ''): ?>
-              <span class="muted" style="font-size:12px">Envie de novo para ajustar</span>
+              <span class="hint">Envie de novo para ajustar</span>
             <?php else: ?>
               <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php"
-                    style="display:flex;gap:6px;align-items:center">
+                    class="inline-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $id ?>">
                 <input type="hidden" name="image_id" value="<?= $imgId ?>">
                 <input type="hidden" name="action" value="recrop">
-                <select name="focal_y" style="width:96px"
+                <select name="focal_y"
                         aria-label="Parte da foto que aparece no recorte">
                   <?php foreach ($focais as $valor => $rotulo): ?>
                     <option value="<?= (int) $valor ?>" <?= $foco === $valor ? 'selected' : '' ?>><?= e($rotulo) ?></option>

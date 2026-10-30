@@ -45,7 +45,7 @@ $id     = (int) ($_POST['id'] ?? 0);
 $action = (string) ($_POST['action'] ?? 'delete');
 
 if (!in_array($action, ['delete', 'restore'], true)) {
-    flash_set('error', 'Acao desconhecida.');
+    flash_set('error', 'Ação desconhecida.');
     pe_redirect();
 }
 
@@ -60,14 +60,14 @@ $nome = (string) $produto['name'];
 try {
     if ($action === 'restore') {
         ProductRepository::restore($id);
-        flash_set('success', 'Produto "' . $nome . '" reativado e visivel na loja de novo.');
+        flash_set('success', 'Produto "' . $nome . '" reativado e visível na loja de novo.');
     } else {
         ProductRepository::softDelete($id);
         flash_set('success', 'Produto "' . $nome . '" desativado. Ele sumiu da loja, mas continua aqui e pode ser reativado.');
     }
 } catch (Throwable $e) {
     error_log('[lynch][produto-excluir] ' . $e->getMessage());
-    flash_set('error', 'Nao foi possivel concluir a acao. Tente novamente.');
+    flash_set('error', 'Não foi possível concluir a ação. Tente novamente.');
 }
 
 pe_redirect();

@@ -206,7 +206,7 @@ require __DIR__ . '/partials/admin-header.php';
   <div>
     <p class="eyebrow">Ajustes do site</p>
     <h1>Configurações</h1>
-    <p class="muted" style="margin:6px 0 0;font-size:14px">
+    <p class="muted">
       Número de WhatsApp que recebe os pedidos, textos da primeira tela, banner e contatos da loja.
     </p>
   </div>
@@ -226,7 +226,7 @@ require __DIR__ . '/partials/admin-header.php';
 
   <div class="card">
     <h2 class="sec">WhatsApp</h2>
-    <div class="form-grid" style="margin-top:14px">
+    <div class="form-grid">
       <div class="field half">
         <label for="c-whats">Número que recebe os pedidos</label>
         <input type="text" id="c-whats" name="whatsapp_number" value="<?= e($vWhats) ?>"
@@ -254,7 +254,7 @@ require __DIR__ . '/partials/admin-header.php';
 
   <div class="card">
     <h2 class="sec">Primeira tela (hero)</h2>
-    <div class="form-grid" style="margin-top:14px">
+    <div class="form-grid">
       <div class="field half">
         <label for="c-title">Título</label>
         <input type="text" id="c-title" name="hero_title" value="<?= e($vTitle) ?>" maxlength="180">
@@ -273,17 +273,16 @@ require __DIR__ . '/partials/admin-header.php';
 
   <div class="card">
     <h2 class="sec">Banner do hero</h2>
-    <p class="muted" style="font-size:14px;margin:4px 0 16px">
+    <p class="lede">
       Opcional. JPG, PNG ou WEBP, até <?= $maxMb ?> MB. Sem banner, a loja usa a colagem
       de fotos padrão. Deixar o campo em branco e salvar NÃO apaga o banner atual.
     </p>
 
     <?php if ($vBanner !== ''): ?>
-      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px">
-        <img src="<?= e(asset_url($vBanner)) ?>" alt="Banner atual do hero"
-             style="max-width:280px;width:100%;border-radius:16px;border:1px solid var(--line)">
+      <div class="banner-current">
+        <img class="banner-img" src="<?= e(asset_url($vBanner)) ?>" alt="Banner atual do hero">
         <div>
-          <p class="muted" style="font-size:13px;margin:0 0 10px">
+          <p class="muted">
             Banner atual: <?= e(basename($vBanner)) ?>
           </p>
           <label class="checkline">
@@ -302,7 +301,7 @@ require __DIR__ . '/partials/admin-header.php';
 
   <div class="card">
     <h2 class="sec">Contato e informações da loja</h2>
-    <div class="form-grid" style="margin-top:14px">
+    <div class="form-grid">
       <div class="field half">
         <label for="contact_email">E-mail de atendimento</label>
         <input id="contact_email" name="contact_email" type="email" autocomplete="email"
@@ -328,7 +327,7 @@ require __DIR__ . '/partials/admin-header.php';
   </div>
 
   <div class="card">
-    <div class="form-actions" style="margin-top:0;padding-top:0;border-top:none">
+    <div class="form-actions flat">
       <button class="btn primary" type="submit">Salvar tudo</button>
       <a class="btn ghost" target="_blank" rel="noopener" href="<?= e($base) ?>/index.php">Ver a loja &nearr;</a>
     </div>

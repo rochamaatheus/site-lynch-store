@@ -53,7 +53,7 @@ $id     = (int) ($_POST['id'] ?? 0);
 $action = (string) ($_POST['action'] ?? 'toggle');
 
 if (!in_array($action, ['toggle', 'delete'], true)) {
-    flash_set('error', 'Acao desconhecida.');
+    flash_set('error', 'Ação desconhecida.');
     ce_redirect();
 }
 
@@ -80,12 +80,12 @@ try {
         flash_set(
             'success',
             $agoraAtiva
-                ? 'Categoria "' . $nome . '" ativada e visivel na loja.'
+                ? 'Categoria "' . $nome . '" ativada e visível na loja.'
                 : 'Categoria "' . $nome . '" desativada. Ela sumiu da loja, mas os produtos continuam vinculados.'
         );
     } else {
         CategoryRepository::delete($id);
-        flash_set('success', 'Categoria "' . $nome . '" excluida.');
+        flash_set('success', 'Categoria "' . $nome . '" excluída.');
 
         if ($vinculados > 0) {
             flash_set(
@@ -97,7 +97,7 @@ try {
     }
 } catch (Throwable $e) {
     error_log('[lynch][categoria-excluir] ' . $e->getMessage());
-    flash_set('error', 'Nao foi possivel concluir a acao. Tente novamente.');
+    flash_set('error', 'Não foi possível concluir a ação. Tente novamente.');
 }
 
 ce_redirect();

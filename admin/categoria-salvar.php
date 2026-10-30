@@ -44,7 +44,7 @@ if ($editando && CategoryRepository::findAnyById($id) === null) {
 
 $name = trim((string) ($_POST['name'] ?? ''));
 if ($name === '') {
-    flash_set('error', 'O nome da categoria e obrigatorio.');
+    flash_set('error', 'O nome da categoria é obrigatório.');
     cs_redirect($editando ? '?editar=' . $id : '');
 }
 
@@ -76,7 +76,7 @@ try {
     }
 } catch (Throwable $e) {
     error_log('[lynch][categoria-salvar] ' . $e->getMessage());
-    flash_set('error', 'Nao foi possivel salvar a categoria. Tente novamente.');
+    flash_set('error', 'Não foi possível salvar a categoria. Tente novamente.');
     cs_redirect($editando ? '?editar=' . $id : '');
 }
 

@@ -52,7 +52,7 @@ require __DIR__ . '/partials/admin-header.php';
     <p class="eyebrow">Painel</p>
     <h1>Bem-vinda, <?= e($who) ?>!</h1>
     <?php if (!empty($admin['last_login_at'])): ?>
-      <p class="muted" style="margin:6px 0 0;font-size:13px">
+      <p class="muted">
         Último acesso: <?= e(date('d/m/Y H:i', (int) strtotime((string) $admin['last_login_at']))) ?>
       </p>
     <?php endif; ?>
@@ -90,20 +90,20 @@ require __DIR__ . '/partials/admin-header.php';
 
 <div class="card">
   <h2 class="sec">O catálogo hoje</h2>
-  <div class="form-grid" style="margin-top:16px">
-    <div class="field third">
+  <div class="stats">
+    <div class="stat">
       <span class="lbl">Produtos na loja</span>
-      <p style="font-size:34px;font-weight:850;margin:0;line-height:1"><?= $ativos ?></p>
+      <p class="stat-num"><?= $ativos ?></p>
       <span class="hint"><?= $inativos ?> desativado<?= $inativos === 1 ? '' : 's' ?> (não aparecem para o cliente)</span>
     </div>
-    <div class="field third">
+    <div class="stat">
       <span class="lbl">Categorias ativas</span>
-      <p style="font-size:34px;font-weight:850;margin:0;line-height:1"><?= $catAtivas ?></p>
+      <p class="stat-num"><?= $catAtivas ?></p>
       <span class="hint"><?= count($categorias) ?> cadastrada<?= count($categorias) === 1 ? '' : 's' ?> no total</span>
     </div>
-    <div class="field third">
+    <div class="stat">
       <span class="lbl">WhatsApp</span>
-      <p style="font-size:20px;font-weight:850;margin:8px 0 0;line-height:1.2">
+      <p class="stat-text">
         <?= $whats === '' ? '<span class="badge off">não configurado</span>' : e($whats) ?>
       </p>
       <span class="hint">Número que recebe os pedidos</span>
@@ -113,7 +113,7 @@ require __DIR__ . '/partials/admin-header.php';
 
 <div class="card">
   <h2 class="sec">Atalhos</h2>
-  <div class="form-actions" style="margin-top:14px;padding-top:0;border-top:none">
+  <div class="form-actions flat">
     <a class="btn" href="<?= e($base) ?>/admin/produtos.php">Produtos</a>
     <a class="btn" href="<?= e($base) ?>/admin/categorias.php">Categorias</a>
     <a class="btn" href="<?= e($base) ?>/admin/configuracoes.php">Configurações</a>

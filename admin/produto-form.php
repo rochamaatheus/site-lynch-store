@@ -168,7 +168,7 @@ require __DIR__ . '/partials/admin-header.php';
       <label for="f-price">Preço (R$)</label>
       <input type="text" id="f-price" name="price" inputmode="decimal"
              value="<?= e($vPrice) ?>" placeholder="189,90" <?= $vOnRequest ? 'disabled' : '' ?>>
-      <label class="checkline" style="margin-top:9px;text-transform:none;letter-spacing:0;font-size:14.5px;color:var(--ink)">
+      <label class="checkline">
         <input type="checkbox" id="f-onrequest" name="price_on_request" value="1" <?= $vOnRequest ? 'checked' : '' ?>>
         Consultar valor (não mostrar preço na loja)
       </label>
@@ -201,7 +201,7 @@ require __DIR__ . '/partials/admin-header.php';
 <?php if ($editando): ?>
 <div class="card">
   <h2 class="sec">Fotos</h2>
-  <p class="muted" style="font-size:14px;margin:4px 0 16px">
+  <p class="lede">
     <?php if ($imagens === []): ?>
       Este produto ainda não tem foto. Na loja ele aparece com a imagem padrão da marca.
     <?php else: ?>
@@ -210,9 +210,9 @@ require __DIR__ . '/partials/admin-header.php';
     <?php endif; ?>
   </p>
   <?php if ($imagens !== []): ?>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+    <div class="thumb-row">
       <?php foreach (array_slice($imagens, 0, 8) as $img): ?>
-        <img class="thumb" style="width:66px;height:88px"
+        <img class="thumb tall"
              src="<?= e(asset_url((string) $img['file_path'])) ?>" alt="" loading="lazy">
       <?php endforeach; ?>
     </div>

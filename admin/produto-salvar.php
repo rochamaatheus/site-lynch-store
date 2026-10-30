@@ -61,7 +61,7 @@ $voltarPara = $editando
 $name = trim((string) ($_POST['name'] ?? ''));
 $_SESSION['product_form_old'] = ['id' => $id, 'data' => $_POST];
 if ($name === '') {
-    flash_set('error', 'O nome do produto e obrigatorio.');
+    flash_set('error', 'O nome do produto é obrigatório.');
     ps_redirect($voltarPara);
 }
 
@@ -127,7 +127,7 @@ try {
     }
 } catch (Throwable $e) {
     error_log('[lynch][produto-salvar] ' . $e->getMessage());
-    flash_set('error', 'Nao foi possivel salvar o produto. Tente novamente.');
+    flash_set('error', 'Não foi possível salvar o produto. Tente novamente.');
     ps_redirect($voltarPara);
 }
 

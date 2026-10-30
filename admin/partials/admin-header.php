@@ -44,12 +44,13 @@ $adminFlash = flash_get();
 <script src="<?= e(asset_url('assets/js/admin.js')) ?>" defer></script>
 </head>
 <body>
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="admin-head">
   <div class="container bar">
-    <div class="admin-brand">
-      <b>Lynch Store</b>
-      <small>Painel administrativo</small>
-    </div>
+    <a class="admin-brand" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/admin/index.php">
+      <?= sunflower() ?>
+      <span><b>Lynch Store</b><small>Painel administrativo</small></span>
+    </a>
     <nav class="admin-nav" aria-label="Navegação do painel">
       <?php
       $adminNavItems = [
@@ -66,15 +67,16 @@ $adminFlash = flash_get();
         <a href="<?= htmlspecialchars($base . $navPath, ENT_QUOTES, 'UTF-8') ?>"
            <?= $navActive === $navKey ? 'aria-current="page"' : '' ?>><?= $navLabel ?></a>
       <?php endforeach; ?>
-      <a href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/index.php" target="_blank" rel="noopener">Ver a loja &nearr;</a>
+      <a class="nav-out" href="<?= htmlspecialchars($base, ENT_QUOTES, 'UTF-8') ?>/index.php" target="_blank" rel="noopener">Ver a loja &nearr;</a>
       <?php if ($adminName !== ''): ?>
         <span class="who"><i></i><?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></span>
       <?php endif; ?>
-      <form method="post" action="<?= e(base_url('admin/logout.php')) ?>"><?= csrf_field() ?><button class="btn" type="submit">Sair</button></form>
+      <form method="post" action="<?= e(base_url('admin/logout.php')) ?>"><?= csrf_field() ?><button class="btn small" type="submit">Sair</button></form>
     </nav>
   </div>
 </header>
-<main>
+<?= measuring_tape() ?>
+<main id="conteudo" tabindex="-1">
   <div class="container">
 <?php foreach ($adminFlash as $adminFlashItem): ?>
   <?php

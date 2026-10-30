@@ -64,9 +64,9 @@ require __DIR__ . '/partials/admin-header.php';
 ?>
 <div class="page-head">
   <div>
-    <p class="eyebrow">Catalogo</p>
+    <p class="eyebrow">Catálogo</p>
     <h1>Produtos</h1>
-    <p class="muted" style="margin:6px 0 0;font-size:14px">
+    <p class="muted">
       <?= $total ?> produto<?= $total === 1 ? '' : 's' ?><?= $temFiltro ? ' com os filtros atuais' : ' no catálogo' ?>.
     </p>
   </div>
@@ -130,14 +130,14 @@ require __DIR__ . '/partials/admin-header.php';
     <table class="data cards-mobile">
       <thead>
         <tr>
-          <th scope="col" style="width:64px">Foto</th>
+          <th scope="col" class="col-photo">Foto</th>
           <th scope="col">Produto</th>
           <th scope="col">Categoria</th>
           <th scope="col">Disponibilidade</th>
           <th scope="col">Preço</th>
           <th scope="col">Ordem</th>
           <th scope="col">Status</th>
-          <th scope="col" style="text-align:right">Acoes</th>
+          <th scope="col" class="col-actions">Ações</th>
         </tr>
       </thead>
       <tbody>
@@ -195,7 +195,7 @@ require __DIR__ . '/partials/admin-header.php';
       </tbody>
     </table>
   </div>
-  <p class="muted" style="font-size:12.5px;margin:16px 0 0">
+  <p class="note">
     "Desativar" tira o produto da loja, mas ele continua aqui e pode ser reativado
     a qualquer momento. As fotos já enviadas nunca são apagadas por essa ação.
   </p>
