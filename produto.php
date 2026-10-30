@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/SettingsRepository.php';
 require_once __DIR__ . '/includes/ProductRepository.php';
+require_once __DIR__ . '/includes/Seo.php';
 
 $slug    = isset($_GET['slug']) ? trim((string) $_GET['slug']) : '';
 $product = $slug !== '' ? ProductRepository::findBySlug($slug) : null;
@@ -69,7 +70,7 @@ if ($description === '') {
 $mainImage    = $images[0]['file_path'] ?? null;
 $mainImageAlt = (string) ($images[0]['alt_text'] ?? '');
 if ($mainImageAlt === '') {
-    $mainImageAlt = $name . ' - foto real da Lynch Store';
+    $mainImageAlt = $name . ', foto real da Lynch Store';
 }
 
 $related = ProductRepository::related($product, 8);
@@ -90,38 +91,31 @@ $productSlug = (string) $product['slug'];
 // Meta / SEO
 // ---------------------------------------------------------------------------
 $pageTitle       = $name;
-// Sem descricao propria, a meta description leva nome, colecao e disponibilidade
-// (todas as paginas com o mesmo texto seriam tratadas como duplicadas).
+// Sem descricao propria, a meta description leva nome, colecao, disponibilidade e
+// preço (todas as paginas com o mesmo texto seriam tratadas como duplicadas).
 $hasOwnDescription = trim((string) ($product['description'] ?? '')) !== '' || trim((string) ($product['short_description'] ?? '')) !== '';
-$pageDescription   = $hasOwnDescription
-    ? excerpt($description, 155)
-    : excerpt($name . ($categoryName !== '' ? ' - ' . $categoryName : '') . ', ' . mb_strtolower($availLabel) . '. Foto real da Lynch Store; consulte medidas e valor pelo WhatsApp.', 155);
+$seoContext = ($categoryName !== '' ? $categoryName . ', ' : '') . mb_strtolower($availLabel)
+    . ($product['current_price_cents'] !== null ? ', por ' . $price : '')
+    . '. Foto real da ' . store_name() . seo_in_city() . '; consulte medidas e ' . ($product['current_price_cents'] !== null ? 'prazo' : 'valor') . ' pelo WhatsApp.';
+// Descricao curta demais (menos de 90 letras) ganha o contexto da peca no fim.
+$pageDescription   = seo_description(!$hasOwnDescription
+    ? $name . ', ' . $seoContext
+    : (mb_strlen($description) < 90 ? rtrim($description, '. ') . '. ' . mb_strtoupper(mb_substr($seoContext, 0, 1)) . mb_substr($seoContext, 1) : $description));
 $pageOgType      = 'product';
-$pageImage       = $mainImage ?? 'assets/seo-banner.webp';
+// Foto da peca como capa do link (maior derivado leve); sem foto, a capa da loja.
+$pageImage       = seo_product_image($mainImage);
+$pageImageAlt    = $mainImageAlt;
 $pageCanonical   = product_url((string) $product['slug']);
 $isProductPage   = true;
-$pageJsonLd = json_encode(array_filter([
-    '@context'    => 'https://schema.org',
-    '@type'       => 'Product',
-    'name'        => $name,
-    'description' => $pageDescription,
-    'image'       => array_values(array_map(
-        static fn (array $img): string => product_image_url($img['file_path']),
-        $images
-    )),
-    'category'    => $categoryName,
-    'brand'       => ['@type' => 'Brand', 'name' => 'Lynch Store'],
-    'offers'      => $product['current_price_cents'] === null ? null : array_filter([
-        '@type'         => 'Offer',
-        'url'           => $pageCanonical,
-        'priceCurrency' => 'BRL',
-        'availability'  => $soldOut
-            ? 'https://schema.org/SoldOut'
-            : ($avail === 'pronta_entrega' ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder'),
-        'price'         => number_format(((int) $product['current_price_cents']) / 100, 2, '.', ''),
-        'priceValidUntil' => $priceView['on_sale'] ? $product['sale_ends_on'] : null,
-    ]),
-]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+$productCrumbs   = [['Início', base_url()], ['Loja', url_catalog()]];
+if ($categoryName !== '' && $categorySlug !== '') {
+    $productCrumbs[] = [$categoryName, url_catalog(['categoria' => $categorySlug])];
+}
+$productCrumbs[] = [$name, $pageCanonical];
+$pageSchema = array_merge(
+    seo_product_nodes($product, seo_abs($pageCanonical), $pageDescription),
+    [seo_breadcrumb($productCrumbs, seo_abs($pageCanonical))]
+);
 
 require __DIR__ . '/includes/partials/header.php';
 ?>

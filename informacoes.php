@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/SettingsRepository.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/StoreInfo.php';
+require_once __DIR__ . '/includes/Seo.php';
 $infoWa      = whatsapp_link();
 $infoInsta   = setting('instagram_url');
 $infoHours   = store_hours_lines();
@@ -10,9 +11,14 @@ $infoBooking = setting('appointment_note');
 $infoAddress = store_address_lines();
 $infoMap     = store_maps_url();
 $infoBio     = setting('store_bio');
-$pageTitle = 'Como comprar e privacidade';
-$pageDescription = 'Como fazer um pedido na Lynch Store, diferença entre pronta entrega e sob encomenda, e como tratamos seus dados.';
+$pageTitle = 'Como comprar, entrega e privacidade';
+$pageDescription = 'Como fazer seu pedido na ' . store_name() . ' pelo ' . ($infoWa !== '' ? 'WhatsApp' : 'atendimento') . ', pronta entrega e sob encomenda, horário'
+    . (seo_city() !== '' ? ' do ateliê' . seo_in_city() : ' de atendimento') . ' e como tratamos seus dados.';
 $pageCanonical = base_url('informacoes.php');
+$pageSchema = [
+    seo_page_node('WebPage', seo_abs($pageCanonical), $pageTitle, seo_description($pageDescription)),
+    seo_breadcrumb([['Início', base_url()], ['Como comprar', $pageCanonical]], seo_abs($pageCanonical)),
+];
 require __DIR__ . '/includes/partials/header.php';
 ?>
 <section class="wrap prose">

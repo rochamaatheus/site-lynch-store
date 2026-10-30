@@ -407,6 +407,21 @@ $check(lynch_private_dir() !== null && !str_starts_with(str_replace('\\', '/', (
 $apos = ProductImport::normalize([ProductImport::HEADERS, ['QA apóstrofo ' . $suffix, 'qa-apos-' . $suffix, '', '', '', "'- tamanho P", "'+55 47", '1', '0']]);
 $check(!$apos['errors'] && $apos['products'][0]['short_description'] === '- tamanho P', 'Reimportar o CSV exportado tira o apóstrofo que neutraliza fórmula');
 
+// --- SEO: titulos, URLs absolutas e dados estruturados (tests/seo.php cobre o HTTP) ---
+require_once dirname(__DIR__) . '/includes/Seo.php';
+$longTitle = seo_title(str_repeat('Vestido de cosplay inspirado na princesa guerreira ', 3));
+$check(mb_strlen($longTitle) <= SEO_TITLE_MAX && str_ends_with($longTitle, ' | ' . store_name()) && !str_ends_with(trim(explode('|', $longTitle)[0]), ' de'), 'Título longo cortado em 60 caracteres sem cortar palavra');
+$check(seo_title('Cosplay', ' em Joinville, SC') === 'Cosplay em Joinville, SC | ' . store_name() && seo_title(str_repeat('x', 40), ' em Joinville, SC') === str_repeat('x', 40) . ' | ' . store_name(), 'Cidade entra no título só quando cabe');
+$check(seo_abs('/loja.php') === seo_site_url() . '/loja.php' && seo_abs('https://instagram.com/x') === 'https://instagram.com/x' && preg_match('~^https?://~', seo_site_url()) === 1, 'URLs do SEO sempre absolutas');
+$check(mb_strlen(seo_store_description()) <= SEO_DESCRIPTION_MAX + 3 && !str_contains(seo_store_description(), "\u{2014}"), 'Description da loja curta e sem travessão');
+$onRequestNodes = seo_product_nodes(['name' => 'Peça QA', 'slug' => 'peca-qa', 'images' => [], 'current_price_cents' => null], seo_abs('/produto.php?slug=peca-qa'), 'Descrição QA');
+$check(array_column($onRequestNodes, '@type') === ['ItemPage'] && !str_contains(seo_jsonld($onRequestNodes), 'offers'), 'Produto sob consulta sem Product nem offers no JSON-LD');
+$pricedNodes = seo_product_nodes(['name' => 'Peça QA', 'slug' => 'peca-qa', 'images' => [], 'current_price_cents' => 12990, 'price_cents' => 12990, 'price_on_request' => false, 'availability' => 'sob_encomenda', 'is_sold_out' => false, 'category_name' => 'Cosplay'], seo_abs('/produto.php?slug=peca-qa'), 'Descrição QA');
+$offer = $pricedNodes[1]['offers'] ?? [];
+$check(($pricedNodes[1]['@type'] ?? '') === 'Product' && $offer['price'] === '129.90' && $offer['priceCurrency'] === 'BRL' && $offer['availability'] === 'https://schema.org/MadeToOrder' && !isset($offer['priceValidUntil']), 'Produto com preço: Offer em BRL, sob encomenda como MadeToOrder');
+$check(str_contains(seo_jsonld([['@type' => 'WebPage', 'name' => '</script><script>alert(1)</script>']]), '\u003C/script'), 'JSON-LD escapa </script> de nome de produto');
+$check(seo_product_image(null) === null && seo_product_image('uploads/products/nao-existe.webp') === null, 'Sem foto, og:image cai na capa padrão');
+
 $plans = [];
 $queries = [
     'cart_before_single' => 'SELECT id,name,slug FROM products WHERE active=1 AND id=1',
@@ -422,6 +437,9 @@ $queries = [
     'coupon_claim' => "EXPLAIN UPDATE coupons SET uses = uses + 1 WHERE id = 1 AND active = 1 AND deleted = 0 AND (expires_on IS NULL OR expires_on >= '2026-10-30') AND (max_uses IS NULL OR uses < max_uses)",
     'coupon_admin_list' => 'SELECT id,code,discount_type,discount_value,min_order_cents,expires_on,max_uses,uses,active FROM coupons WHERE deleted = 0 ORDER BY id DESC LIMIT 200',
     'dashboard_missing_photos' =>'SELECT COUNT(*) FROM products p WHERE p.active=1 AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id=p.id)',
+    'sitemap_products' => 'SELECT id, slug, updated_at FROM products WHERE active = 1 ORDER BY id',
+    'sitemap_images' => 'SELECT pi.product_id, pi.file_path, pi.created_at FROM product_images pi JOIN products p ON p.id = pi.product_id WHERE p.active = 1 ORDER BY pi.product_id, pi.is_primary DESC, pi.sort_order, pi.id',
+    'sitemap_categories' => 'SELECT c.slug, c.updated_at, MAX(p.updated_at) AS products_at FROM categories c JOIN products p ON p.category_id = c.id AND p.active = 1 WHERE c.active = 1 GROUP BY c.id, c.slug, c.updated_at ORDER BY c.id',
 ];
 foreach ($queries as $label => $sql) { $plans[$label] = $pdo->query(str_starts_with($sql, 'EXPLAIN') ? $sql : 'EXPLAIN ' . $sql)->fetchAll(); }
 file_put_contents(dirname(__DIR__) . '/docs/explain.json', json_encode($plans, JSON_PRETTY_PRINT));

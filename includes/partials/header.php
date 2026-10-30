@@ -7,10 +7,13 @@
  *
  * Variaveis opcionais que a pagina pode definir ANTES do include:
  *   $pageTitle       string  titulo da aba (sem o sufixo "| Lynch Store")
+ *   $pageFullTitle   string  titulo completo, ja com a marca (home e coleções)
  *   $pageDescription string  meta description
- *   $pageImage       string  caminho da imagem de og:image (padrao: seo-banner)
- *   $pageCanonical   string  URL canonica absoluta
- *   $pageJsonLd      string  bloco JSON-LD ja serializado
+ *   $pageImage       array   {url,width,height} da og:image (padrao: capa de assets/)
+ *   $pageImageAlt    string  texto alternativo da og:image
+ *   $pageCanonical   string  URL canonica (vira absoluta no dominio fixo)
+ *   $pageNoIndex     bool    noindex, follow (sem canonical nem JSON-LD)
+ *   $pageSchema      array   nos JSON-LD da pagina; loja e site entram sozinhos
  *   $isHome          bool    true na home (habilita preload do hero)
  *   $activeCategory  string  slug da categoria ativa (destaca no menu)
  *
@@ -29,20 +32,25 @@ require_once dirname(__DIR__) . '/SettingsRepository.php';
 require_once dirname(__DIR__) . '/CategoryRepository.php';
 require_once dirname(__DIR__) . '/ProductRepository.php';
 require_once dirname(__DIR__) . '/Cart.php';
+require_once dirname(__DIR__) . '/Seo.php';
 
 $pageTitle       = isset($pageTitle) && is_string($pageTitle) && $pageTitle !== ''
     ? $pageTitle
-    : 'Moda Geek, Cosplay e Camisetas';
-$pageDescription = isset($pageDescription) && is_string($pageDescription) && $pageDescription !== ''
+    : 'Moda geek, cosplay e camisetas';
+$pageDescription = seo_description(isset($pageDescription) && is_string($pageDescription) && $pageDescription !== ''
     ? $pageDescription
-    : 'Lynch Store: fotos reais de cosplay, fantasia e camisetas geek. Consulte disponibilidade, medidas e valores pelo WhatsApp.';
-$pageImage     = isset($pageImage) && is_string($pageImage) && $pageImage !== '' ? $pageImage : 'assets/seo-banner.webp';
-$pageCanonical = isset($pageCanonical) && is_string($pageCanonical) ? $pageCanonical : '';
-$pageJsonLd    = isset($pageJsonLd) && is_string($pageJsonLd) ? $pageJsonLd : '';
+    : seo_store_description());
+$fullTitle     = isset($pageFullTitle) && is_string($pageFullTitle) && $pageFullTitle !== '' ? $pageFullTitle : seo_title($pageTitle);
+$pageNoIndex   = !empty($pageNoIndex) || http_response_code() === 404;
+$pageCanonical = !$pageNoIndex && isset($pageCanonical) && is_string($pageCanonical) && $pageCanonical !== '' ? seo_abs($pageCanonical) : '';
+$pageOgImage   = isset($pageImage) && is_array($pageImage) && !empty($pageImage['url']) ? $pageImage : seo_cover();
+$pageOgAlt     = isset($pageImageAlt) && is_string($pageImageAlt) && $pageImageAlt !== '' && isset($pageImage) && is_array($pageImage) ? $pageImageAlt : seo_cover_alt();
+$pageOgIsCover = !(isset($pageImage) && is_array($pageImage) && !empty($pageImage['url']));
+// JSON-LD so nas paginas indexaveis: loja + site + o que a pagina mandou.
+$pageJsonLd    = $pageCanonical !== '' ? seo_jsonld(array_merge(seo_site_nodes(), isset($pageSchema) && is_array($pageSchema) ? $pageSchema : [])) : '';
 $isHome        = !empty($isHome);
 $isBagPage     = !empty($isBagPage);
 $isProductPage = !empty($isProductPage);
-$fullTitle     = 'Lynch Store | ' . $pageTitle;
 // Colecao sem peca nao aparece para quem compra.
 $navCategories = array_values(array_filter(CategoryRepository::listActiveWithCounts(), static fn (array $c): bool => (int) $c['product_count'] > 0));
 $navSearch     = isset($_GET['busca']) ? trim((string) $_GET['busca']) : '';
@@ -61,7 +69,7 @@ csrf_token();
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title><?= e($fullTitle) ?></title>
 <meta name="description" content="<?= e($pageDescription) ?>">
-<meta name="robots" content="<?= !empty($pageNoIndex) || http_response_code() === 404 ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
+<meta name="robots" content="<?= $pageNoIndex ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
 <meta name="theme-color" content="<?= $isHome ? '#DDAE35' : '#F7EFE2' ?>">
 <meta name="color-scheme" content="only light">
 <meta name="format-detection" content="telephone=no">
@@ -71,14 +79,29 @@ csrf_token();
 <meta property="og:url" content="<?= e($pageCanonical) ?>">
 <?php endif; ?>
 <meta property="og:type" content="<?= e(isset($pageOgType) && is_string($pageOgType) ? $pageOgType : 'website') ?>">
-<meta property="og:site_name" content="Lynch Store">
+<meta property="og:site_name" content="<?= e(store_name()) ?>">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:title" content="<?= e($fullTitle) ?>">
 <meta property="og:description" content="<?= e($pageDescription) ?>">
-<meta property="og:image" content="<?= e(asset_url($pageImage)) ?>">
+<meta property="og:image" content="<?= e($pageOgImage['url']) ?>">
+<meta property="og:image:width" content="<?= e($pageOgImage['width']) ?>">
+<meta property="og:image:height" content="<?= e($pageOgImage['height']) ?>">
+<meta property="og:image:alt" content="<?= e($pageOgAlt) ?>">
+<?php if ($pageOgIsCover): $pageOgSquare = seo_cover(true); ?>
+<meta property="og:image" content="<?= e($pageOgSquare['url']) ?>">
+<meta property="og:image:width" content="<?= e($pageOgSquare['width']) ?>">
+<meta property="og:image:height" content="<?= e($pageOgSquare['height']) ?>">
+<meta property="og:image:alt" content="<?= e($pageOgAlt) ?>">
+<?php endif; ?>
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
+<meta name="twitter:title" content="<?= e($fullTitle) ?>">
+<meta name="twitter:description" content="<?= e($pageDescription) ?>">
+<meta name="twitter:image" content="<?= e($pageOgImage['url']) ?>">
+<meta name="twitter:image:alt" content="<?= e($pageOgAlt) ?>">
+<link rel="icon" href="<?= e(base_url('favicon.ico')) ?>" sizes="16x16 32x32 48x48">
+<link rel="icon" href="<?= e(asset_url('assets/icon-192.png')) ?>" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="<?= e(asset_url('assets/apple-touch-icon.png')) ?>">
+<link rel="manifest" href="<?= e(base_url('site.webmanifest')) ?>">
 <?php if ($isHome && empty($heroBanner)): ?>
 <link rel="preload" as="image" href="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?>" imagesrcset="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/cutout-01-720.webp')) ?> 720w" imagesizes="(max-width:699px) 40vw, (max-width:999px) 230px, 22vw" fetchpriority="high">
 <?php endif; ?>

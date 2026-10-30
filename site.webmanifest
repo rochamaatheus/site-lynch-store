@@ -1,0 +1,16 @@
+{
+  "name": "Lynch Store",
+  "short_name": "Lynch Store",
+  "description": "Ateliê de moda geek, cosplay e camisetas em Joinville, SC.",
+  "lang": "pt-BR",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#F7EFE2",
+  "theme_color": "#DDAE35",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

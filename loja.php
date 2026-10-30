@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/SettingsRepository.php';
 require_once __DIR__ . '/includes/CategoryRepository.php';
 require_once __DIR__ . '/includes/ProductRepository.php';
+require_once __DIR__ . '/includes/Seo.php';
 
 const PAGE_SIZE = 12;
 
@@ -57,17 +58,44 @@ if ($search !== '') {
     $heading = 'Toda a loja';
 }
 
-$pageTitle       = $heading;
-$pageDescription = $category !== null
-    ? excerpt((string) ($category['description'] ?: 'Coleção ' . $category['name'] . ' da Lynch Store, com fotos reais e atendimento pelo WhatsApp.'), 155)
-    : 'Catálogo da Lynch Store: cosplay, fantasia e camisetas geek com fotos reais e atendimento pelo WhatsApp.';
-$pageCanonical   = $categorySlug !== '' ? url_catalog(['categoria' => $categorySlug]) : url_catalog();
-$pageNoIndex     = $search !== '' || $mode !== '' || $sort !== '' || isset($_GET['mostrar']);
+// Loja recem-publicada, sem nenhuma peca ativa: aviso de preparo no lugar dos filtros.
+$catalogEmpty = $total === 0 && ($filters === [] || ProductRepository::countActive([]) === 0);
+$waLink       = whatsapp_link(setting('whatsapp_message_intro', 'Olá! Vim pelo site da Lynch Store.'));
+$instagram    = setting('instagram_url');
+
+$pageTitle = $heading;
+if ($category !== null && $search === '' && $mode === '') {
+    $pageFullTitle   = seo_title((string) $category['name'], seo_in_city());
+    $pageDescription = trim((string) $category['description']) !== ''
+        ? (string) $category['description']
+        : 'Coleção ' . $category['name'] . ' da ' . store_name() . ', ateliê de moda geek' . seo_in_city() . ': fotos reais, peças prontas e sob medida, ' . seo_contact_phrase() . '.';
+} elseif ($search === '' && $mode === '') {
+    $pageFullTitle   = seo_title('Loja de moda geek, cosplay e camisetas');
+    $pageDescription = 'Peças da ' . store_name() . ', ateliê' . seo_in_city() . ': cosplay, camisetas geek e roupas sob medida, com fotos reais e ' . seo_contact_phrase() . '.';
+} else {
+    $pageDescription = $search !== ''
+        ? 'Resultado da busca por “' . $search . '” nas peças da ' . store_name() . '.'
+        : 'Peças de ' . mb_strtolower($heading) . ' da ' . store_name() . seo_in_city() . '.';
+}
+// Uma URL indexavel por listagem: busca, modo, ordem e "ver mais" ficam noindex
+// (sem canonical, para nao mandar sinais contraditorios). Parametros estranhos
+// (utm, fbclid) caem no canonical limpo.
+$pageCanonical = $categorySlug !== '' ? url_catalog(['categoria' => $categorySlug]) : url_catalog();
+$pageNoIndex   = $search !== '' || $mode !== '' || $sort !== '' || isset($_GET['mostrar']);
+$crumbs = [['Início', base_url()], ['Loja', url_catalog()]];
+if ($category !== null) {
+    $crumbs[] = [(string) $category['name'], $pageCanonical];
+}
+$pageSchema = [
+    seo_page_node('CollectionPage', seo_abs($pageCanonical), $category !== null ? (string) $category['name'] : 'Loja', seo_description($pageDescription)),
+    seo_breadcrumb($crumbs, seo_abs($pageCanonical)),
+];
 
 require __DIR__ . '/includes/partials/header.php';
 ?>
 <section class="wrap shop">
   <h1 class="page-title"><?= e($heading) ?></h1>
+  <?php if (!$catalogEmpty): ?>
   <p class="shop-count"><?= e($total) ?> <?= $total === 1 ? 'peça' : 'peças' ?></p>
 
   <form class="searchbox shop-search" id="busca" action="<?= e(url_catalog()) ?>" method="get" role="search">
@@ -78,7 +106,22 @@ require __DIR__ . '/includes/partials/header.php';
     <?php if ($categorySlug !== ''): ?><input type="hidden" name="categoria" value="<?= e($categorySlug) ?>"><?php endif; ?>
     <button class="btn ink small">Buscar</button>
   </form>
+  <?php endif; ?>
 </section>
+
+<?php if ($catalogEmpty): ?>
+<section class="wrap band prep" aria-labelledby="preparo-title">
+  <p class="prep-tag">Em preparação</p>
+  <h2 class="title" id="preparo-title">A arara está sendo montada</h2>
+  <p class="prep-lead">As peças estão sendo fotografadas e cadastradas com calma. Enquanto isso, a loja atende por <?= $waLink !== '' ? 'WhatsApp' : 'mensagem' ?>: cosplay, camisetas e peças feitas nas suas medidas.</p>
+  <?php if ($waLink !== '' || $instagram !== ''): ?>
+  <div class="prep-actions">
+    <?php if ($waLink !== ''): ?><a class="btn ink" href="<?= e($waLink) ?>" target="_blank" rel="noopener"><?= icon('chat') ?> Chamar no WhatsApp</a><?php endif; ?>
+    <?php if ($instagram !== ''): ?><a class="btn line" href="<?= e($instagram) ?>" target="_blank" rel="noopener">Novidades no Instagram <?= e(instagram_handle($instagram)) ?></a><?php endif; ?>
+  </div>
+  <?php endif; ?>
+</section>
+<?php else: ?>
 
 <div class="filters">
   <nav class="pills" aria-label="Filtrar peças">
@@ -131,4 +174,5 @@ require __DIR__ . '/includes/partials/header.php';
     <?php endif; ?>
   <?php endif; ?>
 </section>
+<?php endif; ?>
 <?php require __DIR__ . '/includes/partials/footer.php'; ?>

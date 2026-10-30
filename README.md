@@ -93,6 +93,7 @@ php tests/run.php
 npm ci
 node tests/browser.cjs
 node tests/security.cjs
+php tests/seo.php        # com QA_URL (e QA_URL_VAZIO para uma loja sem peças)
 node tests/lighthouse.cjs
 ~~~
 
@@ -120,7 +121,15 @@ O ensaio de instalação usa tests/prepare-install.php, Apache isolado na porta 
 
 Fontes locais, imagens responsivas WebP, carregamento tardio fora da primeira tela, compressão e cache de assets. Catálogo e admin usam paginação por cursor. O carrinho carrega todos os produtos em uma consulta.
 
-Titles, descriptions, canonical, Open Graph, dados estruturados com escape seguro, sitemap dinâmico, robots e páginas de erro reais. Admin, carrinho e buscas internas ficam fora da indexação. Ofertas sem preço não inventam valores nos dados estruturados.
+Titles e descriptions únicos com busca local (moda geek, cosplay e camisetas em Joinville, SC), canonical e og:url absolutos no domínio do .env (APP_BASE_URL; sem ele, https://lynchstore.com.br), Open Graph e Twitter card completos e JSON-LD em @graph (Store com endereço, horário, telefone e Instagram, WebSite com busca, BreadcrumbList, Product com Offer só quando há preço; peça "Consultar valor" vira ItemPage, sem offers). Tudo em includes/Seo.php. Busca, filtros, ordem, "ver mais", sacola, favoritos e 404 ficam noindex, sem canonical. sitemap.xml com lastmod e fotos (image:image); robots.txt bloqueia painel, sacola, favoritos, envio do pedido e busca com termo.
+
+A capa de compartilhamento (WhatsApp, Instagram, Google) é assets/capa-1200x630.jpg, com a quadrada assets/capa-1200x1200.jpg como segunda imagem, mais as versões WebP; produto com foto usa a própria foto. Os ícones (assets/icon-192.png, assets/icon-512.png, favicon.ico) e o manifest da loja (site.webmanifest, sem service worker) saem do mesmo gerador. Para refazer depois de mudar nome, slogan ou cidade:
+
+~~~powershell
+php scripts/gerar-capa.php --slogan="Um mundo sob medida para você" --cidade="Joinville, SC"
+~~~
+
+O script usa só GD com as fontes da loja convertidas para TTF em scripts/fonts/ (o GD não lê woff2) e os recortes fixos de assets/hero/; não lê o banco nem depende de foto do catálogo.
 
 As notas reais e o ambiente medido estão em docs/QA.md. O Lighthouse não garante posicionamento no Google; a hospedagem, conteúdo comercial, domínio e condições de rede precisam ser verificados depois da publicação.
 

@@ -51,7 +51,7 @@ $add = static function (string $relative) use ($zip, $root, &$manifest): void {
     $zip->addFile($file, 'public_html/' . $relative);
     $manifest[$relative] = hash_file('sha256', $file);
 };
-foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','instalar.php','.htaccess','.user.ini','.well-known/security.txt','db/schema.sql'] as $file) { $add($file); }
+foreach (['index.php','loja.php','favoritos.php','busca.php','produto.php','carrinho.php','finalizar.php','informacoes.php','404.php','robots.php','sitemap.php','favicon.ico','site.webmanifest','instalar.php','.htaccess','.user.ini','.well-known/security.txt','db/schema.sql'] as $file) { $add($file); }
 foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
     if (!is_dir($root . '/' . $folder)) { continue; }
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $folder, FilesystemIterator::SKIP_DOTS));
@@ -61,7 +61,8 @@ foreach (['admin','includes','assets','vendor','uploads'] as $folder) {
         if (preg_match('~(?:^|/)(?:\.git|node_modules)(?:/|$)|\.(?:log|bak|zip)$~', $relative)) { continue; }
         // Fotos de exemplo do seed e originais do hero (so geram os derivados -360/-720):
         // nada na loja aponta para eles.
-        if (preg_match('~^assets/products/|^assets/hero/cutout-\d+\.webp$~', $relative)) { continue; }
+        // Banner antigo da v1 (a capa agora e assets/capa-*, de scripts/gerar-capa.php).
+        if (preg_match('~^assets/products/|^assets/hero/cutout-\d+\.webp$|^assets/seo-banner\.webp$~', $relative)) { continue; }
         if (str_starts_with($relative, 'uploads/') && !isset($uploads[$relative])) { continue; }
         $add($relative);
     }

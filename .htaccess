@@ -144,6 +144,7 @@ ErrorDocument 403 "Acesso negado."
     AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml application/manifest+json
 </IfModule>
 AddType application/manifest+json .webmanifest
+AddType image/x-icon .ico
 
 # Cache: CSS, JS e imagens saem sempre com ?v=<data do arquivo> (asset_url e
 # product_image_url), entao um ano e seguro; trocar o arquivo muda a URL.
@@ -158,4 +159,7 @@ AddType application/manifest+json .webmanifest
     ExpiresByType image/svg+xml "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
     ExpiresByType application/manifest+json "access plus 1 day"
+    # favicon.ico tem nome fixo (sem ?v=): uma semana
+    ExpiresByType image/x-icon "access plus 1 week"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 week"
 </IfModule>
