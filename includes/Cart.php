@@ -30,6 +30,7 @@ require_once __DIR__ . '/ProductRepository.php';
 // csrf_token, csrf_field, csrf_check). NENHUMA pagina publica chama
 // require_login() - o arquivo so define funcoes, nao executa nada por si.
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/Coupon.php';
 
 // ---------------------------------------------------------------------------
 // Limites
@@ -43,6 +44,36 @@ if (!defined('CART_MAX_QTY')) {
 /** Teto de linhas distintas no carrinho (protege a sessao e a URL do wa.me). */
 if (!defined('CART_MAX_LINES')) {
     define('CART_MAX_LINES', 60);
+}
+
+// ---------------------------------------------------------------------------
+// Sacola e "Comprar agora"
+// ---------------------------------------------------------------------------
+
+/**
+ * Qual sacola esta em uso nesta requisicao.
+ *
+ * 'cart'        a sacola de sempre;
+ * 'cart_direct' o "Comprar agora" da pagina do produto: uma sacola separada,
+ *               com uma peca so, para a pessoa revisar e enviar sem mexer no
+ *               que ja tinha juntado na sacola de sempre.
+ *
+ * As duas usam as mesmas funcoes (itens, estoque, cupom, mensagem). O contador
+ * do cabecalho (cart_count) mostra sempre a sacola de sempre.
+ */
+function cart_bag(?string $set = null): string
+{
+    static $bag = 'cart';
+    if ($set !== null) {
+        $bag = $set === 'cart_direct' ? 'cart_direct' : 'cart';
+        cart_flush_cache();
+    }
+    return $bag;
+}
+
+function cart_is_direct(): bool
+{
+    return cart_bag() === 'cart_direct';
 }
 
 // ---------------------------------------------------------------------------
@@ -78,13 +109,13 @@ function cart_session(bool $create = false): bool
  *
  * @return array<int,int> product_id => qty
  */
-function cart_raw(bool $create = false): array
+function cart_raw(bool $create = false, ?string $bag = null): array
 {
     if (!cart_session($create)) {
         return [];
     }
 
-    $raw = $_SESSION['cart'] ?? [];
+    $raw = $_SESSION[$bag ?? cart_bag()] ?? [];
     if (!is_array($raw)) {
         return [];
     }
@@ -112,7 +143,7 @@ function cart_store(array $cart): void
         return;
     }
 
-    $_SESSION['cart'] = $cart;
+    $_SESSION[cart_bag()] = $cart;
     cart_flush_cache();
 }
 
@@ -240,7 +271,7 @@ function cart_clear(): void
         return;
     }
 
-    unset($_SESSION['cart']);
+    unset($_SESSION[cart_bag()], $_SESSION['coupon_' . cart_bag()]);
     cart_flush_cache();
 }
 
@@ -336,7 +367,7 @@ function cart_items(): array
             unset($cart[$orphanId]);
         }
         if (cart_session()) {
-            $_SESSION['cart'] = $cart;
+            $_SESSION[cart_bag()] = $cart;
         }
     }
 
@@ -355,7 +386,7 @@ function cart_items(): array
 function cart_count(): int
 {
     $total = 0;
-    foreach (cart_raw() as $qty) {
+    foreach (cart_raw(false, 'cart') as $qty) {
         $total += $qty;
     }
 
@@ -454,4 +485,116 @@ function cart_has_fixed_price(?array $items = null): bool
     }
 
     return false;
+}
+
+/**
+ * Soma das quantidades dos itens que vao no pedido (sem esgotados).
+ *
+ * @param array<int,array<string,mixed>>|null $items
+ */
+function cart_items_qty(?array $items = null): int
+{
+    $total = 0;
+    foreach ($items ?? cart_items() as $item) {
+        if (empty($item['sold_out'])) {
+            $total += (int) $item['qty'];
+        }
+    }
+    return $total;
+}
+
+// ---------------------------------------------------------------------------
+// Cupom (um por sacola; so o codigo fica na sessao)
+// ---------------------------------------------------------------------------
+
+function cart_coupon_code(): string
+{
+    if (!cart_session()) {
+        return '';
+    }
+    $code = $_SESSION['coupon_' . cart_bag()] ?? '';
+    return is_string($code) ? $code : '';
+}
+
+function cart_coupon_set(string $code): void
+{
+    if (cart_session(true)) {
+        $_SESSION['coupon_' . cart_bag()] = $code;
+    }
+}
+
+function cart_coupon_clear(): void
+{
+    if (cart_session()) {
+        unset($_SESSION['coupon_' . cart_bag()]);
+    }
+}
+
+/** Recado do cupom para a proxima renderizacao da sacola (lido uma vez). */
+function cart_coupon_notice(?string $type = null, string $text = ''): ?array
+{
+    if ($type !== null) {
+        if (cart_session(true)) {
+            $_SESSION['coupon_notice'] = ['type' => $type, 'text' => $text];
+        }
+        return null;
+    }
+    if (!cart_session() || !isset($_SESSION['coupon_notice'])) {
+        return null;
+    }
+    $notice = $_SESSION['coupon_notice'];
+    unset($_SESSION['coupon_notice']);
+    return is_array($notice) ? $notice : null;
+}
+
+/**
+ * Conta da sacola com o cupom aplicado (calculada no servidor, a partir do banco).
+ *
+ * @param array<int,array<string,mixed>>|null $items
+ * @return array{subtotal_cents:int,discount_cents:int,total_cents:int,has_fixed:bool,on_request:bool,on_request_count:int,coupon:?array,coupon_code:string,coupon_error:?string,coupon_permanent:bool}
+ */
+function cart_summary(?array $items = null, bool $ignoreLimit = false): array
+{
+    $items ??= cart_items();
+    $subtotal = cart_total_cents($items);
+    $hasFixed = cart_has_fixed_price($items);
+    $onRequestCount = 0;
+    foreach ($items as $item) {
+        if (!empty($item['price_on_request']) && empty($item['sold_out'])) {
+            $onRequestCount++;
+        }
+    }
+
+    $summary = [
+        'subtotal_cents'   => $subtotal,
+        'discount_cents'   => 0,
+        'total_cents'      => $subtotal,
+        'has_fixed'        => $hasFixed,
+        'on_request'       => $onRequestCount > 0,
+        'on_request_count' => $onRequestCount,
+        'coupon'           => null,
+        'coupon_code'      => '',
+        'coupon_error'     => null,
+        'coupon_permanent' => false,
+    ];
+
+    $code = cart_coupon_code();
+    if ($code === '' || !CouponRepository::ready()) {
+        return $summary;
+    }
+
+    $coupon = CouponRepository::findByCode($code);
+    $check  = CouponRepository::evaluate($coupon, $subtotal, $hasFixed, $ignoreLimit);
+    $summary['coupon_code'] = $code;
+    if (!$check['ok']) {
+        $summary['coupon_error'] = $check['error'];
+        $summary['coupon_permanent'] = $check['permanent'];
+        return $summary;
+    }
+
+    $summary['coupon']         = $coupon;
+    $summary['discount_cents'] = $check['discount_cents'];
+    $summary['total_cents']    = max(0, $subtotal - $check['discount_cents']);
+
+    return $summary;
 }

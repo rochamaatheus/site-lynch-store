@@ -30,9 +30,9 @@ $nome     = (string) $p['name'];
 <li class="prow<?= $ativo ? '' : ' is-off' ?><?= $esgotado ? ' is-out' : '' ?>" id="produto-<?= $pid ?>" data-prow>
   <div class="prow-main">
     <?php if ($foto !== ''): ?>
-      <img class="thumb" src="<?= e(asset_url($foto)) ?>" alt="" loading="lazy" width="52" height="65">
+      <img class="thumb" src="<?= e(asset_url($foto)) ?>" alt="" loading="lazy" decoding="async" width="64" height="80">
     <?php else: ?>
-      <span class="thumb empty">sem<br>foto</span>
+      <a class="thumb empty" href="<?= e(APP_BASE_URL) ?>/admin/produto-imagens.php?id=<?= $pid ?>">pôr<br>foto<span class="sr"> em <?= e($nome) ?></span></a>
     <?php endif; ?>
     <div class="prow-info">
       <h2 class="prow-name"><a href="<?= e(APP_BASE_URL) ?>/admin/produto-form.php?id=<?= $pid ?>"><?= e($nome) ?></a></h2>
@@ -122,14 +122,15 @@ $nome     = (string) $p['name'];
   <?php endif; ?>
 
   <div class="prow-actions">
-    <a class="btn small" href="<?= e(APP_BASE_URL) ?>/admin/produto-form.php?id=<?= $pid ?>">Editar</a>
-    <a class="btn small ghost" href="<?= e(APP_BASE_URL) ?>/admin/produto-imagens.php?id=<?= $pid ?>">Fotos</a>
-    <form method="post" action="<?= e(APP_BASE_URL) ?>/admin/produto-excluir.php"
-          data-confirm="<?= $ativo ? 'Tirar este produto da loja? Ele some da vitrine, mas continua aqui e você pode voltar com ele quando quiser.' : 'Voltar com este produto para a loja?' ?>">
+    <a class="btn small" href="<?= e(APP_BASE_URL) ?>/admin/produto-form.php?id=<?= $pid ?>">Editar<span class="sr"> <?= e($nome) ?></span></a>
+    <a class="btn small ghost" href="<?= e(APP_BASE_URL) ?>/admin/produto-imagens.php?id=<?= $pid ?>">Fotos<span class="sr"> de <?= e($nome) ?></span></a>
+    <form class="prow-off" method="post" action="<?= e(APP_BASE_URL) ?>/admin/produto-excluir.php"
+          data-confirm="<?= $ativo ? e('Tirar "' . $nome . '" da loja? Ele some da vitrine, mas continua aqui e você pode voltar com ele quando quiser.') : e('Voltar com "' . $nome . '" para a loja?') ?>"
+          data-confirm-ok="<?= $ativo ? 'Tirar da loja' : 'Voltar para a loja' ?>"<?= $ativo ? '' : ' data-confirm-safe' ?>>
       <?= csrf_field() ?>
       <input type="hidden" name="id" value="<?= $pid ?>">
       <input type="hidden" name="action" value="<?= $ativo ? 'delete' : 'restore' ?>">
-      <button class="btn small ghost" type="submit"><?= $ativo ? 'Tirar da loja' : 'Voltar para a loja' ?></button>
+      <button class="btn small <?= $ativo ? 'quiet' : 'primary' ?>" type="submit"><?= $ativo ? 'Tirar da loja' : 'Voltar para a loja' ?></button>
     </form>
   </div>
 </li>

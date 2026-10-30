@@ -105,14 +105,14 @@ $categories = [
     ['name' => 'Novidades', 'slug' => 'novidades', 'sort_order' => 3],
 ];
 
+// Dados reais da loja (WhatsApp, Instagram, horario, endereco): db/dados-lynch.php.
+require_once __DIR__ . '/dados-lynch.php';
 $settings = [
-    // Vazio de proposito: a Ray preenche o numero real pelo painel admin.
-    'whatsapp_number'         => '',
     'hero_title'              => 'Um mundo sob medida.',
     'hero_subtitle'           => 'Acessórios, moda kawaii geek e cosplay com clima artesanal, tons terrosos e atendimento direto pelo WhatsApp.',
     'hero_cta_label'          => 'Ver novidades',
     'whatsapp_message_intro'  => 'Olá! Quero fazer um pedido na Lynch Store:',
-];
+] + lynch_store_settings();
 
 $sourceDir = APP_ROOT . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'products';
 $uploadsProductsDir = UPLOADS_PATH . DIRECTORY_SEPARATOR . 'products';

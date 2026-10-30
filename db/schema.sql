@@ -164,6 +164,38 @@ CREATE TABLE IF NOT EXISTS checkout_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- coupons - cupons de desconto da sacola (painel: Cupons)
+-- code: sempre maiusculo, sem espacos (A-Z, 0-9 e hifen, 3 a 20), normalizado
+--   em codigo antes de gravar e de procurar. UNIQUE serve a busca da sacola.
+-- discount_type percent: discount_value e a porcentagem (1 a 100).
+-- discount_type fixed: discount_value em CENTAVOS. MEDIUMINT UNSIGNED vai ate
+--   R$ 167.772,15, folga enorme para desconto e pedido minimo de uma loja.
+-- expires_on: ultimo dia valido (inclusive); NULL = sem validade.
+-- max_uses NULL = sem limite. uses sobe 1 por checkout registrado (finalizar.php,
+--   UPDATE atomico que respeita o limite).
+-- deleted = exclusao logica: some do painel e para de valer; os pedidos antigos
+--   guardam o cupom no proprio cart_json, entao nada se perde.
+-- Sem outros indices: a lista do painel le a tabela inteira (dezenas de linhas).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS coupons (
+    id               SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code             VARCHAR(20) NOT NULL,
+    discount_type    ENUM('percent','fixed') NOT NULL,
+    discount_value   MEDIUMINT UNSIGNED NOT NULL,
+    min_order_cents  MEDIUMINT UNSIGNED DEFAULT NULL,
+    expires_on       DATE DEFAULT NULL,
+    max_uses         SMALLINT UNSIGNED DEFAULT NULL,
+    uses             SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    active           TINYINT(1) NOT NULL DEFAULT 1,
+    deleted          TINYINT(1) NOT NULL DEFAULT 0,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_coupons_code (code),
+    CONSTRAINT chk_coupons_value
+        CHECK (discount_value > 0 AND (discount_type = 'fixed' OR discount_value <= 100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- Banco que JA existia antes do pipeline de imagem (ago/2026)
 -- Este arquivo usa CREATE TABLE IF NOT EXISTS, entao reimportar NAO adiciona
 -- coluna em tabela ja criada. Numa instalacao antiga, rodar uma vez:

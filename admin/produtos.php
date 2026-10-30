@@ -74,18 +74,25 @@ require __DIR__ . '/partials/admin-header.php';
 ?>
 <div class="page-head">
   <div>
-    <p class="eyebrow">Catálogo</p>
     <h1>Produtos</h1>
     <p class="muted">
-      <?= $total ?> produto<?= $total === 1 ? '' : 's' ?><?= $temFiltro ? ' com os filtros atuais' : ' no catálogo' ?>.
+      <?= $total ?> produto<?= $total === 1 ? '' : 's' ?><?= $temFiltro || $aba !== '' ? ' nesta escolha' : ' no catálogo' ?>.
     </p>
   </div>
   <div class="actions">
-    <a class="btn" href="<?= e(base_url('admin/importar.php')) ?>">Importar planilha</a>
-    <a class="btn" href="<?= e(base_url('admin/exportar.php')) ?>">Exportar CSV</a>
-    <a class="btn primary" href="<?= e($base) ?>/admin/produto-form.php">+ Novo produto</a>
+    <a class="btn primary" href="<?= e($base) ?>/admin/produto-form.php"><span aria-hidden="true">+</span> Novo produto</a>
   </div>
 </div>
+
+<form class="searchbar" method="get" action="<?= e($base) ?>/admin/produtos.php" role="search">
+  <?php if ($aba !== ''): ?><input type="hidden" name="aba" value="<?= e($aba) ?>"><?php endif; ?>
+  <?php foreach (['categoria' => $categoriaId ?: '', 'disponibilidade' => $disponib, 'status' => $status] as $kk => $vv): ?>
+    <?php if ($vv !== ''): ?><input type="hidden" name="<?= $kk ?>" value="<?= e((string) $vv) ?>"><?php endif; ?>
+  <?php endforeach; ?>
+  <label class="sr" for="q-busca">Buscar produto pelo nome</label>
+  <input type="search" id="q-busca" name="busca" value="<?= e($busca) ?>" placeholder="Buscar pelo nome" enterkeyhint="search" autocomplete="off">
+  <button class="btn primary" type="submit">Buscar</button>
+</form>
 
 <nav class="tabs" aria-label="Mostrar produtos" data-tabs>
   <?php foreach ($abas as $chave => $rotulo): ?>
@@ -100,14 +107,12 @@ require __DIR__ . '/partials/admin-header.php';
   <div class="flash info" role="status">Estoque e promoção ficam disponíveis assim que o banco da loja for atualizado.</div>
 <?php endif; ?>
 
-<details class="filters-box"<?= $temFiltro ? ' open' : '' ?>>
-  <summary>Buscar e filtrar<?= $temFiltro ? ' (filtros ativos)' : '' ?></summary>
+<?php $filtroExtra = $categoriaId !== 0 || $disponib !== '' || $status !== ''; ?>
+<details class="filters-box"<?= $filtroExtra ? ' open' : '' ?>>
+  <summary>Mais filtros<?= $filtroExtra ? ' (ligados)' : '' ?></summary>
 <form class="filters" method="get" action="<?= e($base) ?>/admin/produtos.php">
   <?php if ($aba !== ''): ?><input type="hidden" name="aba" value="<?= e($aba) ?>"><?php endif; ?>
-  <div class="field grow">
-    <label for="f-busca">Buscar</label>
-    <input type="search" id="f-busca" name="busca" value="<?= e($busca) ?>" placeholder="Nome do produto">
-  </div>
+  <?php if ($busca !== ''): ?><input type="hidden" name="busca" value="<?= e($busca) ?>"><?php endif; ?>
   <div class="field">
     <label for="f-cat">Categoria</label>
     <select id="f-cat" name="categoria">
@@ -137,22 +142,24 @@ require __DIR__ . '/partials/admin-header.php';
     </select>
   </div>
   <div class="btns">
-    <button class="btn primary" type="submit">Filtrar</button>
-    <?php if ($temFiltro): ?>
-      <a class="btn ghost" href="<?= e($base) ?>/admin/produtos.php<?= $aba !== '' ? '?aba=' . e($aba) : '' ?>">Limpar</a>
-    <?php endif; ?>
+    <button class="btn primary" type="submit">Aplicar filtros</button>
   </div>
 </form>
 </details>
 
-<p class="sr" role="status" aria-live="polite" data-quick-status></p>
+<?php if ($temFiltro): ?>
+  <p class="filter-on">
+    <?= $busca !== '' ? 'Buscando "' . e($busca) . '".' : 'Filtros ligados.' ?>
+    <a class="btn small ghost" href="<?= e($base) ?>/admin/produtos.php<?= $aba !== '' ? '?aba=' . e($aba) : '' ?>">Limpar busca e filtros</a>
+  </p>
+<?php endif; ?>
 
 <?php if ($produtos === []): ?>
   <div class="card">
   <div class="empty-state">
     <?= $temFiltro || $aba !== ''
-        ? 'Nenhum produto aqui com essa escolha.'
-        : 'Nenhum produto cadastrado ainda. Use o botão "Novo produto" para começar.' ?>
+        ? 'Nenhum produto aqui com essa escolha. Troque a aba ou limpe a busca.'
+        : 'Nenhum produto cadastrado ainda. Toque em Novo produto para começar.' ?>
   </div>
   </div>
 <?php else: ?>
@@ -167,8 +174,8 @@ require __DIR__ . '/partials/admin-header.php';
   </p>
 <?php endif; ?>
 <nav class="actions" aria-label="Paginação dos produtos">
-<?php if ($cursor !== ''): ?><a class="btn" href="<?= e(base_url('admin/produtos.php') . (($tq = http_build_query($keep + array_filter(['aba' => $aba]))) !== '' ? '?' . $tq : '')) ?>">Voltar ao início</a><?php endif; ?>
-<?php if ($nextUrl): ?><a class="btn primary" href="<?= e($nextUrl) ?>">Próximos produtos</a><?php endif; ?>
+<?php if ($cursor !== ''): ?><a class="btn ghost" href="<?= e(base_url('admin/produtos.php') . (($tq = http_build_query($keep + array_filter(['aba' => $aba]))) !== '' ? '?' . $tq : '')) ?>">Voltar ao começo da lista</a><?php endif; ?>
+<?php if ($nextUrl): ?><a class="btn primary wide" href="<?= e($nextUrl) ?>">Ver mais produtos</a><?php endif; ?>
 </nav>
 <?php
 require __DIR__ . '/partials/admin-footer.php';

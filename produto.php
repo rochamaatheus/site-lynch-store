@@ -175,9 +175,18 @@ require __DIR__ . '/includes/partials/header.php';
         <?php if ($soldOut): ?>
         <button class="btn ink wide" type="submit" disabled>Esgotado</button>
         <?php else: ?>
-        <button class="btn ink wide" type="submit">Colocar na sacola</button>
+        <button class="btn line wide" type="submit">Colocar na sacola</button>
         <?php endif; ?>
       </form>
+      <?php if (!$soldOut): ?>
+      <form method="post" action="<?= e(base_url('carrinho.php')) ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="buy_now">
+        <input type="hidden" name="product_id" value="<?= e($productId) ?>">
+        <input type="hidden" name="redirect_to" value="<?= e($cartBackTo) ?>">
+        <button class="btn ink wide" type="submit">Comprar agora</button>
+      </form>
+      <?php endif; ?>
     </div>
 
     <div class="pdp-links">

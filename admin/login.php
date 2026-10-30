@@ -60,10 +60,16 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#DDAE35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lynch painel">
 <meta name="robots" content="noindex, nofollow">
 <title>Entrar | Lynch Store</title>
+<link rel="manifest" href="<?= $h(APP_BASE_URL) ?>/admin/manifest.webmanifest">
 <link rel="icon" href="<?= $h(APP_BASE_URL) ?>/assets/lynch-logo.webp">
+<link rel="apple-touch-icon" href="<?= $h(APP_BASE_URL) ?>/admin/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="<?= $h(asset_url('assets/css/admin.css')) ?>">
 </head>
 <body class="login">
@@ -73,7 +79,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
   <div class="card login-card">
   <p class="eyebrow">Lynch Store</p>
   <h1>Painel administrativo</h1>
-  <p class="sub">Entre para gerenciar produtos, fotos e configurações da loja.</p>
+  <p class="sub">Entre para cuidar dos produtos, pedidos e cupons da loja.</p>
 
   <?php if ($error !== null): ?>
     <p class="alert" role="alert"><?= $h($error) ?></p>
@@ -81,7 +87,7 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
     <p class="alert info" role="status">Sua sessão expirou por inatividade. Entre de novo e refaça a última ação: o que ficou sem salvar precisa ser digitado outra vez.</p>
   <?php endif; ?>
 
-  <form method="post" action="<?= $h(APP_BASE_URL) ?>/admin/login.php" autocomplete="on" novalidate>
+  <form method="post" action="<?= $h(APP_BASE_URL) ?>/admin/login.php" autocomplete="on" novalidate data-busy="Entrando...">
     <?= csrf_field() ?>
     <?php if ($safeRedirect !== null): ?>
       <input type="hidden" name="redirect" value="<?= $h($safeRedirect) ?>">
@@ -90,22 +96,22 @@ $h = static fn (string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
     <div class="field">
       <label for="username">Usuário</label>
       <input type="text" id="username" name="username" value="<?= $h($username) ?>"
-             autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+             autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" required>
     </div>
 
     <div class="field">
       <label for="password">Senha</label>
       <div class="pw">
         <input type="password" id="password" name="password"
-               autocomplete="current-password" required>
-        <button type="button" class="pw-toggle" data-pw-toggle="password" aria-pressed="false" hidden>Mostrar</button>
+               autocomplete="current-password" autocapitalize="none" spellcheck="false" enterkeyhint="go" required>
+        <button type="button" class="pw-toggle" data-pw-toggle="password" aria-label="Mostrar senha" hidden>Mostrar</button>
       </div>
     </div>
 
     <button class="btn primary wide" type="submit">Entrar</button>
   </form>
 
-  <p class="foot">Acesso restrito &middot; Lynch Store</p>
+  <p class="foot">Dica: deixe o celular salvar a senha quando ele oferecer. Na próxima vez é só tocar em Entrar.</p>
   </div>
 </main>
 <script src="<?= $h(asset_url('assets/js/admin.js')) ?>" defer></script>

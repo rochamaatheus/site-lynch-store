@@ -143,11 +143,131 @@ const pass = text => results.push(text);
     pass('Checkout prepara URL, evita duplicidade e mantém carrinho; nenhuma mensagem enviada');
     const orderId = decodeURIComponent(location).match(/Pedido #(\d+)/)[1];
     await go('/admin/pedidos.php?id='+orderId);
-    await page.locator('[name=status]').selectOption('em_atendimento');
     await page.locator('[name=notes]').fill('QA: atendimento de teste');
-    await page.getByRole('button',{name:'Salvar atendimento',exact:true}).click();
-    assert.equal(await page.locator('[name=status]').inputValue(),'em_atendimento');
+    await Promise.all([page.waitForURL('**/pedidos.php?id='+orderId),page.getByRole('button',{name:'Em atendimento',exact:true}).click()]);
+    assert.equal(await page.locator('.status-btn[aria-pressed=true]').getAttribute('value'),'em_atendimento');
+    assert.equal(await page.locator('[name=notes]').inputValue(),'QA: atendimento de teste');
     pass('Pedido localizado e situação atualizada');
+
+    // ---------- Cupons: painel, sacola, checkout e Comprar agora ----------
+    const C = suffix.toUpperCase();
+    const card = code => page.locator('.ccard',{has:page.locator('.ccard-code',{hasText:new RegExp('^'+code+'$')})});
+    const newCoupon = async (code, type, value, extra={}) => {
+      await go('/admin/cupons.php');
+      assert.match(await page.locator('#cp-code').inputValue(),/^LYNCH[A-Z2-9]{4}$/,'Código sugerido');
+      await page.locator('#cp-code').fill(code);
+      await page.locator('[name=discount_type][value='+type+']').check();
+      await page.locator('#cp-value').fill(value);
+      if (extra.min) await page.locator('#cp-min').fill(extra.min);
+      if (extra.max) await page.locator('#cp-max').fill(extra.max);
+      await page.getByRole('button',{name:'Criar cupom',exact:true}).click();
+      await page.waitForLoadState('load');
+    };
+    await go('/admin/cupons.php');
+    const sugg = await page.locator('#cp-code').inputValue();
+    await page.getByRole('button',{name:'Sugerir outro',exact:true}).click();
+    assert.notEqual(await page.locator('#cp-code').inputValue(),sugg);
+    await newCoupon('qa10 '+C.toLowerCase(),'percent','10',{max:'2'});
+    assert.match(await page.locator('main').innerText(),new RegExp('Cupom QA10'+C+' criado'));
+    assert.match(await card('QA10'+C).innerText(),/Ativo[\s\S]*10% de desconto[\s\S]*Usado 0 de 2 vezes/);
+    await newCoupon('QAMIN'+C,'percent','5',{min:'1000,00'});
+    await newCoupon('QAFIX'+C,'fixed','9999,00');
+    await newCoupon('QA10'+C,'percent','5');
+    assert.match(await page.locator('.flash.error').innerText(),/Já existe um cupom/);
+    await newCoupon('QAX'+C,'percent','150');
+    assert.match(await page.locator('.flash.error').innerText(),/1 a 100/);
+    assert.equal(await page.locator('#cp-value').inputValue(),'150','Formulário recusado volta preenchido');
+    pass('Cupons no painel: código sugerido, criação em % e R$, duplicado e valor inválido recusados');
+
+    const bagText = () => page.locator('.bag-page').innerText();
+    const applyCoupon = async code => {
+      await page.locator('#cupom-campo').fill(code);
+      await Promise.all([page.waitForResponse(r=>r.url().includes('/carrinho.php')&&r.request().method()==='POST'),page.locator('.coupon-form button').click()]);
+      await page.waitForFunction(()=>{const i=document.querySelector('#cupom-campo');return !i||i.value==='';});
+      await page.locator('.coupon-msg').waitFor();
+    };
+    await go('/carrinho.php');
+    await applyCoupon('NAOEXISTE'+C);
+    assert.match(await page.locator('.coupon-msg').innerText(),/Cupom não encontrado/);
+    await applyCoupon('QAMIN'+C);
+    assert.match(await page.locator('.coupon-msg').innerText(),/Pedido mínimo de R\$ 1\.000,00/);
+    await applyCoupon('  qa10'+C.toLowerCase()+' ');
+    assert.match(await page.locator('.coupon-msg').innerText(),/aplicado: você economiza R\$ 38,97/);
+    assert.match(await bagText(),/Subtotal\s+R\$ 389,70[\s\S]*Cupom QA10[^\n]*\s+−R\$ 38,97[\s\S]*R\$ 350,73/);
+    assert.equal(page.url(),base+'/carrinho.php','Cupom aplicado sem recarregar');
+    pass('Sacola: cupom inexistente, pedido mínimo e cupom válido com desconto e novo total');
+
+    const toWa = async (data={}) => { const r = await post('/finalizar.php',data); return {status:r.status(),loc:r.headers().location||''}; };
+    let co = await toWa();
+    assert.match(co.loc,/^https:\/\/wa\.me\/5511999999999\?text=/);
+    const text = decodeURIComponent(co.loc.split('?text=')[1]);
+    assert.match(text,/Subtotal: R\$ 389,70\nCupom QA10\w+ \(10%\): -R\$ 38,97\n\*Total: R\$ 350,73\*/);
+    assert.match(text,/1\. Produto QA[^\n]*\n   Qtd: 3 x R\$ 129,90 = R\$ 389,70/);
+    assert.match(text,/\*Pedido #\d+\*[\s\S]*Podemos combinar o pagamento e a entrega por aqui\?/);
+    assert.doesNotMatch(text,/—/);
+    const again2 = await toWa();
+    assert.equal(again2.loc,co.loc,'Repetição reaproveita a referência');
+    await go('/admin/cupons.php');
+    assert.match(await card('QA10'+C).innerText(),/Usado 1 de 2 vezes/);
+    pass('Checkout com cupom: mensagem com subtotal, cupom e total; repetir em 30 minutos não conta outro uso');
+
+    await go('/carrinho.php');
+    await page.locator('.bag-page [name=qty]').first().click();
+    await page.locator('.bag-page output',{hasText:'2'}).waitFor();
+    co = await toWa();
+    assert.match(decodeURIComponent(co.loc),/-R\$ 25,98/);
+    await go('/admin/cupons.php');
+    assert.match(await card('QA10'+C).innerText(),/Esgotado[\s\S]*Usado 2 de 2 vezes/);
+    await go('/carrinho.php');
+    await page.locator('.bag-page [name=qty]').last().click();
+    await page.locator('.bag-page output',{hasText:'3'}).waitFor();
+    co = await toWa();
+    assert.equal(co.status,303);
+    assert.doesNotMatch(co.loc,/wa\.me/);
+    await go('/carrinho.php');
+    assert.match(await page.locator('main').innerText(),/QA10\w+ (acabou de esgotar|não vale mais \(Cupom esgotado)/);
+    assert.equal(await page.locator('.coupon-on').count(),0,'Cupom esgotado saiu da sacola');
+    pass('Revalidação no checkout: cupom que esgotou entre aplicar e enviar é recusado e retirado');
+
+    await applyCoupon('QAFIX'+C);
+    assert.match(await bagText(),/−R\$ 389,70[\s\S]*Total\s+R\$ 0,00/);
+    await go('/admin/cupons.php');
+    await card('QAFIX'+C).getByRole('button',{name:'Desativar',exact:true}).click();
+    await page.waitForLoadState('load');
+    assert.match(await card('QAFIX'+C).innerText(),/Desativado/);
+    co = await toWa();
+    assert.doesNotMatch(co.loc,/wa\.me/);
+    await go('/carrinho.php');
+    assert.match(await page.locator('main').innerText(),/não vale mais/);
+    await go('/admin/cupons.php');
+    await card('QAFIX'+C).getByRole('button',{name:'Ativar',exact:true}).click();
+    await page.waitForLoadState('load');
+    assert.match(await card('QAFIX'+C).innerText(),/Ativo/);
+    await card('QAMIN'+C).getByRole('button',{name:'Excluir',exact:true}).click();
+    await Promise.all([page.waitForNavigation(),page.locator('[data-sheet-ok]').click()]);
+    assert.equal(await card('QAMIN'+C).count(),0);
+    assert.match(await page.locator('main').innerText(),/excluído/);
+    pass('Cupom fixo nunca deixa o total negativo; desativar, ativar e excluir com confirmação no painel');
+
+    await go('/produto.php?slug=produto-qa-'+suffix);
+    const bagBefore = await page.locator('.buybar [data-bloom]').getAttribute('data-count');
+    await page.getByRole('button',{name:'Comprar agora',exact:true}).click();
+    await page.waitForURL('**/carrinho.php?direta=1');
+    assert.equal(await page.locator('h1').innerText(),'Comprar agora');
+    assert.equal(await page.locator('.bag-line').count(),1);
+    assert.match(await page.locator('.bag-keep').innerText(),new RegExp('continua com '+bagBefore+' peças'));
+    await applyCoupon('QAFIX'+C);
+    assert.match(await bagText(),/Total\s+R\$ 0,00/);
+    await page.locator('.coupon-remove button').click();
+    await page.locator('.coupon-form').waitFor();
+    const direct = await toWa({bag:'direct'});
+    const dtext = decodeURIComponent(direct.loc.split('?text=')[1]||'');
+    assert.match(dtext,/1\. Produto QA[^\n]*\n   Qtd: 1 x R\$ 129,90/);
+    assert.doesNotMatch(dtext,/2\. /);
+    await go('/carrinho.php');
+    assert.equal(await page.locator('.bag-page .bag-line').count(),1);
+    assert.equal(await page.locator('.bag-page output').last().innerText(),'3','Sacola de sempre intacta');
+    pass('Comprar agora: revisão só da peça, cupom, envio pelo WhatsApp e sacola de sempre intacta');
 
     // ---------- Estoque, promoção, destaque e esgotado (ações rápidas) ----------
     const row = () => page.locator('#produto-'+productId);
@@ -191,7 +311,7 @@ const pass = text => results.push(text);
     assert.equal(await page.locator('.bag-page output').last().innerText(),'2','Sacola ajustada ao estoque');
     assert.match(await page.locator('main').innerText(),/207,84/);
     const promoCheckout = await post('/finalizar.php',{});
-    assert.match(decodeURIComponent(promoCheckout.headers().location),/Qtd: 2 \| R\$ 103,92 \(promoção, de R\$ 129,90\)/);
+    assert.match(decodeURIComponent(promoCheckout.headers().location),/Qtd: 2 x R\$ 103,92 = R\$ 207,84\n   Promoção: de R\$ 129,90 por R\$ 103,92/);
     pass('Vitrine com selos, Restam 2 e sacola/WhatsApp com preço promocional e estoque do servidor');
 
     await go(listUrl);
@@ -210,6 +330,9 @@ const pass = text => results.push(text);
     assert.equal(addSoldNoJs.status(),303);
     await go('/produto.php?slug=produto-qa-'+suffix);
     assert.equal(await page.getByRole('button',{name:'Esgotado',exact:true}).isDisabled(),true);
+    assert.equal(await page.getByRole('button',{name:'Comprar agora',exact:true}).count(),0,'Esgotado sem Comprar agora');
+    const buySold = await post('/carrinho.php',{action:'buy_now',product_id:productId});
+    assert.doesNotMatch(buySold.headers().location,/direta=1/);
     await go('/carrinho.php');
     assert.match(await page.locator('main').innerText(),/Esgotou\. Tire da sacola/);
     assert.equal(await page.locator('.bag-foot form[action$="finalizar.php"]').count(),0);
@@ -251,7 +374,7 @@ const pass = text => results.push(text);
     assert.equal((await ctx.request.get(base+'/produto.php?slug=produto-qa-'+suffix)).status(),404);
     pass('Desativação retira produto da loja');
 
-    const pages = ['/','/loja.php','/favoritos.php','/produto.php?slug=peca-de-cosplay-01','/produto.php?slug=promo-qa-'+suffix,'/carrinho.php','/admin/index.php','/admin/produtos.php','/admin/produtos.php?aba=promocao','/admin/produto-form.php?id='+productId,'/admin/importar.php','/admin/pedidos.php','/admin/configuracoes.php','/admin/conta.php'];
+    const pages = ['/','/loja.php','/favoritos.php','/produto.php?slug=peca-de-cosplay-01','/produto.php?slug=promo-qa-'+suffix,'/carrinho.php','/carrinho.php?direta=1','/informacoes.php','/admin/index.php','/admin/cupons.php','/admin/produtos.php','/admin/produtos.php?aba=promocao','/admin/produto-form.php?id='+productId,'/admin/importar.php','/admin/pedidos.php','/admin/configuracoes.php','/admin/conta.php'];
     const axeIssues = [];
     for (const width of [320,390,768,1440]) {
       await page.setViewportSize({width,height:900});
@@ -260,7 +383,7 @@ const pass = text => results.push(text);
         const overflow = await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
         assert.equal(overflow,false,'Overflow '+width+' '+route);
         // Alvos de toque das telas novas (ações rápidas, abas, sacola): pelo menos 44px.
-        const small = await page.evaluate(()=>[...document.querySelectorAll('.prow button,.prow input:not([type=hidden]),.prow summary,.prow a.btn,.tabs a,.filters-box>summary,.buybar button,.card .add')].filter(e=>{const w=e.offsetWidth,h=e.offsetHeight;return e.getClientRects().length&&w>0&&h>0&&!e.closest('[hidden]')&&(h<44||w<44);}).map(e=>e.outerHTML.slice(0,80)));
+        const small = await page.evaluate(()=>[...document.querySelectorAll('.prow button,.prow input:not([type=hidden]),.prow summary,.prow a.btn,.tabs a,.filters-box>summary,.buybar button,.card .add,.coupon-row button,.coupon-row input,.coupon-on button,.ccard button,.code-row button,.bag-keep a,.hours-row input')].filter(e=>{const w=e.offsetWidth,h=e.offsetHeight;return e.getClientRects().length&&w>0&&h>0&&!e.closest('[hidden]')&&(h<44||w<44);}).map(e=>e.outerHTML.slice(0,80)));
         assert.deepEqual(small,[],'Alvo menor que 44px em '+width+' '+route);
         if (width===390) {
           // Injeta o axe por avaliacao direta: a CSP do site (script-src 'self') bloqueia <script> inline, e queremos manter assim.

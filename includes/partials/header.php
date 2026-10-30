@@ -63,7 +63,8 @@ csrf_token();
 <meta name="description" content="<?= e($pageDescription) ?>">
 <meta name="robots" content="<?= !empty($pageNoIndex) || http_response_code() === 404 ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
 <meta name="theme-color" content="<?= $isHome ? '#DDAE35' : '#F7EFE2' ?>">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="only light">
+<meta name="format-detection" content="telephone=no">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <?php if ($pageCanonical !== ''): ?>
 <link rel="canonical" href="<?= e($pageCanonical) ?>">
@@ -77,7 +78,7 @@ csrf_token();
 <meta property="og:image" content="<?= e(asset_url($pageImage)) ?>">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
-<link rel="apple-touch-icon" href="<?= e(asset_url('assets/lynch-logo.webp')) ?>">
+<link rel="apple-touch-icon" href="<?= e(asset_url('assets/apple-touch-icon.png')) ?>">
 <?php if ($isHome && empty($heroBanner)): ?>
 <link rel="preload" as="image" href="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?>" imagesrcset="<?= e(asset_url('assets/hero/cutout-01-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/cutout-01-720.webp')) ?> 720w" imagesizes="(max-width:699px) 40vw, (max-width:999px) 230px, 22vw" fetchpriority="high">
 <?php endif; ?>

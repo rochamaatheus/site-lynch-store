@@ -13,11 +13,21 @@ if (realpath(__FILE__) === realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')
 
 require_once dirname(__DIR__) . '/functions.php';
 require_once dirname(__DIR__) . '/SettingsRepository.php';
+require_once dirname(__DIR__) . '/StoreInfo.php';
 
 $footWa        = whatsapp_link(setting('whatsapp_message_intro', 'Olá! Vim pelo site da Lynch Store.'));
 $footInstagram = setting('instagram_url');
 $footEmail     = setting('contact_email');
 $footAbout     = setting('footer_about', 'Moda geek, kawaii e cosplay para vestir o que você ama. Fale com a gente sobre a sua próxima peça.');
+$footName      = store_name();
+$footSlogan    = setting('store_slogan');
+$footBio       = setting('store_bio');
+$footHandle    = instagram_handle($footInstagram);
+$footPhone     = $footWa !== '' ? whatsapp_display() : '';
+$footHours     = store_hours_lines();
+$footBooking   = setting('appointment_note');
+$footAddress   = store_address_lines();
+$footMap       = store_maps_url();
 $tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria-current="page"' : '';
 ?>
 </main>
@@ -25,9 +35,11 @@ $tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria
 <footer class="foot" id="contato">
   <?= sunflower(null, 'foot-flower') ?>
   <div class="wrap foot-grid">
-    <div>
-      <p class="foot-name">Lynch Store</p>
+    <div class="foot-brand">
+      <p class="foot-name"><?= e($footName) ?></p>
+      <?php if ($footSlogan !== ''): ?><p class="foot-slogan"><?= e($footSlogan) ?></p><?php endif; ?>
       <p><?= e($footAbout) ?></p>
+      <?php if ($footBio !== ''): ?><p class="foot-bio"><?= e($footBio) ?></p><?php endif; ?>
     </div>
     <nav aria-label="Rodapé">
       <h2>Comprar</h2>
@@ -38,12 +50,29 @@ $tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria
     </nav>
     <div>
       <h2>Falar com a loja</h2>
-      <?php if ($footWa !== ''): ?><a href="<?= e($footWa) ?>" target="_blank" rel="noopener">WhatsApp</a><?php else: ?><span>WhatsApp em breve</span><?php endif; ?>
-      <?php if ($footInstagram !== ''): ?><a href="<?= e($footInstagram) ?>" target="_blank" rel="noopener">Instagram</a><?php endif; ?>
+      <?php if ($footWa !== ''): ?><a href="<?= e($footWa) ?>" target="_blank" rel="noopener">WhatsApp <?= e($footPhone) ?></a><?php else: ?><span>WhatsApp em breve</span><?php endif; ?>
+      <?php if ($footInstagram !== ''): ?><a href="<?= e($footInstagram) ?>" target="_blank" rel="noopener">Instagram <?= e($footHandle) ?></a><?php endif; ?>
       <?php if ($footEmail !== ''): ?><a href="mailto:<?= e($footEmail) ?>">E-mail</a><?php endif; ?>
+      <?php if ($footAddress !== []): ?>
+      <address class="foot-address"><?= implode('<br>', array_map('e', $footAddress)) ?></address>
+      <?php if ($footMap !== ''): ?><a href="<?= e($footMap) ?>" target="_blank" rel="noopener">Como chegar</a><?php endif; ?>
+      <?php endif; ?>
     </div>
+    <?php if ($footHours !== [] || $footBooking !== ''): ?>
+    <div>
+      <h2>Atendimento</h2>
+      <?php if ($footHours !== []): ?>
+      <dl class="foot-hours">
+        <?php foreach ($footHours as [$footDay, $footTime]): ?>
+        <div><dt><?= e($footDay) ?></dt><dd><?= e($footTime) ?></dd></div>
+        <?php endforeach; ?>
+      </dl>
+      <?php endif; ?>
+      <?php if ($footBooking !== ''): ?><p class="foot-booking"><b>Atendimento com horário marcado.</b> <?= e($footBooking) ?></p><?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
-  <p class="wrap foot-note">&copy; <?= e(date('Y')) ?> Lynch Store. Fotos reais do acervo.</p>
+  <p class="wrap foot-note">&copy; <?= e(date('Y')) ?> <?= e($footName) ?>. Fotos reais do acervo.</p>
 </footer>
 
 <?php if (!$isProductPage): ?>
@@ -69,7 +98,7 @@ $tabCurrent    = static fn (string $page): string => $navPath === $page ? ' aria
   <form class="searchbox" action="<?= e(url_catalog()) ?>" method="get" role="search">
     <?= icon('search') ?>
     <label class="sr" for="busca-campo">Buscar na loja</label>
-    <input id="busca-campo" name="busca" type="search" maxlength="80" placeholder="Anime, banda, personagem" autocomplete="off" data-search-input>
+    <input id="busca-campo" name="busca" type="search" maxlength="80" placeholder="Anime, banda, personagem" autocomplete="off" enterkeyhint="search" data-search-input>
     <button class="round plain" type="button" data-sheet-close aria-label="Fechar busca"><?= icon('close') ?></button>
   </form>
   <div class="search-out" data-search-out aria-live="polite">

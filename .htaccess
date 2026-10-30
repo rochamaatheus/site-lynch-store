@@ -121,11 +121,14 @@ ErrorDocument 403 "Acesso negado."
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript text/javascript application/json application/xml image/svg+xml
 </IfModule>
+AddType application/manifest+json .webmanifest
+
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType text/css "access plus 1 year"
     ExpiresByType application/javascript "access plus 1 year"
     ExpiresByType text/javascript "access plus 1 year"
     ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/png "access plus 1 year"
     ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>

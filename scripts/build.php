@@ -20,7 +20,7 @@ if (!in_array('--empty', $argv, true)) {
     $pdo->beginTransaction();
     try {
         foreach ($tables as $table => $columns) { $catalog[$table] = $pdo->query("SELECT $columns FROM $table")->fetchAll(); }
-        $publicSettings = ['whatsapp_number','hero_title','hero_subtitle','hero_cta_label','hero_chip','hero_banner_path','whatsapp_message_intro','footer_about','store_policies','contact_email','instagram_url'];
+        $publicSettings = ['whatsapp_number','hero_title','hero_subtitle','hero_cta_label','hero_chip','hero_banner_path','whatsapp_message_intro','footer_about','store_policies','contact_email','instagram_url','store_name','store_slogan','store_bio','opening_hours','appointment_note','address_street','address_district','address_city','address_state','address_zip'];
         $catalog['site_settings'] = array_values(array_filter($catalog['site_settings'], static fn($s) => in_array($s['setting_key'], $publicSettings, true)));
         $pdo->commit();
     } catch (Throwable $e) { $pdo->rollBack(); throw $e; }

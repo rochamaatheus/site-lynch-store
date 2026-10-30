@@ -144,7 +144,7 @@ try {
     $check($items[$out]['sold_out'] && $items[$out]['subtotal_cents'] === null && cart_sold_out_items() !== [], 'Esgotado na sacola não soma e bloqueia o envio');
     $check($items[$sale]['price_cents'] === 9000 && $items[$sale]['subtotal_cents'] === 18000 && cart_total_cents() === 38000, 'Sacola usa o preço promocional vigente');
     $msg = WhatsAppMessage::build(cart_items());
-    $check(!str_contains($msg, 'QA estoque esgotado') && str_contains($msg, 'R$ 90,00 (promoção, de R$ 100,00)'), 'Mensagem do WhatsApp sem esgotado e com preço promocional');
+    $check(!str_contains($msg, 'QA estoque esgotado') && str_contains($msg, 'Promoção: de R$ 100,00 por R$ 90,00'), 'Mensagem do WhatsApp sem esgotado e com preço promocional');
     $check(cart_room_for(ProductRepository::findById($out)) === 0 && cart_room_for(ProductRepository::findById($stock)) === 0, 'Servidor não deixa somar esgotado nem passar do estoque');
 
     // Abas e contagens
@@ -154,6 +154,101 @@ try {
     $check($counts['todos'] === 5 && $counts['esgotado'] === $list('esgotado') && $counts['promocao'] === $list('promocao') && $counts['baixo'] === $list('baixo') && $counts['destaque'] === $list('destaque') && $counts['visivel'] === $list('visivel'), 'Contagem das abas bate com a lista filtrada');
     $check($counts['esgotado'] === 1 && $counts['promocao'] === 1 && $counts['baixo'] === 1 && $counts['visivel'] === 1, 'Abas Esgotados, Em promoção, Estoque baixo e Estoque visível');
 } finally { $pdo->rollBack(); cart_clear(); }
+
+// ---------------------------------------------------------------------------
+// Cupom, Comprar agora, mensagem do WhatsApp e dados da loja
+// ---------------------------------------------------------------------------
+require_once dirname(__DIR__) . '/includes/StoreInfo.php';
+CouponRepository::flush();
+$S = strtoupper($suffix);
+$check(CouponRepository::ready(), 'Banco de teste com a tabela de cupons');
+$check(CouponRepository::normalizeCode(' lynch 10 ') === 'LYNCH10' && CouponRepository::normalizeCode('a!') === '' && preg_match(CouponRepository::CODE_PATTERN, CouponRepository::suggestCode()) === 1, 'Código de cupom normalizado (maiúsculo, sem espaço) e sugestão válida');
+$check(CouponRepository::parseForm(['code' => 'x' . $suffix, 'discount_type' => 'fixed', 'discount_value' => '15,00', 'min_order' => '100,00', 'max_uses' => '3'])['discount_value'] === 1500
+    && $throws(fn() => CouponRepository::parseForm(['code' => 'QA1', 'discount_type' => 'percent', 'discount_value' => '120']))
+    && $throws(fn() => CouponRepository::parseForm(['code' => 'QA1', 'discount_type' => 'percent', 'discount_value' => '10', 'expires_on' => '2020-01-01'])),
+    'Formulário do cupom: valor em reais vira centavos; 120% e validade passada recusados');
+$pdo->beginTransaction();
+try {
+    $mkp = static fn (string $slug, array $extra = []): int => ProductRepository::create($extra + ['name' => 'QA cupom ' . $slug, 'slug' => "qa-cp-$suffix-$slug", 'active' => true, 'price_on_request' => false, 'price_cents' => 10000, 'availability' => 'pronta_entrega']);
+    $a = $mkp('a');
+    $b = $mkp('b');
+    $c = $mkp('consulta', ['price_on_request' => true, 'price_cents' => null]);
+    ProductRepository::quickAction($b, 'sale_set', ['sale_percent' => '10']);
+    $pct  = CouponRepository::create(CouponRepository::parseForm(['code' => 'QAP' . $S, 'discount_type' => 'percent', 'discount_value' => '10']));
+    $fix  = CouponRepository::create(CouponRepository::parseForm(['code' => 'QAF' . $S, 'discount_type' => 'fixed', 'discount_value' => '500,00']));
+    $min  = CouponRepository::create(CouponRepository::parseForm(['code' => 'QAM' . $S, 'discount_type' => 'percent', 'discount_value' => '5', 'min_order' => '500,00']));
+    $lim  = CouponRepository::create(CouponRepository::parseForm(['code' => 'QAL' . $S, 'discount_type' => 'percent', 'discount_value' => '5', 'max_uses' => '1']));
+    $exp  = CouponRepository::create(CouponRepository::parseForm(['code' => 'QAE' . $S, 'discount_type' => 'percent', 'discount_value' => '5']));
+    $pdo->prepare('UPDATE coupons SET expires_on = ? WHERE id = ?')->execute([date('Y-m-d', strtotime('-1 day')), $exp]);
+    $check($throws(fn() => CouponRepository::create(CouponRepository::parseForm(['code' => 'qap' . $suffix, 'discount_type' => 'percent', 'discount_value' => '5']))), 'Código de cupom repetido recusado (UNIQUE, sem diferenciar maiúscula)');
+    $check($throws(fn() => $pdo->exec("UPDATE coupons SET discount_value = 150 WHERE id = $pct")), 'CHECK do banco recusa cupom acima de 100%');
+
+    cart_bag('cart');
+    cart_store([$a => 1, $b => 1, $c => 2]);
+    cart_coupon_set('QAP' . $S);
+    $sum = cart_summary();
+    $check($sum['subtotal_cents'] === 19000 && $sum['discount_cents'] === 1900 && $sum['total_cents'] === 17100, 'Cupom percentual sobre o subtotal já com preço promocional (R$ 100 + R$ 90, 10% = R$ 19,00)');
+    $check($sum['on_request'] && $sum['on_request_count'] === 1, 'Item sob consulta fica fora do subtotal e do desconto');
+    $msg = WhatsAppMessage::build(cart_items(), ['order_id' => 77, 'summary' => $sum]);
+    $check(str_contains($msg, '*Pedido #77*') && str_contains($msg, 'Subtotal: R$ 190,00') && str_contains($msg, 'Cupom QAP' . $S . ' (10%): -R$ 19,00') && str_contains($msg, '*Total estimado: R$ 171,00*'), 'Mensagem do WhatsApp com pedido, subtotal, cupom e total');
+    $check(str_contains($msg, '1. QA cupom a') && str_contains($msg, 'Qtd: 1 x R$ 90,00 = R$ 90,00') && str_contains($msg, 'Promoção: de R$ 100,00 por R$ 90,00') && str_contains($msg, 'Qtd: 2, valor a combinar'), 'Mensagem lista itens numerados com quantidade, promoção e valor a combinar');
+    $check(str_contains($msg, 'Itens com valor a combinar (1) não entram no total nem no desconto.') && str_contains($msg, WhatsAppMessage::CLOSING) && !str_contains($msg, '—'), 'Mensagem avisa itens sob consulta, pede para combinar pagamento e entrega e não tem travessão');
+    $wa = (string) WhatsAppMessage::url(cart_items(), ['number' => '554791781461', 'order_id' => 77, 'summary' => $sum]);
+    $check(str_starts_with($wa, 'https://wa.me/554791781461?text=') && str_contains($wa, 'Promo%C3%A7%C3%A3o') && rawurldecode(substr($wa, strlen('https://wa.me/554791781461?text='))) === $msg, 'Link do WhatsApp em UTF-8 com rawurlencode e texto íntegro');
+
+    cart_coupon_set('QAF' . $S);
+    $sum = cart_summary();
+    $check($sum['discount_cents'] === 19000 && $sum['total_cents'] === 0, 'Cupom fixo maior que o subtotal zera o total sem ficar negativo');
+    cart_coupon_set('QAM' . $S);
+    $sum = cart_summary();
+    $check($sum['coupon'] === null && str_contains((string) $sum['coupon_error'], 'Pedido mínimo de R$ 500,00') && !$sum['coupon_permanent'], 'Pedido mínimo: cupom não aplica e diz quanto falta');
+    cart_coupon_set('QAE' . $S);
+    $sum = cart_summary();
+    $check($sum['coupon'] === null && $sum['coupon_error'] === 'Cupom expirado.' && $sum['coupon_permanent'], 'Cupom expirado recusado');
+    CouponRepository::setActive($pct, false);
+    $check(CouponRepository::evaluate(CouponRepository::findByCode('QAP' . $S), 19000, true)['ok'] === false, 'Cupom desativado não vale');
+    CouponRepository::setActive($pct, true);
+    $check(CouponRepository::claim($pdo, $lim) && !CouponRepository::claim($pdo, $lim), 'Uso contado de forma atômica e limite respeitado no banco');
+    cart_coupon_set('QAL' . $S);
+    $check(str_contains((string) cart_summary()['coupon_error'], 'esgotado') && cart_summary(null, true)['discount_cents'] === 950, 'Cupom esgotado recusado; a repetição do mesmo checkout ainda vale');
+    $check(!CouponRepository::claim($pdo, $exp), 'Checkout não conta uso de cupom expirado');
+    cart_store([$c => 1]);
+    cart_coupon_set('QAP' . $S);
+    $check(str_contains((string) cart_summary()['coupon_error'], 'valor a combinar'), 'Sacola só com itens sob consulta não recebe desconto');
+    CouponRepository::softDelete($fix);
+    $check(CouponRepository::findByCode('QAF' . $S) === null && CouponRepository::create(CouponRepository::parseForm(['code' => 'QAF' . $S, 'discount_type' => 'percent', 'discount_value' => '7'])) === $fix, 'Exclusão lógica; o código excluído pode ser criado de novo');
+
+    // Comprar agora: sacola separada, a de sempre fica intacta
+    cart_coupon_clear();
+    cart_store([$a => 2]);
+    cart_bag('cart_direct');
+    cart_store([$b => 1]);
+    cart_coupon_set('QAP' . $S);
+    $direct = cart_items();
+    cart_bag('cart');
+    $check(count($direct) === 1 && $direct[0]['id'] === $b && cart_raw() === [$a => 2] && cart_count() === 2 && cart_coupon_code() === '', 'Comprar agora usa sacola própria e não mexe na sacola nem no cupom dela');
+
+    // Limite de tamanho do link
+    $many = [];
+    for ($i = 0; $i < 60; $i++) {
+        $many[] = ['name' => str_repeat('Peça com nome bem comprido ', 6) . $i, 'qty' => 1, 'price_cents' => 1000, 'price_on_request' => false, 'url' => 'http://localhost/produto.php?slug=x' . $i];
+    }
+    $longUrl = (string) WhatsAppMessage::url($many, ['number' => '554791781461', 'order_id' => 1]);
+    $check(strlen($longUrl) <= WhatsAppMessage::MAX_URL_LENGTH && str_contains(rawurldecode($longUrl), 'e mais') && str_contains(rawurldecode($longUrl), '*Total: R$ 600,00*'), 'Link do WhatsApp respeita o limite de tamanho e mantém o total');
+
+    // Tentativas de cupom
+    $_SESSION['coupon_fails'] = [];
+    for ($i = 0; $i < CouponRepository::MAX_FAILS; $i++) { coupon_register_fail(); }
+    $check(coupon_locked(), 'Cinco cupons errados seguidos bloqueiam novas tentativas por 10 minutos');
+    $_SESSION['coupon_fails'] = [];
+} finally { $pdo->rollBack(); cart_bag('cart_direct'); cart_clear(); cart_bag('cart'); cart_clear(); }
+
+SettingsRepository::flush();
+$check(whatsapp_display('554791781461') === '+55 47 9178-1461' && instagram_handle('https://instagram.com/lynchstore') === '@lynchstore', 'WhatsApp e Instagram exibidos como no aplicativo');
+$check(store_hours_lines() === [['Segunda a sexta', '09:00 às 12:00 e 14:00 às 18:30'], ['Sábado', '09:00 às 12:00'], ['Domingo', 'Fechado']] && store_address_lines() === ['Avenida Júpiter, 146, Jardim Paraíso', 'Joinville - SC, CEP 89226-600'], 'Horário e endereço da Lynch lidos das configurações');
+$ld = store_jsonld();
+$check($ld['address']['postalCode'] === '89226-600' && count($ld['openingHoursSpecification']) === 3 && $ld['telephone'] === '+55 47 9178-1461' && !isset($ld['email']), 'JSON-LD com endereço, horário e telefone, sem e-mail');
+$check(store_hours('{"seg_sex":[["12:00","09:00"],["xx","10:00"]]}')['seg_sex'] === [], 'Horário inválido no banco é ignorado na vitrine');
 
 // Importacao com as colunas novas (fora da transacao: apply abre a sua)
 $headersNew = ProductImport::HEADERS;
@@ -197,9 +292,12 @@ $queries = [
     'admin_tab_promocao' => "SELECT p.id,p.name,p.sale_price_cents FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1 AND p.sale_price_cents IS NOT NULL AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= '2026-10-30') ORDER BY p.sort_order ASC, p.id ASC LIMIT 31",
     'admin_tab_esgotado' => 'SELECT p.id,p.name FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1 AND (p.sold_out = 1 OR p.stock_qty = 0) ORDER BY p.sort_order ASC, p.id ASC LIMIT 31',
     'home_destaques' => 'SELECT p.id,p.name,p.stock_qty,p.sold_out,p.sale_price_cents FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE p.active = 1 AND p.featured = 1 ORDER BY p.sort_order ASC, p.id ASC LIMIT 10',
+    'coupon_by_code' => "SELECT id,code,discount_type,discount_value,min_order_cents,expires_on,max_uses,uses,active FROM coupons WHERE code = 'LYNCH10' AND deleted = 0 LIMIT 1",
+    'coupon_claim' => "EXPLAIN UPDATE coupons SET uses = uses + 1 WHERE id = 1 AND active = 1 AND deleted = 0 AND (expires_on IS NULL OR expires_on >= '2026-10-30') AND (max_uses IS NULL OR uses < max_uses)",
+    'coupon_admin_list' => 'SELECT id,code,discount_type,discount_value,min_order_cents,expires_on,max_uses,uses,active FROM coupons WHERE deleted = 0 ORDER BY id DESC LIMIT 200',
     'dashboard_missing_photos' =>'SELECT COUNT(*) FROM products p WHERE p.active=1 AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id=p.id)',
 ];
-foreach ($queries as $label => $sql) { $plans[$label] = $pdo->query('EXPLAIN ' . $sql)->fetchAll(); }
+foreach ($queries as $label => $sql) { $plans[$label] = $pdo->query(str_starts_with($sql, 'EXPLAIN') ? $sql : 'EXPLAIN ' . $sql)->fetchAll(); }
 file_put_contents(dirname(__DIR__) . '/docs/explain.json', json_encode($plans, JSON_PRETTY_PRINT));
 file_put_contents(dirname(__DIR__) . '/docs/php-tests.json', json_encode(['database' => DB_NAME, 'passed' => $passed, 'count' => count($passed), 'at' => date(DATE_ATOM)], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 echo count($passed) . " verificações PHP passaram.\n";

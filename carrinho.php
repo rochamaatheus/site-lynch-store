@@ -4,10 +4,14 @@
  *
  * Duas responsabilidades no mesmo arquivo, como o resto do site (arquivo = rota):
  *
- *  1. POST ?action=add|update|remove|clear  -> muda a sessao e REDIRECIONA (303).
+ *  1. POST ?action=add|update|remove|clear|buy_now|coupon_apply|coupon_remove
+ *                                           -> muda a sessao e REDIRECIONA (303).
  *     Nunca renderiza HTML depois de um POST: assim F5 nao reenvia o formulario
  *     (padrao POST/Redirect/GET).
  *  2. GET                                   -> desenha o carrinho.
+ *     GET ?direta=1                         -> desenha o "Comprar agora": outra
+ *     sacola na sessao (cart_direct), com a peca escolhida na pagina do produto.
+ *     A sacola de sempre nao e tocada. Os formularios dessa tela levam bag=direct.
  *
  * Mudar o carrinho por GET nao e possivel de proposito: adicionar item e
  * mutacao de estado, entao um link (que crawler/prefetch do navegador segue
@@ -35,7 +39,7 @@ function cart_redirect(string $url, int $status = 303): never
         $flash = flash_get();
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
-            'count'   => cart_count(),
+            'count'   => cart_count(),   // sempre a sacola de sempre (girassol)
             'message' => $flash !== [] ? end($flash) : null,
             'html'    => cart_lines_html(),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -69,7 +73,11 @@ function cart_back_url(): string
 
 $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $action        = (string) ($_POST['action'] ?? $_GET['action'] ?? '');
-$cartUrl       = base_url('carrinho.php');
+$directUrl     = base_url('carrinho.php') . '?direta=1';
+if (($requestMethod === 'POST' && ($_POST['bag'] ?? '') === 'direct') || ($requestMethod !== 'POST' && isset($_GET['direta']))) {
+    cart_bag('cart_direct');
+}
+$cartUrl       = cart_is_direct() ? $directUrl : base_url('carrinho.php');
 
 if ($requestMethod === 'POST') {
     // CSRF antes de qualquer coisa. Token invalido = nao processa nada.
@@ -129,6 +137,57 @@ if ($requestMethod === 'POST') {
             }
             cart_redirect($cartUrl);
 
+        case 'buy_now':
+            // "Comprar agora": a peca vai sozinha para a sacola do Comprar agora,
+            // que e trocada a cada clique. A sacola de sempre continua como estava.
+            $buyProduct = $productId > 0 ? ProductRepository::findById($productId) : null;
+            if ($buyProduct === null) {
+                flash_set('error', 'Produto indisponível no momento.');
+                cart_redirect(base_url('carrinho.php'));
+            }
+            if (!empty($buyProduct['is_sold_out'])) {
+                flash_set('error', 'Esta peça esgotou e não pode ser pedida.');
+                cart_redirect(cart_back_url());
+            }
+            cart_bag('cart_direct');
+            cart_store([$productId => 1]);
+            cart_redirect($directUrl);
+
+        case 'coupon_apply':
+            $couponInput = is_string($_POST['coupon'] ?? null) ? $_POST['coupon'] : '';
+            if (!CouponRepository::ready()) {
+                cart_coupon_notice('error', 'Cupons indisponíveis no momento.');
+                cart_redirect($cartUrl);
+            }
+            if (coupon_locked()) {
+                coupon_register_fail();
+                cart_coupon_notice('error', 'Muitas tentativas de cupom. Espere 10 minutos e tente de novo.');
+                cart_redirect($cartUrl);
+            }
+            if (trim($couponInput) === '') {
+                cart_coupon_notice('error', 'Digite o código do cupom.');
+                cart_redirect($cartUrl);
+            }
+            $couponCode = CouponRepository::normalizeCode($couponInput);
+            $coupon = $couponCode !== '' ? CouponRepository::findByCode($couponCode) : null;
+            $couponItems = cart_items();
+            $couponCheck = CouponRepository::evaluate($coupon, cart_total_cents($couponItems), cart_has_fixed_price($couponItems));
+            if (!$couponCheck['ok']) {
+                if ($coupon === null) {
+                    coupon_register_fail();
+                }
+                cart_coupon_notice('error', (string) $couponCheck['error']);
+                cart_redirect($cartUrl);
+            }
+            cart_coupon_set($couponCode);
+            cart_coupon_notice('ok', 'Cupom ' . $couponCode . ' aplicado: você economiza ' . format_price($couponCheck['discount_cents']) . '.');
+            cart_redirect($cartUrl);
+
+        case 'coupon_remove':
+            cart_coupon_clear();
+            cart_coupon_notice('ok', 'Cupom removido.');
+            cart_redirect($cartUrl);
+
         case 'remove':
             cart_remove($productId);
             flash_set('info', 'Peça removida da sacola.');
@@ -155,8 +214,9 @@ if ($action !== '') {
 // 2. GET: render
 // ---------------------------------------------------------------------------
 
-// Conteudo da sacola para a gaveta (sem layout).
+// Conteudo da sacola para a gaveta (sem layout). Sempre a sacola de sempre.
 if (isset($_GET['sheet'])) {
+    cart_bag('cart');
     header('Content-Type: text/html; charset=utf-8');
     header('X-Robots-Tag: noindex');
     echo cart_lines_html();
@@ -166,15 +226,17 @@ if (isset($_GET['sheet'])) {
 // Lido ANTES do header: cart_items() descarta linhas orfas e acerta o contador.
 cart_items();
 
-$pageTitle       = 'Sua sacola';
+$isDirect        = cart_is_direct();
+$pageTitle       = $isDirect ? 'Comprar agora' : 'Sua sacola';
 $pageNoIndex     = true;
 $pageDescription = 'Revise as peças escolhidas e envie o pedido pelo WhatsApp da Lynch Store.';
-$isBagPage       = true;
+$isBagPage       = !$isDirect;
 
 require __DIR__ . '/includes/partials/header.php';
 ?>
 <section class="wrap bag-page">
-  <h1 class="page-title">Sua sacola</h1>
+  <h1 class="page-title"><?= $isDirect ? 'Comprar agora' : 'Sua sacola' ?></h1>
+  <?php if ($isDirect): ?><p class="bag-lede">Revise a peça, use um cupom se tiver e envie pelo WhatsApp. Pagamento e entrega você combina na conversa.</p><?php endif; ?>
   <div data-bag-body><?php include __DIR__ . '/includes/partials/cart-lines.php'; ?></div>
 </section>
 <?php require __DIR__ . '/includes/partials/footer.php'; ?>

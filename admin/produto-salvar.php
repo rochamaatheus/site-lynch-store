@@ -20,6 +20,8 @@ $admin = require_login();
 require_once dirname(__DIR__) . '/includes/functions.php';
 require_once dirname(__DIR__) . '/includes/ProductRepository.php';
 require_once dirname(__DIR__) . '/includes/CategoryRepository.php';
+require_once dirname(__DIR__) . '/includes/Upload.php';
+require_once dirname(__DIR__) . '/includes/ImageProcessor.php';
 
 /** Redireciona e encerra. */
 function ps_redirect(string $path): never
@@ -36,6 +38,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
     // link antigo/favorito, e o util para ela e voltar para a lista com um aviso.
     flash_set('error', 'Essa página só responde ao envio de um formulário. Abra o produto pela lista e salve por lá.');
     ps_redirect('/admin/produtos.php');
+}
+
+// Fotos acima do limite do servidor chegam com o POST vazio: nao ha o que
+// salvar, mas a mensagem precisa dizer o motivo certo.
+if (post_body_too_large()) {
+    flash_set('error', 'As fotos somam mais do que o servidor aceita de uma vez (' . post_limit_mb() . ' MB). Nada foi salvo: escolha 2 ou 3 fotos por vez.');
+    ps_redirect(isset($_GET['id']) ? '/admin/produto-form.php?id=' . (int) $_GET['id'] : '/admin/produto-form.php');
 }
 
 if (!csrf_check($_POST['csrf'] ?? null)) {
@@ -59,10 +68,17 @@ $voltarPara = $editando
 // Campos
 // ---------------------------------------------------------------------------
 $name = trim((string) ($_POST['name'] ?? ''));
-$_SESSION['product_form_old'] = ['id' => $id, 'data' => $_POST];
+$_SESSION['product_form_old'] = ['id' => $id, 'data' => $_POST, 'errors' => []];
+
+/** Recusa o envio com o erro ao lado do campo (o formulario volta preenchido). */
+function ps_field_fail(string $field, string $message, string $back): never
+{
+    $_SESSION['product_form_old']['errors'] = [$field => $message];
+    ps_redirect($back);
+}
+
 if ($name === '') {
-    flash_set('error', 'O nome do produto é obrigatório.');
-    ps_redirect($voltarPara);
+    ps_field_fail('name', 'Escreva o nome do produto.', $voltarPara);
 }
 
 $avisos = [];
@@ -95,8 +111,9 @@ $precoTexto = (string) ($_POST['price'] ?? '');
 $cents      = $onRequest ? null : price_to_cents($precoTexto);
 
 if (!$onRequest && $cents === null) {
-    flash_set('error', 'Informe um preço válido, como 129,90, ou marque Consultar valor.');
-    ps_redirect($voltarPara);
+    ps_field_fail('price', trim($precoTexto) === ''
+        ? 'Digite o preço, como 129,90, ou marque "Sem preço na loja".'
+        : 'Esse preço não ficou claro. Escreva assim: 129,90.', $voltarPara);
 }
 
 // --- estoque e promocao ---
@@ -104,6 +121,10 @@ $stock = null; $saleCents = null; $saleEnds = null;
 if (ProductRepository::stockReady()) {
     try {
         $stock = ProductRepository::parseStock($_POST['stock_qty'] ?? '');
+    } catch (DomainException $e) {
+        ps_field_fail('stock_qty', $e->getMessage(), $voltarPara);
+    }
+    try {
         $saleText = (string) ($_POST['sale_price'] ?? '');
         $pctText = (string) ($_POST['sale_percent'] ?? '');
         $endsText = (string) ($_POST['sale_ends_on'] ?? '');
@@ -120,8 +141,7 @@ if (ProductRepository::stockReady()) {
             if ($keepExpired) { $saleEnds = $endsText; }
         }
     } catch (DomainException $e) {
-        flash_set('error', $e->getMessage() . ' Nada foi salvo.');
-        ps_redirect($voltarPara);
+        ps_field_fail('sale_price', $e->getMessage() . ' Nada foi salvo.', $voltarPara);
     }
 }
 
@@ -154,7 +174,7 @@ try {
         flash_set('success', 'Produto "' . $name . '" atualizado.');
     } else {
         $novoId = ProductRepository::create($dados);
-        flash_set('success', 'Produto "' . $name . '" cadastrado. Agora envie as fotos.');
+        flash_set('success', 'Produto "' . $name . '" cadastrado.');
     }
 } catch (Throwable $e) {
     error_log('[lynch][produto-salvar] ' . $e->getMessage());
@@ -166,6 +186,29 @@ foreach ($avisos as $aviso) {
     flash_set('info', $aviso);
 }
 unset($_SESSION['product_form_old']);
+
+// ---------------------------------------------------------------------------
+// Fotos escolhidas no proprio formulario (opcional). Mesmo caminho de
+// produto-imagens.php: validacao por conteudo, recorte 4:5 e derivados WebP.
+// O produto ja esta salvo; uma foto recusada nao desfaz o cadastro.
+// ---------------------------------------------------------------------------
+$arquivos = isset($_FILES['fotos']) ? Upload::normalizeMultiple($_FILES['fotos']) : [];
+$arquivos = array_values(array_filter($arquivos, static fn ($f) => (int) ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE));
+if ($arquivos !== []) {
+    $enviadas = 0;
+    foreach ($arquivos as $arquivo) {
+        $r = Upload::handleProductPhoto($arquivo, 'uploads/products/' . $novoId, ImageProcessor::FOCAL_TOP);
+        if (!$r['ok']) {
+            flash_set('error', 'Foto recusada: ' . (string) ($arquivo['name'] ?? 'arquivo') . ': ' . (string) $r['error']);
+            continue;
+        }
+        ProductRepository::addImage($novoId, (string) $r['path'], $name, $r['source_path'], ImageProcessor::FOCAL_TOP);
+        $enviadas++;
+    }
+    if ($enviadas > 0) {
+        flash_set('success', $enviadas . ' foto' . ($enviadas === 1 ? '' : 's') . ' enviada' . ($enviadas === 1 ? '' : 's') . '.');
+    }
+}
 
 // Ao CRIAR, o destino natural e a tela de fotos: o produto acabou de ganhar um
 // id e nao tem imagem nenhuma. Ao editar, volta para o proprio formulario.

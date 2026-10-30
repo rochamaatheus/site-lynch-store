@@ -8,6 +8,8 @@ declare(strict_types=1);
  * Uso:
  *   php db/upgrade.php                 aplica (so em banco de teste)
  *   php db/upgrade.php --rollback      desfaz a parte de estoque e promocao (so em teste)
+ *   php db/upgrade.php --rollback=cupons
+ *                                      remove so a tabela coupons (so em teste)
  *   php db/upgrade.php --aplicar-em=<banco> --backup=<dump.sql>
  *                                      aplica num banco sem marcador de teste, depois
  *                                      de validado em copia e com dump recente
@@ -20,6 +22,32 @@ const UPGRADE_STOCK_COLUMNS = [
     'sale_price_cents' => 'INT UNSIGNED DEFAULT NULL',
     'sale_ends_on'     => 'DATE DEFAULT NULL',
 ];
+
+/** Mesma definicao de db/schema.sql (instalacao nova). */
+const UPGRADE_COUPONS_TABLE = "CREATE TABLE IF NOT EXISTS coupons (
+    id               SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    code             VARCHAR(20) NOT NULL,
+    discount_type    ENUM('percent','fixed') NOT NULL,
+    discount_value   MEDIUMINT UNSIGNED NOT NULL,
+    min_order_cents  MEDIUMINT UNSIGNED DEFAULT NULL,
+    expires_on       DATE DEFAULT NULL,
+    max_uses         SMALLINT UNSIGNED DEFAULT NULL,
+    uses             SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    active           TINYINT(1) NOT NULL DEFAULT 1,
+    deleted          TINYINT(1) NOT NULL DEFAULT 0,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_coupons_code (code),
+    CONSTRAINT chk_coupons_value
+        CHECK (discount_value > 0 AND (discount_type = 'fixed' OR discount_value <= 100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+function upgrade_has_table(PDO $pdo, string $table): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1');
+    $stmt->execute([$table]);
+    return $stmt->fetchColumn() !== false;
+}
 
 function upgrade_columns(PDO $pdo, string $table): array
 {
@@ -65,6 +93,19 @@ function upgrade_schema(PDO $pdo): void
     if (!upgrade_has_constraint($pdo, 'products', 'chk_products_sale_price')) {
         $pdo->exec('ALTER TABLE products ADD CONSTRAINT chk_products_sale_price CHECK (sale_price_cents IS NULL OR (price_cents IS NOT NULL AND sale_price_cents < price_cents))');
     }
+
+    // Cupons: tabela nova, nada muda nas existentes (o cupom do pedido vai no cart_json).
+    if (!upgrade_has_table($pdo, 'coupons')) {
+        $pdo->exec(UPGRADE_COUPONS_TABLE);
+    }
+}
+
+/** Desfaz so os cupons (a tabela e o que ela guarda; os pedidos nao mudam). */
+function downgrade_coupons_schema(PDO $pdo): void
+{
+    if (upgrade_has_table($pdo, 'coupons')) {
+        $pdo->exec('DROP TABLE coupons');
+    }
 }
 
 /** Desfaz so a parte de estoque e promocao (as colunas antigas continuam). */
@@ -87,7 +128,7 @@ function downgrade_stock_schema(PDO $pdo): void
 
 if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
     require dirname(__DIR__) . '/includes/db.php';
-    $opts = getopt('', ['rollback', 'aplicar-em:', 'backup:']);
+    $opts = getopt('', ['rollback::', 'aplicar-em:', 'backup:']);
     $isTest = preg_match('/(?:^|_)(?:test|teste|local|staging|dev)(?:_|$)/', DB_NAME) === 1;
 
     if (!$isTest) {
@@ -104,6 +145,12 @@ if (PHP_SAPI === 'cli' && realpath($_SERVER['SCRIPT_FILENAME']) === __FILE__) {
         }
     }
 
+    if (isset($opts['rollback']) && $opts['rollback'] === 'cupons') {
+        downgrade_coupons_schema(db());
+        echo "Tabela de cupons removida de " . DB_NAME . ".
+";
+        exit(0);
+    }
     if (isset($opts['rollback'])) {
         downgrade_stock_schema(db());
         echo "Estoque e promoção removidos do schema de " . DB_NAME . ".\n";

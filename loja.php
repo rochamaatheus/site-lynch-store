@@ -73,7 +73,7 @@ require __DIR__ . '/includes/partials/header.php';
   <form class="searchbox shop-search" id="busca" action="<?= e(url_catalog()) ?>" method="get" role="search">
     <?= icon('search') ?>
     <label class="sr" for="busca-loja">Buscar na loja</label>
-    <input id="busca-loja" name="busca" type="search" maxlength="80" value="<?= e($search) ?>" placeholder="Anime, banda, personagem">
+    <input id="busca-loja" name="busca" type="search" maxlength="80" value="<?= e($search) ?>" placeholder="Anime, banda, personagem" autocomplete="off" enterkeyhint="search">
     <?php if ($mode !== ''): ?><input type="hidden" name="mode" value="<?= e($mode) ?>"><?php endif; ?>
     <?php if ($categorySlug !== ''): ?><input type="hidden" name="categoria" value="<?= e($categorySlug) ?>"><?php endif; ?>
     <button class="btn ink small">Buscar</button>

@@ -6,22 +6,34 @@
  * "finalizar" da loja e transformar o carrinho num texto bem formatado e
  * empurrar o cliente para a conversa no WhatsApp com esse texto ja digitado.
  *
- * Formato da mensagem (definido no plano):
+ * Formato da mensagem (legivel no WhatsApp: uma informacao por linha, negrito
+ * do WhatsApp so no numero do pedido e no total):
  *
- *     Ola! Quero fazer um pedido na Lynch Store:
+ *     Olá! Quero fazer um pedido na Lynch Store:
  *
- *     1. Camiseta Geek 01 - Qtd: 2 - Consultar valor
+ *     *Pedido #123*
+ *
+ *     1. Camiseta Geek 01
+ *        Qtd: 2 x R$ 90,00 = R$ 180,00
+ *        Promoção: de R$ 100,00 por R$ 90,00
  *        https://.../produto.php?slug=camiseta-geek-01
- *     2. ...
+ *     2. Vestido sob medida
+ *        Qtd: 1, valor a combinar
  *
- *     Total estimado: R$ 189,90 (itens sem preco fixo serao confirmados no WhatsApp)
+ *     Subtotal: R$ 180,00
+ *     Cupom LYNCH10 (10%): -R$ 18,00
+ *     *Total estimado: R$ 162,00*
+ *     Itens com valor a combinar (1) não entram no total nem no desconto.
+ *
+ *     Podemos combinar o pagamento e a entrega por aqui?
  *
  *     Enviado pelo site.
  *
  * Regras que NAO sao detalhe:
- *  - rawurlencode() (nao urlencode): o wa.me quer %20, nao "+";
- *  - carrinho com mais de 6 linhas omite a URL de cada produto, senao a URL do
- *    link estoura o limite pratico dos navegadores/WhatsApp;
+ *  - rawurlencode() (nao urlencode) sobre texto UTF-8: o wa.me quer %20, nao "+";
+ *  - carrinho com mais de 6 linhas omite a URL de cada produto; se mesmo assim o
+ *    link passar de MAX_URL_LENGTH, a lista e encurtada com "e mais N itens"
+ *    (a lista completa fica no pedido do painel);
  *  - sem numero configurado a funcao devolve null - QUEM CHAMA mostra o aviso.
  *    Nunca, jamais, gerar "https://wa.me/?text=..." (era o bug do site antigo).
  */
@@ -31,11 +43,15 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/SettingsRepository.php';
+require_once __DIR__ . '/Coupon.php';
 
 final class WhatsAppMessage
 {
     /** Acima disso, a mensagem perde a linha de URL por item. */
     public const MAX_ITEMS_WITH_LINKS = 6;
+
+    /** Teto pratico do link inteiro (wa.me redireciona para api.whatsapp.com). */
+    public const MAX_URL_LENGTH = 4000;
 
     /** Primeira linha padrao (o admin pode trocar em site_settings). */
     public const DEFAULT_INTRO = 'Olá! Quero fazer um pedido na Lynch Store:';
@@ -43,15 +59,20 @@ final class WhatsAppMessage
     /** Assinatura final - ajuda a Ray a saber que o pedido veio do site. */
     public const DEFAULT_SIGNATURE = 'Enviado pelo site.';
 
+    /** Pedido de combinar o que o site nao fecha. */
+    public const CLOSING = 'Podemos combinar o pagamento e a entrega por aqui?';
+
     /**
      * Monta o TEXTO da mensagem (sem encode, sem link).
      *
      * @param array<int,array<string,mixed>> $items saida de cart_items()
-     * @param array<string,string>           $settings intro/signature opcionais
+     * @param array<string,mixed>            $settings intro, signature, order_id,
+     *        summary (saida de cart_summary, com cupom), links (bool), limit (int)
      */
     public static function build(array $items, array $settings = []): string
     {
-        $intro = trim((string) ($settings['intro'] ?? setting('whatsapp_message_intro', self::DEFAULT_INTRO)));
+        $storeName = setting('store_name', 'Lynch Store');
+        $intro = trim((string) ($settings['intro'] ?? setting('whatsapp_message_intro', 'Olá! Quero fazer um pedido na ' . $storeName . ':')));
         if ($intro === '') {
             $intro = self::DEFAULT_INTRO;
         }
@@ -60,42 +81,49 @@ final class WhatsAppMessage
             ? trim((string) $settings['signature'])
             : self::DEFAULT_SIGNATURE;
 
+        // Peca esgotada nunca entra na mensagem (finalizar.php ja bloqueia antes).
+        $items = array_values(array_filter($items, static fn (array $i): bool => empty($i['sold_out'])));
+
         // Carrinho grande: some a linha de URL de cada produto.
-        $withLinks = count($items) <= self::MAX_ITEMS_WITH_LINKS;
+        $withLinks = (bool) ($settings['links'] ?? count($items) <= self::MAX_ITEMS_WITH_LINKS);
+        $limit = isset($settings['limit']) ? max(1, (int) $settings['limit']) : count($items);
 
-        $lines   = [$intro, ''];
-        $total   = 0;
+        $lines = [$intro, ''];
+        if (!empty($settings['order_id'])) {
+            $lines[] = '*Pedido #' . (int) $settings['order_id'] . '*';
+            $lines[] = '';
+        }
+
+        $subtotal = 0;
         $hasFixed = false;
-        $hasOnRequest = false;
-        $n = 0;
+        $onRequest = 0;
 
-        foreach ($items as $item) {
-            // Peca esgotada nunca entra na mensagem (finalizar.php ja bloqueia antes).
-            if (!empty($item['sold_out'])) {
-                continue;
-            }
-            $n++;
-
+        foreach ($items as $index => $item) {
             $name  = trim((string) ($item['name'] ?? 'Produto'));
             $qty   = max(1, (int) ($item['qty'] ?? 1));
             $cents = $item['price_cents'] ?? null;
             $cents = $cents === null ? null : (int) $cents;
-            $onRequest = !empty($item['price_on_request']) || $cents === null;
+            $isOnRequest = !empty($item['price_on_request']) || $cents === null;
 
-            if ($onRequest) {
-                $hasOnRequest = true;
+            if ($isOnRequest) {
+                $onRequest++;
             } else {
                 $hasFixed = true;
-                $total += $cents * $qty;
+                $subtotal += $cents * $qty;
+            }
+            if ($index >= $limit) {
+                continue;
             }
 
-            $price = (string) ($item['price_label'] ?? format_price($cents, $onRequest));
-            if (!$onRequest && !empty($item['on_sale']) && !empty($item['regular_price_cents'])) {
-                $price .= ' (promoção, de ' . format_price((int) $item['regular_price_cents']) . ')';
+            $lines[] = ($index + 1) . '. ' . $name;
+            if ($isOnRequest) {
+                $lines[] = '   Qtd: ' . $qty . ', valor a combinar';
+            } else {
+                $lines[] = '   Qtd: ' . $qty . ' x ' . format_price($cents) . ' = ' . format_price($cents * $qty);
+                if (!empty($item['on_sale']) && !empty($item['regular_price_cents'])) {
+                    $lines[] = '   Promoção: de ' . format_price((int) $item['regular_price_cents']) . ' por ' . format_price($cents);
+                }
             }
-
-            $lines[] = $n . '. ' . $name . ' | Qtd: ' . $qty . ' | ' . $price;
-
             if ($withLinks) {
                 $url = self::absoluteUrl((string) ($item['url'] ?? ''));
                 if ($url !== '') {
@@ -103,20 +131,35 @@ final class WhatsAppMessage
                 }
             }
         }
+        if (count($items) > $limit) {
+            $rest = count($items) - $limit;
+            $lines[] = '... e mais ' . $rest . ($rest === 1 ? ' item' : ' itens') . ' (a lista completa fica registrada no pedido).';
+        }
 
         $lines[] = '';
 
+        $summary  = is_array($settings['summary'] ?? null) ? $settings['summary'] : [];
+        $discount = (int) ($summary['discount_cents'] ?? 0);
+        $coupon   = $summary['coupon'] ?? null;
+        $total    = max(0, $subtotal - $discount);
+
         if ($hasFixed) {
-            $totalLine = 'Total estimado: ' . format_price($total);
-            if ($hasOnRequest) {
-                $totalLine .= ' (itens sem preço fixo serão confirmados no WhatsApp)';
+            if ($discount > 0 && is_array($coupon)) {
+                $lines[] = 'Subtotal: ' . format_price($subtotal);
+                $lines[] = 'Cupom ' . $coupon['code'] . ' (' . CouponRepository::label($coupon) . '): -' . format_price($discount);
             }
-            $lines[] = $totalLine;
+            $lines[] = '*' . ($onRequest > 0 ? 'Total estimado' : 'Total') . ': ' . format_price($total) . '*';
+            if ($onRequest > 0) {
+                $lines[] = 'Itens com valor a combinar (' . $onRequest . ') não entram no total' . ($discount > 0 ? ' nem no desconto' : '') . '.';
+            }
         } else {
-            // Nunca imprimir "Total estimado: R$ 0,00": com tudo sob consulta
-            // nao existe total nenhum para estimar.
-            $lines[] = 'Valores a confirmar no WhatsApp.';
+            // Nunca imprimir "Total: R$ 0,00": com tudo sob consulta nao existe
+            // total nenhum para estimar.
+            $lines[] = 'Valores a combinar na conversa.';
         }
+
+        $lines[] = '';
+        $lines[] = self::CLOSING;
 
         if ($signature !== '') {
             $lines[] = '';
@@ -128,9 +171,11 @@ final class WhatsAppMessage
 
     /**
      * Link wa.me completo, ou null quando o numero ainda nao foi configurado.
+     * Respeita MAX_URL_LENGTH: tira os links dos produtos e, se preciso, encurta
+     * a lista.
      *
      * @param array<int,array<string,mixed>> $items
-     * @param array<string,string>           $settings aceita 'number' para testes
+     * @param array<string,mixed>            $settings aceita 'number' para testes
      */
     public static function url(array $items, array $settings = []): ?string
     {
@@ -146,7 +191,19 @@ final class WhatsAppMessage
             return null;
         }
 
-        return 'https://wa.me/' . $number . '?text=' . rawurlencode(self::build($items, $settings));
+        $prefix = 'https://wa.me/' . $number . '?text=';
+        $link = static fn (array $opts): string => $prefix . rawurlencode(self::build($items, $opts + $settings));
+
+        $url = $link([]);
+        if (strlen($url) <= self::MAX_URL_LENGTH) {
+            return $url;
+        }
+        $url = $link(['links' => false]);
+        for ($limit = count($items) - 1; strlen($url) > self::MAX_URL_LENGTH && $limit >= 1; $limit--) {
+            $url = $link(['links' => false, 'limit' => $limit]);
+        }
+
+        return $url;
     }
 
     /**

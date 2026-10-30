@@ -177,9 +177,11 @@
     });
   }
 
-  function paintBag(state) {
+  /* Sem "only", repinta toda sacola aberta; com ele, so a que enviou o formulario
+     (a tela do Comprar agora nao pode desenhar por cima da gaveta da sacola). */
+  function paintBag(state, only) {
     setBloom(state.count);
-    $$('[data-bag-body]').forEach(function (body) { body.innerHTML = state.html; });
+    (only ? [only] : $$('[data-bag-body]')).forEach(function (body) { body.innerHTML = state.html; });
   }
 
   /* A foto voa ate o girassol; so transform e opacity. */
@@ -235,40 +237,107 @@
       var line = form.closest('.bag-line');
       var removing = submitter && (submitter.classList.contains('link-btn') || submitter.value === '0');
       if (line) line.classList.add(removing ? 'leaving' : 'pending');
+      var bagBody = form.closest('[data-bag-body]');
+      var couponAction = form.matches('.coupon-form, .coupon-remove');
       post(form, submitter).then(function (state) {
         /* Da tempo de a linha sair antes de redesenhar a lista. */
-        setTimeout(function () { paintBag(state); }, removing ? 240 : 0);
+        setTimeout(function () {
+          paintBag(state, bagBody);
+          /* Depois do cupom, o foco volta ao campo (ou ao Remover cupom). */
+          var target = couponAction && bagBody && $('[data-coupon-focus]', bagBody);
+          if (target) target.focus({ preventScroll: true });
+        }, removing ? 240 : 0);
       }).catch(function () {
         /* form.submit() nao levaria o botao clicado: recarrega o estado real. */
-        window.location.href = BAG_URL;
+        window.location.href = BAG_URL + ($('input[name="bag"][value="direct"]', form) ? '?direta=1' : '');
       });
       return;
     }
 
     if (form.matches('[data-autosubmit]')) return;
+
+    /* POST que troca de pagina (Comprar agora, enviar pelo WhatsApp): um toque so,
+       com o botao mostrando que esta indo. */
+    if ((form.getAttribute('method') || '').toLowerCase() === 'post') {
+      if (form.dataset.sending) { event.preventDefault(); return; }
+      lockForm(form, submitter);
+    }
+  });
+
+  var locked = [];
+  function lockForm(form, button) {
+    form.dataset.sending = '1';
+    button = button || $('button[type="submit"], button:not([type])', form);
+    var entry = { form: form, button: button, html: button ? button.innerHTML : '' };
+    if (button) {
+      button.classList.add('busy');
+      button.setAttribute('aria-busy', 'true');
+      var label = button.getAttribute('data-sending');
+      var text = label && Array.prototype.slice.call(button.childNodes).reverse().filter(function (n) { return n.nodeType === 3 && n.textContent.trim(); })[0];
+      if (text) text.textContent = ' ' + label;
+    }
+    locked.push(entry);
+    /* O WhatsApp abre por cima e a pagina fica onde estava: libera depois. */
+    entry.timer = setTimeout(function () { unlock(entry); }, 8000);
+  }
+  function unlock(entry) {
+    clearTimeout(entry.timer);
+    delete entry.form.dataset.sending;
+    if (entry.button) {
+      entry.button.classList.remove('busy');
+      entry.button.removeAttribute('aria-busy');
+      entry.button.innerHTML = entry.html;
+    }
+    locked = locked.filter(function (e) { return e !== entry; });
+  }
+  function unlockAll() { locked.slice().forEach(unlock); }
+  window.addEventListener('pageshow', function (event) { if (event.persisted) unlockAll(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && locked.length) setTimeout(unlockAll, 600);
   });
 
   $$('[data-autosubmit] select').forEach(function (select) {
     select.addEventListener('change', function () { select.form.submit(); });
   });
 
-  /* ---- Gavetas (dialog nativo: foco preso e Esc de graca) ---- */
+  /* ---- Gavetas (dialog nativo: foco preso e Esc de graca) ----
+     Cada gaveta aberta ganha uma entrada no historico: o voltar do celular
+     (gesto do iPhone, botao do Android) fecha a gaveta em vez de sair da pagina. */
+  var sheetState = function (dialog) { return !!(history.state && history.state.sheet === dialog.id); };
   function openSheet(dialog) {
     dialog.classList.remove('leaving');
     dialog.style.transform = '';
     if (!dialog.open) dialog.showModal();
     document.documentElement.classList.add('sheet-open');
+    if (!sheetState(dialog)) { try { history.pushState({ sheet: dialog.id }, ''); } catch (e) {} }
   }
-  function closeSheet(dialog) {
-    if (!dialog.open) return;
+  function closeSheet(dialog, fromHistory) {
+    if (!dialog.open || dialog.classList.contains('leaving')) return;
     dialog.classList.add('leaving');
+    if (!fromHistory && sheetState(dialog)) history.back();
     setTimeout(function () { dialog.close(); dialog.classList.remove('leaving'); dialog.style.transform = ''; }, 200);
+  }
+  window.addEventListener('popstate', function () {
+    $$('dialog.sheet[open]').forEach(function (dialog) { if (!sheetState(dialog)) closeSheet(dialog, true); });
+  });
+  /* Saindo da gaveta para outra pagina, a entrada dela da lugar a nova: um voltar
+     so leva de volta a pagina de origem. */
+  function leaveSheet(dialog, url) {
+    if (sheetState(dialog)) { window.location.replace(url); return true; }
+    return false;
   }
   $$('dialog.sheet').forEach(function (dialog) {
     dialog.addEventListener('close', function () { document.documentElement.classList.remove('sheet-open'); });
     dialog.addEventListener('click', function (event) {
       if (event.target === dialog) closeSheet(dialog);
       if (event.target.closest('[data-sheet-close]')) closeSheet(dialog);
+      var link = event.target.closest('a[href]');
+      if (link && !link.target && !event.defaultPrevented && !(event.ctrlKey || event.metaKey || event.shiftKey) && leaveSheet(dialog, link.href)) event.preventDefault();
+    });
+    var getForm = $('form[method="get"]', dialog);
+    if (getForm) getForm.addEventListener('submit', function (event) {
+      var url = getForm.getAttribute('action') + '?' + new URLSearchParams(new FormData(getForm)).toString();
+      if (leaveSheet(dialog, url)) event.preventDefault();
     });
     dialog.addEventListener('cancel', function (event) { event.preventDefault(); closeSheet(dialog); });
     /* Campo de busca consome o Esc para se limpar: a gaveta fecha do mesmo jeito. */
@@ -443,6 +512,24 @@
       }, { passive: true });
     }
   })();
+
+  /* ---- Chips de filtro: a borda esmaece do lado que ainda tem chips ---- */
+  $$('.filters .pills').forEach(function (row) {
+    var queued = false;
+    function paint() {
+      queued = false;
+      var max = row.scrollWidth - row.clientWidth;
+      row.classList.toggle('more-l', row.scrollLeft > 4);
+      row.classList.toggle('more-r', max - row.scrollLeft > 4);
+    }
+    function ask() { if (!queued) { queued = true; requestAnimationFrame(paint); } }
+    row.addEventListener('scroll', ask, { passive: true });
+    window.addEventListener('resize', ask, { passive: true });
+    /* O filtro escolhido aparece na tela, mesmo no fim da fileira. */
+    var on = $('.pill.on', row);
+    if (on && on.offsetLeft + on.offsetWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - 24;
+    paint();
+  });
 
   /* ---- Compartilhar ---- */
   (function share() {

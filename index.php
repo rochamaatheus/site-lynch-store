@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/SettingsRepository.php';
 require_once __DIR__ . '/includes/CategoryRepository.php';
 require_once __DIR__ . '/includes/ProductRepository.php';
+require_once __DIR__ . '/includes/StoreInfo.php';
 
 if (array_intersect(['mode', 'categoria', 'busca', 'mostrar_sob', 'mostrar_pronta'], array_keys($_GET)) !== []) {
     $legacy = array_intersect_key($_GET, array_flip(['mode', 'categoria', 'busca']));
@@ -40,15 +41,17 @@ $isHome          = true;
 $pageTitle       = 'Moda Geek, Cosplay e Camisetas';
 $pageDescription = 'Lynch Store: fotos reais de cosplay, fantasia e camisetas geek. Consulte disponibilidade, medidas e valores pelo WhatsApp.';
 $pageCanonical   = base_url();
+// Store e um tipo de LocalBusiness: endereco, horario, telefone e Instagram
+// entram so quando cadastrados em Configuracoes (store_jsonld()).
 $pageJsonLd = json_encode([
     '@context'    => 'https://schema.org',
     '@type'       => 'Store',
-    'name'        => 'Lynch Store',
+    'name'        => store_name(),
     'description' => $pageDescription,
     'image'       => asset_url('assets/seo-banner.webp'),
     'logo'        => asset_url('assets/lynch-logo.webp'),
     'url'         => base_url(),
-], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+] + store_jsonld(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
 require __DIR__ . '/includes/partials/header.php';
 ?>

@@ -16,7 +16,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/Cart.php';
 require_once __DIR__ . '/includes/WhatsAppMessage.php';
 
-$cartUrl = base_url('carrinho.php');
+// "Comprar agora" usa a sua propria sacola na sessao (ver carrinho.php).
+if (($_POST['bag'] ?? '') === 'direct') {
+    cart_bag('cart_direct');
+}
+$cartUrl = base_url('carrinho.php') . (cart_is_direct() ? '?direta=1' : '');
+
 
 /**
  * Volta para o carrinho com uma mensagem. Nunca limpa o carrinho: se deu
@@ -89,60 +94,108 @@ if ($url === null) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Log (nice to have - NUNCA pode impedir o pedido)
+// 4. Cupom revalidado (pode ter expirado, esgotado ou sido desligado depois
+//    de aplicado) e snapshot do pedido
 // ---------------------------------------------------------------------------
 
-$snapshot = array_map(
-    static fn (array $item): array => [
-        'id'               => $item['id'],
-        'name'             => $item['name'],
-        'slug'             => $item['slug'],
-        'qty'              => $item['qty'],
-        'price_cents'      => $item['price_cents'],
-        'price_on_request' => $item['price_on_request'],
-        'regular_price_cents' => $item['regular_price_cents'],
-        'subtotal_cents'   => $item['subtotal_cents'],
-    ],
-    $items
-);
+$lastKey  = cart_is_direct() ? 'last_checkout_direct' : 'last_checkout';
+$previous = $_SESSION[$lastKey] ?? null;
+$recent   = is_array($previous) && time() - (int) ($previous['at'] ?? 0) < 1800;
+$couponCode = cart_coupon_code();
+// O mesmo checkout repetido em 30 minutos ja contou o uso: nao pode ser barrado
+// pelo limite que ele mesmo consumiu.
+$alreadyCounted = $recent && $couponCode !== '' && ($previous['coupon_code'] ?? '') === $couponCode;
+$summary = cart_summary($items, $alreadyCounted);
+
+if ($summary['coupon_code'] !== '' && $summary['coupon'] === null) {
+    if ($summary['coupon_permanent']) {
+        cart_coupon_clear();
+        checkout_fail('O cupom ' . $summary['coupon_code'] . ' não vale mais (' . rtrim((string) $summary['coupon_error'], '.') . ') e foi retirado. Confira o novo total e envie de novo.', $cartUrl);
+    }
+    checkout_fail('Cupom ' . $summary['coupon_code'] . ': ' . $summary['coupon_error'] . ' Ajuste a sacola ou remova o cupom.', $cartUrl);
+}
+
+$couponSnap = $summary['coupon'] === null ? null : [
+    'id'             => $summary['coupon']['id'],
+    'code'           => $summary['coupon']['code'],
+    'type'           => $summary['coupon']['discount_type'],
+    'value'          => $summary['coupon']['discount_value'],
+    'label'          => CouponRepository::label($summary['coupon']),
+    'discount_cents' => $summary['discount_cents'],
+];
+
+$snapshot = [
+    'items' => array_map(
+        static fn (array $item): array => [
+            'id'               => $item['id'],
+            'name'             => $item['name'],
+            'slug'             => $item['slug'],
+            'qty'              => $item['qty'],
+            'price_cents'      => $item['price_cents'],
+            'price_on_request' => $item['price_on_request'],
+            'regular_price_cents' => $item['regular_price_cents'],
+            'subtotal_cents'   => $item['subtotal_cents'],
+        ],
+        $items
+    ),
+    'subtotal_cents' => $summary['subtotal_cents'],
+    'coupon'         => $couponSnap,
+    'discount_cents' => $summary['discount_cents'],
+    'total_cents'    => $summary['total_cents'],
+    'direct'         => cart_is_direct(),
+];
+
+// ---------------------------------------------------------------------------
+// 5. Log + uso do cupom, na mesma transacao (o log NUNCA pode impedir o
+//    pedido por erro do banco sem avisar; o cupom so conta se o log gravar)
+// ---------------------------------------------------------------------------
 
 $fingerprint = hash('sha256', json_encode($snapshot) . $number);
-$previous = $_SESSION['last_checkout'] ?? null;
 $orderId = null;
-if (is_array($previous) && ($previous['fingerprint'] ?? '') === $fingerprint && time() - (int) ($previous['at'] ?? 0) < 1800) {
+if ($recent && ($previous['fingerprint'] ?? '') === $fingerprint) {
     $orderId = (int) $previous['id'];
 }
 if ($orderId === null) {
-try {
-    $stmt = db()->prepare(
-        'INSERT INTO checkout_logs
-            (cart_json, item_count, total_cents, has_price_on_request, whatsapp_number, ip_address, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
-    );
-    $stmt->execute([
-        json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        cart_count(),
-        cart_total_cents($items),
-        cart_has_price_on_request($items) ? 1 : 0,
-        substr($number, 0, 20),
-        null,
-        null,
-    ]);
-    $orderId = (int) db()->lastInsertId();
-    $_SESSION['last_checkout'] = ['fingerprint' => $fingerprint, 'id' => $orderId, 'at' => time()];
-} catch (Throwable $e) {
-    // Banco fora do ar, tabela ausente, disco cheio: o cliente nao paga por isso.
-    error_log('[Lynch Store] falha ao gravar checkout_logs: ' . $e->getMessage());
-    checkout_fail('Não foi possível registrar o pedido. Sua sacola foi mantida. Tente novamente.', $cartUrl);
-}
+    $pdo = db();
+    try {
+        $pdo->beginTransaction();
+        if ($couponSnap !== null && !CouponRepository::claim($pdo, (int) $couponSnap['id'])) {
+            $pdo->rollBack();
+            cart_coupon_clear();
+            checkout_fail('O cupom ' . $couponSnap['code'] . ' acabou de esgotar ou expirar e foi retirado. Confira o novo total e envie de novo.', $cartUrl);
+        }
+        $stmt = $pdo->prepare(
+            'INSERT INTO checkout_logs
+                (cart_json, item_count, total_cents, has_price_on_request, whatsapp_number, ip_address, user_agent)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            cart_items_qty($items),
+            $summary['total_cents'],
+            $summary['on_request'] ? 1 : 0,
+            substr($number, 0, 20),
+            null,
+            null,
+        ]);
+        $orderId = (int) $pdo->lastInsertId();
+        $pdo->commit();
+        $_SESSION[$lastKey] = ['fingerprint' => $fingerprint, 'id' => $orderId, 'at' => time(), 'coupon_code' => $couponSnap['code'] ?? ''];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        // Banco fora do ar, tabela ausente, disco cheio: o cliente nao paga por isso.
+        error_log('[Lynch Store] falha ao gravar checkout_logs: ' . $e->getMessage());
+        checkout_fail('Não foi possível registrar o pedido. Sua sacola foi mantida. Tente novamente.', $cartUrl);
+    }
 }
 
 // ---------------------------------------------------------------------------
-// 5. Esvazia o carrinho e manda para o WhatsApp
+// 6. Manda para o WhatsApp (a sacola continua salva)
 // ---------------------------------------------------------------------------
 
-$message = 'Pedido #' . $orderId . "\n\n" . whatsapp_checkout_message($items, ['number' => $number]);
-$url = 'https://wa.me/' . rawurlencode($number) . '?text=' . rawurlencode($message);
-flash_set('info', 'Pedido #' . $orderId . ' preparado. Envie a mensagem no WhatsApp para iniciar o atendimento. Sua sacola continua salva.');
+$url = whatsapp_checkout_url($items, ['number' => $number, 'order_id' => $orderId, 'summary' => $summary]);
+flash_set('info', 'Pedido #' . $orderId . ' preparado. Envie a mensagem no WhatsApp para iniciar o atendimento. ' . (cart_is_direct() ? 'Sua sacola não mudou.' : 'Sua sacola continua salva.'));
 header('Location: ' . $url, true, 303);
 exit;

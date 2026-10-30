@@ -42,9 +42,12 @@ O pacote é destinado a **instalação nova em banco vazio**. Para atualizar uma
 - Categorias: cadastro, edição, ativação e organização.
 - Importar: CSV ou XLSX, prévia, criação ou atualização por slug, mensagens por linha e transação integral.
 - Exportar: catálogo em CSV compatível com o importador; células que poderiam virar fórmulas são neutralizadas.
-- Pedidos: snapshot do carrinho e situação de atendimento, com observações internas.
-- Configurações: WhatsApp, textos, banner, contatos e condições de atendimento.
+- Pedidos: snapshot do carrinho (com cupom, desconto e total) e situação de atendimento, com observações internas.
+- Cupons: formulário curto (código sugerido, % ou R$, validade, pedido mínimo e limite de usos opcionais), cartões com status Ativo, Desativado, Expirado ou Esgotado, contagem de usos, ativar/desativar e excluir (exclusão lógica, com confirmação).
+- Configurações: WhatsApp, textos, banner, nome, slogan, quem faz a loja, horário de atendimento (por grupo de dias, até dois horários), atendimento com hora marcada, endereço, contatos e condições de atendimento. Esses dados aparecem no rodapé, em Como comprar e no JSON-LD da home.
 - Minha conta: troca de senha com verificação da senha atual e invalidação das outras sessões.
+
+Na sacola, o campo "Tem cupom?" aplica o desconto calculado no servidor sobre o subtotal das peças com preço (já com promoções); peças com valor a combinar ficam fora do total e do desconto, e o total nunca fica negativo. Cinco códigos errados em 10 minutos bloqueiam novas tentativas na sessão. No envio, o cupom é conferido de novo e o uso é contado junto com o registro do pedido; a repetição do mesmo pedido em 30 minutos não conta outro uso. "Comprar agora", na página do produto, abre uma revisão só daquela peça (outra sacola na sessão, carrinho.php?direta=1), com cupom e envio pelo WhatsApp, sem mexer na sacola de sempre.
 
 Um pedido registra o clique em finalizar. Não prova que a mensagem foi enviada nem que houve pagamento. O carrinho permanece salvo. Repetir o mesmo checkout em até 30 minutos reutiliza a referência, evitando duplicações acidentais.
 
@@ -103,7 +106,8 @@ O ensaio de instalação usa tests/prepare-install.php, Apache isolado na porta 
 - assets/: CSS, JavaScript, fontes locais e imagens da marca.
 - uploads/: fotos do catálogo, sem execução de PHP.
 - db/schema.sql: schema de instalação nova.
-- db/upgrade.php: evolução do schema legado (idempotente; `--rollback` desfaz estoque e promoção em banco de teste). Em banco real exige `--aplicar-em=<banco> --backup=<dump.sql>`, depois de validado em cópia.
+- db/upgrade.php: evolução do schema legado (idempotente; `--rollback` desfaz estoque e promoção e `--rollback=cupons` remove a tabela de cupons, ambos só em banco de teste). Em banco real exige `--aplicar-em=<banco> --backup=<dump.sql>`, depois de validado em cópia.
+- db/dados-lynch.php: grava os dados reais da loja (WhatsApp, Instagram, horário, endereço, slogan) em site_settings; idempotente, `--conferir` só lê, e em banco real exige `--aplicar-em` e `--backup`. O seed usa os mesmos dados.
 - scripts/: build, ambiente local e otimização de assets.
 - tests/: testes de PHP, navegador, instalação e Lighthouse.
 - docs/: evidências de validação.

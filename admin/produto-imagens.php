@@ -118,7 +118,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $imageId = (int) ($_POST['image_id'] ?? 0);
 
             if ($imageId > 0 && ProductRepository::setPrimaryImage($id, $imageId)) {
-                flash_set('success', 'Capa atualizada. E essa foto que aparece na vitrine.');
+                flash_set('success', 'Capa trocada. É essa foto que aparece na vitrine.');
             } else {
                 flash_set('error', 'Não foi possível definir essa foto como capa.');
             }
@@ -172,7 +172,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             // O WHERE de reorderImages() casa id AND product_id, entao um id de
             // outro produto injetado no form simplesmente nao atualiza nada.
             ProductRepository::reorderImages($id, $mapa);
-            flash_set('success', 'Ordem das fotos salva.');
+            flash_set('success', 'Ordem das fotos atualizada.');
 
             pi_back($selfUrl);
 
@@ -204,7 +204,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
 
             ProductRepository::setImageFocal($imageId, $id, $foco);
-            flash_set('success', 'Enquadramento atualizado para "' . ImageProcessor::focalLabel($foco) . '".');
+            flash_set('success', 'Corte ajustado: ' . ImageProcessor::focalLabel($foco) . '.');
 
             pi_back($selfUrl);
 
@@ -251,185 +251,121 @@ $focais = [
 
 require __DIR__ . '/partials/admin-header.php';
 ?>
-<p class="crumb">
-  <a href="<?= e($base) ?>/admin/produtos.php">Produtos</a> /
-  <a href="<?= e($base) ?>/admin/produto-form.php?id=<?= $id ?>"><?= e((string) $produto['name']) ?></a> /
-  Fotos
-</p>
+<p class="crumb"><a href="<?= e($base) ?>/admin/produto-form.php?id=<?= $id ?>"><span aria-hidden="true">&larr;</span> Voltar para o produto</a></p>
 
 <div class="page-head">
   <div>
-    <p class="eyebrow">Galeria do produto</p>
-    <h1><?= e((string) $produto['name']) ?></h1>
+    <h1>Fotos</h1>
     <p class="muted">
-      <?= count($imagens) ?> foto<?= count($imagens) === 1 ? '' : 's' ?>
-      &middot; <span class="badge <?= $produto['active'] ? 'on' : 'off' ?>"><?= $produto['active'] ? 'Ativo' : 'Inativo' ?></span>
+      <?= e((string) $produto['name']) ?> &middot; <?= count($imagens) ?> foto<?= count($imagens) === 1 ? '' : 's' ?>
+      <?php if (!$produto['active']): ?>&middot; <span class="badge off">Fora da loja</span><?php endif; ?>
     </p>
   </div>
-  <div class="actions">
-    <a class="btn" href="<?= e($base) ?>/admin/produto-form.php?id=<?= $id ?>">Editar dados</a>
-    <?php if ($produto['active']): ?>
-      <a class="btn ghost" target="_blank" rel="noopener" href="<?= e(product_url((string) $produto['slug'])) ?>">Ver na loja &nearr;</a>
-    <?php endif; ?>
-  </div>
 </div>
 
-<div class="card">
+<form class="card" method="post" enctype="multipart/form-data" action="<?= e($base) ?>/admin/produto-imagens.php?id=<?= $id ?>"
+      data-busy="Enviando fotos..." data-keepalive="<?= e($base) ?>/admin/ping.php">
+  <?= csrf_field() ?>
+  <input type="hidden" name="id" value="<?= $id ?>">
+  <input type="hidden" name="action" value="upload">
   <h2 class="sec">Enviar fotos</h2>
-  <p class="lede">
-    JPG, PNG ou WEBP, até <?= $maxMb ?> MB por arquivo. Pode selecionar várias de uma vez.
-    <?php if (function_exists('imagewebp')): ?>
-      As fotos são recortadas automaticamente no formato da vitrine (4:5), geradas em
-      três tamanhos e convertidas para WEBP: carregam mais rápido e saem bem enquadradas.
-      Se o corte cair errado, ajuste o enquadramento na tabela abaixo (sem reenviar a foto).
-    <?php endif; ?>
-  </p>
+  <div class="field">
+    <label class="pick-btn" for="f-fotos"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2" fill="none" stroke="currentColor"/></svg>Tirar ou escolher fotos</label>
+    <input class="pick-input" type="file" id="f-fotos" name="fotos[]" accept="image/*" multiple data-photo-required aria-describedby="h-fotos"
+           data-photo-input data-max-mb="<?= $maxMb ?>"<?= $postLimitMb > 0 ? ' data-max-total-mb="' . $postLimitMb . '"' : '' ?>>
+    <span class="hint" id="h-fotos">Pode escolher várias. Elas ficam no formato da vitrine (em pé) e leves para carregar.<?= $imagens === [] ? ' A primeira vira a capa.' : '' ?></span>
+    <ul class="pick-preview" data-photo-preview aria-label="Fotos escolhidas" hidden></ul>
+  </div>
+  <div class="form-actions">
+    <button class="btn primary wide" type="submit">Enviar fotos</button>
+  </div>
+</form>
 
-  <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/admin/produto-imagens.php?id=<?= $id ?>"
-        data-busy="Enviando, aguarde..." data-keepalive="<?= e($base) ?>/admin/ping.php">
-    <?= csrf_field() ?>
-    <input type="hidden" name="id" value="<?= $id ?>">
-    <input type="hidden" name="action" value="upload">
-
-    <div class="field">
-      <label for="f-fotos">Escolher arquivos</label>
-      <input type="file" id="f-fotos" name="fotos[]" accept="image/jpeg,image/png,image/webp" multiple required
-             data-max-mb="<?= $maxMb ?>"<?= $postLimitMb > 0 ? ' data-max-total-mb="' . $postLimitMb . '"' : '' ?>>
-    </div>
-
-    <div class="form-actions">
-      <button class="btn primary" type="submit">Enviar fotos</button>
-      <span class="hint">Não feche esta página enquanto as fotos sobem.</span>
-      <?php if ($imagens === []): ?>
-        <span class="hint">A primeira foto enviada vira a capa automaticamente.</span>
-      <?php endif; ?>
-    </div>
-  </form>
-</div>
-
-<div class="card">
-  <h2 class="sec">Fotos cadastradas</h2>
-
+<h2 class="list-title">Fotos do produto <span class="tab-n"><?= count($imagens) ?></span></h2>
 <?php if ($imagens === []): ?>
-  <div class="empty-state">
-    Este produto ainda não tem fotos. Na loja ele aparece com a imagem padrão da marca.
-  </div>
+  <div class="card"><div class="empty-state">Nenhuma foto ainda. Na loja ele aparece com a imagem padrão da marca. Escolha as fotos acima.</div></div>
 <?php else: ?>
-  <p class="lede">
-    A capa é a foto que aparece na vitrine e nos resultados de busca. Para mudar a
-    sequência da galeria, ajuste os números de ordem e clique em "Salvar ordem"
-    (menor aparece primeiro).
-  </p>
-
-  <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
-    <?= csrf_field() ?>
-    <input type="hidden" name="id" value="<?= $id ?>">
-    <input type="hidden" name="action" value="reorder">
-
-    <div class="photo-grid">
-    <?php foreach ($imagens as $img): ?>
-      <?php $imgId = (int) $img['id']; $capa = (int) $img['is_primary'] === 1; ?>
-      <div class="photo <?= $capa ? 'is-cover' : '' ?>">
-        <figure>
-          <img src="<?= e(pi_preview_url((string) $img['file_path'])) ?>"
-               alt="<?= e((string) ($img['alt_text'] ?? '')) ?>" loading="lazy">
-          <?php if ($capa): ?><span class="tag">Capa</span><?php endif; ?>
-        </figure>
-        <div class="body">
-          <div class="row">
-            <label class="ord" for="ord-<?= $imgId ?>">Ordem</label>
-            <input type="number" id="ord-<?= $imgId ?>" name="ordem[<?= $imgId ?>]"
-                   value="<?= (int) $img['sort_order'] ?>" step="1" class="ord-input">
-          </div>
-        </div>
-      </div>
-    <?php endforeach; ?>
-    </div>
-
-    <div class="form-actions">
-      <button class="btn primary" type="submit">Salvar ordem</button>
-    </div>
-  </form>
-
-  <p class="lede lede-gap">
-    <strong>Enquadramento:</strong> a foto é recortada no formato da vitrine (retrato 4:5).
-    "Topo" mantém a parte de cima da imagem (o padrão, bom para roupa em cabide ou manequim),
-    "Centro" pega o meio e "Base" a parte de baixo. Trocar aqui refaz o corte na hora, sem
-    reenviar o arquivo.
-  </p>
-
-  <!-- Capa, enquadramento e exclusao ficam FORA do form de ordem: HTML nao
-       permite form aninhado, e cada uma e uma acao independente. -->
-  <div class="table-wrap">
-    <table class="data">
-      <thead>
-        <tr>
-          <th scope="col" class="col-photo">Foto</th>
-          <th scope="col">Arquivo</th>
-          <th scope="col">Ordem</th>
-          <th scope="col">Capa</th>
-          <th scope="col">Enquadramento</th>
-          <th scope="col" class="col-actions">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-      <?php foreach ($imagens as $img): ?>
-        <?php
-          $imgId  = (int) $img['id'];
-          $capa   = (int) $img['is_primary'] === 1;
-          $origem = trim((string) ($img['source_path'] ?? ''));
-          $foco   = ImageProcessor::normalizeFocal($img['focal_y'] ?? ImageProcessor::FOCAL_TOP);
-        ?>
-        <tr>
-          <td><img class="thumb" src="<?= e(pi_preview_url((string) $img['file_path'])) ?>" alt="" loading="lazy"></td>
-          <td class="cell-name"><small><?= e(basename((string) $img['file_path'])) ?></small></td>
-          <td><?= (int) $img['sort_order'] ?></td>
-          <td><?= $capa ? '<span class="badge on">Capa</span>' : '<span class="badge off">Não</span>' ?></td>
-          <td>
-            <?php if ($origem === ''): ?>
-              <span class="hint">Envie de novo para ajustar</span>
-            <?php else: ?>
-              <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php"
-                    class="inline-form">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= $id ?>">
-                <input type="hidden" name="image_id" value="<?= $imgId ?>">
-                <input type="hidden" name="action" value="recrop">
-                <select name="focal_y"
-                        aria-label="Parte da foto que aparece no recorte">
-                  <?php foreach ($focais as $valor => $rotulo): ?>
-                    <option value="<?= (int) $valor ?>" <?= $foco === $valor ? 'selected' : '' ?>><?= e($rotulo) ?></option>
-                  <?php endforeach; ?>
-                </select>
-                <button class="btn small" type="submit">Aplicar</button>
-              </form>
-            <?php endif; ?>
-          </td>
-          <td class="cell-actions">
-            <?php if (!$capa): ?>
-              <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= $id ?>">
-                <input type="hidden" name="image_id" value="<?= $imgId ?>">
-                <input type="hidden" name="action" value="primary">
-                <button class="btn small" type="submit">Tornar capa</button>
-              </form>
-            <?php endif; ?>
-            <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php"
-                  data-confirm="Remover esta foto? O arquivo será apagado do servidor.">
-              <?= csrf_field() ?>
-              <input type="hidden" name="id" value="<?= $id ?>">
-              <input type="hidden" name="image_id" value="<?= $imgId ?>">
-              <input type="hidden" name="action" value="delete">
-              <button class="btn small danger" type="submit">Excluir</button>
+  <p class="lede">A capa aparece na vitrine. Use as setas para mudar a ordem da galeria e "Corte" se a foto ficou cortada no lugar errado.</p>
+  <?php
+    // Ordem atual sem a capa (a capa e sempre a primeira da galeria). Cada
+    // seta envia a ordem inteira ja trocada: um toque, sem digitar numero.
+    $semCapa = array_values(array_filter($imagens, static fn ($img) => (int) $img['is_primary'] !== 1));
+    $ordemTrocada = static function (int $from, int $to) use ($semCapa): array {
+        $ids = array_map(static fn ($img) => (int) $img['id'], $semCapa);
+        [$ids[$from], $ids[$to]] = [$ids[$to], $ids[$from]];
+        $out = [];
+        foreach ($ids as $pos => $imgId) { $out[$imgId] = $pos + 1; }
+        return $out;
+    };
+    $posSemCapa = [];
+    foreach ($semCapa as $pos => $img) { $posSemCapa[(int) $img['id']] = $pos; }
+    $hidden = csrf_field() . '<input type="hidden" name="id" value="' . $id . '">';
+  ?>
+  <ul class="photo-grid">
+  <?php foreach ($imagens as $n => $img): ?>
+    <?php
+      $imgId  = (int) $img['id'];
+      $capa   = (int) $img['is_primary'] === 1;
+      $origem = trim((string) ($img['source_path'] ?? ''));
+      $foco   = ImageProcessor::normalizeFocal($img['focal_y'] ?? ImageProcessor::FOCAL_TOP);
+      $pos    = $posSemCapa[$imgId] ?? null;
+      $rot    = 'foto ' . ($n + 1);
+    ?>
+    <li class="photo<?= $capa ? ' is-cover' : '' ?>" id="foto-<?= $imgId ?>">
+      <figure>
+        <img src="<?= e(pi_preview_url((string) $img['file_path'])) ?>" alt="<?= e('Foto ' . ($n + 1) . ($capa ? ', capa' : '')) ?>" loading="lazy" decoding="async">
+        <?php if ($capa): ?><span class="tag">Capa</span><?php endif; ?>
+      </figure>
+      <div class="body">
+        <?php if (!$capa): ?>
+          <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
+            <?= $hidden ?><input type="hidden" name="image_id" value="<?= $imgId ?>"><input type="hidden" name="action" value="primary">
+            <button class="btn small wide" type="submit">Usar como capa<span class="sr"> (<?= e($rot) ?>)</span></button>
+          </form>
+          <?php if (count($semCapa) > 1): ?>
+          <div class="move">
+            <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
+              <?= $hidden ?><input type="hidden" name="action" value="reorder">
+              <?php if ($pos > 0): foreach ($ordemTrocada($pos, $pos - 1) as $oid => $ov): ?><input type="hidden" name="ordem[<?= $oid ?>]" value="<?= $ov ?>"><?php endforeach; endif; ?>
+              <button class="step" type="submit"<?= $pos > 0 ? '' : ' disabled' ?> aria-label="Mover <?= e($rot) ?> para antes">&larr;</button>
             </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
+            <form method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
+              <?= $hidden ?><input type="hidden" name="action" value="reorder">
+              <?php if ($pos < count($semCapa) - 1): foreach ($ordemTrocada($pos, $pos + 1) as $oid => $ov): ?><input type="hidden" name="ordem[<?= $oid ?>]" value="<?= $ov ?>"><?php endforeach; endif; ?>
+              <button class="step" type="submit"<?= $pos < count($semCapa) - 1 ? '' : ' disabled' ?> aria-label="Mover <?= e($rot) ?> para depois">&rarr;</button>
+            </form>
+          </div>
+          <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($origem === ''): ?>
+          <p class="hint">Para ajustar o corte, envie esta foto de novo.</p>
+        <?php else: ?>
+          <form class="focal" method="post" action="<?= e($base) ?>/admin/produto-imagens.php">
+            <?= $hidden ?><input type="hidden" name="image_id" value="<?= $imgId ?>"><input type="hidden" name="action" value="recrop">
+            <span class="lbl" id="corte-<?= $imgId ?>">Corte</span>
+            <div class="seg" role="group" aria-labelledby="corte-<?= $imgId ?>">
+              <?php foreach ($focais as $valor => $rotulo): ?>
+                <button type="submit" name="focal_y" value="<?= (int) $valor ?>" aria-pressed="<?= $foco === $valor ? 'true' : 'false' ?>"><?= e($rotulo) ?></button>
+              <?php endforeach; ?>
+            </div>
+          </form>
+        <?php endif; ?>
+
+        <form class="photo-del" method="post" action="<?= e($base) ?>/admin/produto-imagens.php"
+              data-confirm="Apagar esta foto? Ela sai da loja e não dá para desfazer." data-confirm-ok="Apagar foto">
+          <?= $hidden ?><input type="hidden" name="image_id" value="<?= $imgId ?>"><input type="hidden" name="action" value="delete">
+          <button class="btn small quiet wide" type="submit">Apagar foto<span class="sr"> (<?= e($rot) ?>)</span></button>
+        </form>
+      </div>
+    </li>
+  <?php endforeach; ?>
+  </ul>
 <?php endif; ?>
-</div>
+
+<p class="actions page-end">
+  <a class="btn" href="<?= e($base) ?>/admin/produto-form.php?id=<?= $id ?>">Voltar para o produto</a>
+  <a class="btn ghost" href="<?= e($base) ?>/admin/produtos.php">Ir para a lista</a>
+</p>
 <?php
 require __DIR__ . '/partials/admin-footer.php';
