@@ -38,7 +38,7 @@ $cardPrice = format_price(isset($product['price_cents']) ? (int) $product['price
       <input type="hidden" name="product_id" value="<?= e($cardId) ?>">
       <input type="hidden" name="qty" value="1">
       <input type="hidden" name="redirect_to" value="<?= e((string) ($_SERVER['REQUEST_URI'] ?? '')) ?>">
-      <button class="round add" aria-label="Colocar <?= e($cardName) ?> na sacola"><?= icon('plus') ?></button>
+      <button class="round add" aria-label="Colocar <?= e($cardName) ?> na sacola"><?= icon('plus') ?><?= icon('check') ?></button>
     </form>
   </div>
   <h3 class="card-name"><a href="<?= e(product_url($cardSlug)) ?>"><?= e($cardName) ?></a></h3>

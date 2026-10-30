@@ -34,6 +34,7 @@ const pass = text => results.push(text);
     await go('/loja.php');
     await page.locator('#busca-loja').fill('cosplay');
     await page.locator('.shop-search button').click();
+    await page.waitForLoadState('load');
     assert.match(page.url(),/busca=cosplay/);
     assert.ok(await page.locator('.grid .card').count());
     pass('Busca da loja retorna produtos');

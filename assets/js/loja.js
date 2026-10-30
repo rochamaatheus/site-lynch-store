@@ -7,47 +7,66 @@
   var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
   var BAG_URL = (function () { var a = $('a[href*="carrinho.php"]'); return a ? a.getAttribute('href').split('?')[0] : 'carrinho.php'; })();
 
-  /* ---- Arara: as pecas balancam com a velocidade do arraste (mola amortecida) ---- */
+  /* ---- Arara: pendulo pesado. A velocidade do arraste vira uma forca suavizada,
+     cada peca segue com atraso proprio e o angulo satura sem bater em limite. ---- */
   (function rack() {
     var el = $('[data-rack]');
     if (!el) return;
-    var items = $$('[data-hanging]', el);
-    var angle = 0, speed = 0, lastX = 0, running = false;
+    var items = $$('[data-hanging]', el).map(function (node, i) {
+      return { node: node, value: 0, follow: 0.16 - (i % 4) * 0.025 };
+    });
+    var MAX = 6.5;
+    var angle = 0, speed = 0, force = 0, lastX = 0, lastT = 0, running = false;
 
-    function frame() {
+    function frame(now) {
+      var step = lastT ? Math.min((now - lastT) / 16.67, 3) : 1;
+      lastT = now;
       var x = el.scrollLeft;
-      var push = (x - lastX) * 0.09;
+      var moved = Math.max(-40, Math.min(40, (x - lastX) / step));
       lastX = x;
-      speed += (-angle * 0.05) + push * 0.42;
-      speed *= 0.94;
-      angle += speed;
-      angle = Math.max(-11, Math.min(11, angle));
-      items.forEach(function (item, i) {
-        item.style.setProperty('--swing', (angle * (1 - (i % 3) * 0.14)).toFixed(2) + 'deg');
+      force += (moved * 0.018 - force) * Math.min(1, 0.1 * step);
+      speed += (force - angle * 0.022) * step;
+      speed *= Math.pow(0.955, step);
+      angle += speed * step;
+      var shown = MAX * Math.tanh(angle / MAX);
+      var busy = Math.abs(angle) > 0.02 || Math.abs(speed) > 0.01 || Math.abs(force) > 0.005;
+      items.forEach(function (item) {
+        item.value += (shown - item.value) * Math.min(1, item.follow * step);
+        if (Math.abs(shown - item.value) > 0.01) busy = true;
+        item.node.style.setProperty('--swing', item.value.toFixed(2) + 'deg');
       });
-      if (Math.abs(angle) > 0.03 || Math.abs(speed) > 0.03) {
+      if (busy) {
         requestAnimationFrame(frame);
       } else {
-        running = false;
-        items.forEach(function (item) { item.style.setProperty('--swing', '0deg'); });
+        running = false; lastT = 0; angle = 0; speed = 0; force = 0;
+        items.forEach(function (item) { item.value = 0; item.node.style.setProperty('--swing', '0deg'); });
       }
     }
     function wake() { if (!running) { running = true; requestAnimationFrame(frame); } }
     el.addEventListener('scroll', wake, { passive: true });
     items.forEach(function (item) {
-      item.addEventListener('pointerdown', function () { speed += 1.2; wake(); }, { passive: true });
+      item.node.addEventListener('pointerdown', function () { speed += 0.22; wake(); }, { passive: true });
     });
 
-    /* Convite: a arara corre um pouco e volta, mostrando que da para arrastar. */
+    /* Convite: a arara corre devagar e volta, mostrando que da para arrastar. */
     var touched = false;
-    ['pointerdown', 'wheel'].forEach(function (type) {
+    ['pointerdown', 'wheel', 'touchstart'].forEach(function (type) {
       el.addEventListener(type, function () { touched = true; }, { passive: true, once: true });
     });
+    function glide(to, ms, done) {
+      var from = el.scrollLeft, start = 0;
+      (function tick(now) {
+        if (touched) return;
+        start = start || now;
+        var t = Math.min(1, (now - start) / ms);
+        el.scrollLeft = from + (to - from) * (0.5 - Math.cos(Math.PI * t) / 2);
+        if (t < 1) requestAnimationFrame(tick); else if (done) done();
+      })(performance.now());
+    }
     setTimeout(function () {
       if (touched || el.scrollWidth <= el.clientWidth + 20) return;
-      el.scrollTo({ left: 90, behavior: 'smooth' });
-      setTimeout(function () { if (!touched) el.scrollTo({ left: 0, behavior: 'smooth' }); }, 750);
-    }, 1900);
+      glide(80, 1300, function () { setTimeout(function () { glide(0, 1500); }, 250); });
+    }, 2000);
   })();
 
   /* ---- Girassol do topo e fita metrica acompanham a rolagem da pagina ---- */
@@ -200,6 +219,10 @@
       post(form, submitter).then(function (state) {
         paintBag(state);
         var failed = state.message && state.message.type === 'error';
+        if (submitter && !failed) {
+          submitter.classList.add('done');
+          setTimeout(function () { submitter.classList.remove('done'); }, 1300);
+        }
         snack(state.message ? state.message.message : 'Peça na sacola.', !failed);
       }).catch(function () { form.submit(); }).finally(function () {
         if (submitter) submitter.classList.remove('busy');
@@ -210,8 +233,12 @@
     if (form.matches('[data-cart-form]')) {
       event.preventDefault();
       var line = form.closest('.bag-line');
-      if (line) line.classList.add('pending');
-      post(form, submitter).then(paintBag).catch(function () {
+      var removing = submitter && (submitter.classList.contains('link-btn') || submitter.value === '0');
+      if (line) line.classList.add(removing ? 'leaving' : 'pending');
+      post(form, submitter).then(function (state) {
+        /* Da tempo de a linha sair antes de redesenhar a lista. */
+        setTimeout(function () { paintBag(state); }, removing ? 240 : 0);
+      }).catch(function () {
         /* form.submit() nao levaria o botao clicado: recarrega o estado real. */
         window.location.href = BAG_URL;
       });
@@ -397,6 +424,17 @@
   (function gallery() {
     var el = $('[data-gallery]');
     if (!el) return;
+    /* Lupa: no computador, a foto amplia seguindo o ponteiro. */
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      $$('.pdp-photo', el).forEach(function (photo) {
+        var img = $('img', photo), box = null;
+        photo.addEventListener('pointerenter', function () { box = photo.getBoundingClientRect(); });
+        photo.addEventListener('pointermove', function (e) {
+          box = box || photo.getBoundingClientRect();
+          img.style.transformOrigin = ((e.clientX - box.left) / box.width * 100).toFixed(1) + '% ' + ((e.clientY - box.top) / box.height * 100).toFixed(1) + '%';
+        });
+      });
+    }
     var dots = $$('[data-dots] i');
     if (dots.length) {
       el.addEventListener('scroll', function () {
