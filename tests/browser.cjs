@@ -38,6 +38,43 @@ const pass = text => results.push(text);
     assert.equal(await page.locator('.pdp-photo[data-morph]').evaluate(el => getComputedStyle(el).viewTransitionName), 'peca');
     assert.deepEqual(await page.evaluate(() => window.__csp || []), []);
     pass('CSP sem unsafe-inline (script e estilo), sem X-Powered-By; arara e foto do produto mantêm o motion pelo CSS, sem violação');
+    for (const width of [320, 390, 430]) {
+      const narrow = await browser.newContext({viewport:{width,height:800},isMobile:true,hasTouch:true});
+      const np = await narrow.newPage();
+      await np.goto(base + '/loja.php');
+      const f = await np.evaluate(() => {
+        const row = document.querySelector('.filters .pills');
+        const pad = parseFloat(getComputedStyle(document.querySelector('.wrap')).paddingLeft);
+        const rects = () => [...row.querySelectorAll('.pill')].map(p => p.getBoundingClientRect());
+        const start = rects();
+        row.scrollLeft = row.scrollWidth;
+        return {overflow: document.documentElement.scrollWidth - innerWidth, pad, width: innerWidth, firstLeft: start[0].left, lastGap: innerWidth - rects().at(-1).right,
+          wide: start.filter(r => r.width > innerWidth - 2 * pad + 1).length, small: start.filter(r => r.height < 44 || r.width < 44).length};
+      });
+      assert.equal(f.overflow, 0, 'Loja sem rolagem lateral em ' + width);
+      assert.ok(Math.abs(f.firstLeft - f.pad) < 1.5, 'Primeiro filtro alinhado ao conteúdo em ' + width);
+      assert.ok(Math.abs(f.lastGap - f.pad) < 1.5, 'Último filtro termina com a margem da página em ' + width + ' (sobra ' + f.lastGap + ')');
+      assert.equal(f.wide, 0, 'Nenhum filtro mais largo que o conteúdo em ' + width);
+      assert.equal(f.small, 0, 'Filtros com alvo de 44px em ' + width);
+      await np.goto(base + '/');
+      await np.waitForTimeout(2400);
+      const rack = await np.evaluate(() => {
+        const el = document.querySelector('[data-rack]');
+        return {scroll: el.scrollWidth - el.clientWidth, overflow: document.documentElement.scrollWidth - innerWidth, width: innerWidth,
+          items: [...el.querySelectorAll('[data-hanging]')].filter(a => a.getClientRects().length).map(a => {
+            const i = a.querySelector('img').getBoundingClientRect(), h = a.querySelector('.hanger').getBoundingClientRect();
+            return {left: i.left, right: i.right, top: i.top, hook: h.left + h.width / 2, hangerBottom: h.bottom};
+          })};
+      });
+      assert.equal(rack.overflow, 0, 'Home sem rolagem lateral em ' + width);
+      assert.ok(rack.scroll <= 0 && rack.items.length >= 3, 'Arara cabe na largura em ' + width);
+      for (const it of rack.items) {
+        assert.ok(it.left >= 0 && it.right <= rack.width, 'Peça da arara dentro da tela em ' + width + ': ' + JSON.stringify(it));
+        assert.ok(it.hook > it.left && it.hook < it.right && it.top < it.hangerBottom, 'Peça pendurada no cabide em ' + width + ': ' + JSON.stringify(it));
+      }
+      await narrow.close();
+    }
+    pass('Celular 320/390/430: faixa de filtros sem chip cortado (margem dos dois lados, 44px) e arara inteira na tela, cada peça no seu cabide');
     await go('/');
     await page.locator('.tabs [data-open-search]').click();
     assert.equal(await page.locator('#busca-sheet').evaluate(e=>e.open),true);

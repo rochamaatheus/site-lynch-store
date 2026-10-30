@@ -110,18 +110,32 @@ main:focus{outline:0}
 .hero-sun .petal.on{fill:color-mix(in srgb,var(--cream) 34%,var(--sun))}
 .hero-sun .seed{fill:color-mix(in srgb,var(--wood) 26%,var(--sun))}
 .rail{position:absolute;z-index:2;left:0;right:0;top:12px;height:14px;background:linear-gradient(180deg,#a56a38,var(--wood) 55%,var(--cocoa));box-shadow:0 5px 0 color-mix(in srgb,var(--cocoa) 22%,transparent)}
-.rack{position:relative;z-index:3;display:flex;align-items:flex-start;gap:6px;height:clamp(250px,37svh,480px);padding:6px 9vw 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.rack::-webkit-scrollbar,.shelf::-webkit-scrollbar,.pills::-webkit-scrollbar,.pdp-gallery::-webkit-scrollbar{display:none}
-.rack{-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
-.rack-banner{justify-content:center;overflow:hidden}
+/* Arara: as pecas cabem na largura (nada cortado na borda). Tudo medido pela
+   largura da propria arara (cqw) e de cada peca (%), entao cabide e peca escalam juntos. */
+.rack{position:relative;z-index:3;container-type:inline-size;display:flex;align-items:flex-start;justify-content:space-evenly;max-height:clamp(250px,37svh,480px);padding-inline:calc(var(--pad) - 6px);overflow:clip}
+.shelf::-webkit-scrollbar,.pills::-webkit-scrollbar,.pdp-gallery::-webkit-scrollbar{display:none}
+/* A barra da foto das pecas longas some suave no fim da arara */
+.rack{-webkit-mask-image:linear-gradient(#000 calc(100% - 64px),transparent);mask-image:linear-gradient(#000 calc(100% - 64px),transparent)}
+.rack-banner{justify-content:center;height:clamp(250px,37svh,480px);padding:6px 9vw 0}
 .rack-banner img{height:100%;width:auto;border-radius:10px}
 .hanging:nth-child(1){--i:0}.hanging:nth-child(2){--i:1}.hanging:nth-child(3){--i:2}.hanging:nth-child(4){--i:3}.hanging:nth-child(n+5){--i:4}
 .pdp-photo[data-morph]{view-transition-name:peca}
-.hanging{flex:none;width:46vw;max-width:250px;transform-origin:50% 8px;transform:rotate(var(--swing,0deg));animation:hang-in 2.2s ease-in-out backwards,breeze calc(4.6s + var(--i) * .7s) ease-in-out calc(1.6s + var(--i) * .3s) infinite alternate;animation-delay:calc(var(--i) * 90ms),calc(1.6s + var(--i) * .3s)}
-.hanging.is-long{width:38vw;max-width:210px}
-.hanger{display:block;width:58%;margin:0 auto -6px;fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.hanging.is-long{-webkit-mask-image:linear-gradient(#000 86%,transparent 99%);mask-image:linear-gradient(#000 86%,transparent 99%)}
-.hanging img{width:100%;filter:drop-shadow(0 12px 10px color-mix(in srgb,var(--cocoa) 34%,transparent));-webkit-user-drag:none}
+/* Pendulo articulado no topo da barra (.rail comeca em 12px), onde o gancho apoia */
+.hanging{--hw:.7;--nx:.5;--ny:.03;--tilt:0deg;flex:none;width:35cqw;transform-origin:50% 10px;transform:rotate(var(--swing,0deg));animation:hang-in 2.2s ease-in-out backwards,breeze calc(4.6s + var(--i) * .7s) ease-in-out calc(1.6s + var(--i) * .3s) infinite alternate;animation-delay:calc(var(--i) * 90ms),calc(1.6s + var(--i) * .3s)}
+.hanging.is-long{width:27cqw}
+.hanging:nth-child(n+4){display:none}
+/* Gola de cada recorte: --nx = centro da gola (fracao da largura), --ny = topo da gola
+   (fracao da largura), --hw = largura do cabide, --tilt = endireita a foto inclinada */
+.is-cutout-01{--nx:.545;--ny:.035;--hw:.72}
+.is-cutout-02{--nx:.5;--ny:.035;--hw:.72}
+.is-cutout-03{--nx:.52;--ny:.03;--hw:.6}
+.is-cutout-04{--nx:.4;--ny:.04;--hw:.6;--tilt:5deg}
+/* O topo do gancho (y 1 de 56) passa por cima da barra; % de margem = largura da peca */
+.hanger{position:relative;display:block;width:calc(var(--hw) * 100%);margin:calc(9px - var(--hw) * .83%) auto 0;fill:none;stroke:var(--ink);stroke-width:2.6px;stroke-linecap:round;stroke-linejoin:round}
+.hanger path{vector-effect:non-scaling-stroke}
+/* A peca sobe por cima dos bracos do cabide: a gola encosta no pescoco do gancho
+   (y 26 de 56) e o centro da gola fica sob o gancho */
+.hanging img{position:relative;z-index:1;display:block;width:100%;margin-top:calc(-100% * (var(--hw) * .25 + var(--ny)));translate:calc((.5 - var(--nx)) * 100%) 0;rotate:var(--tilt);transform-origin:calc(var(--nx) * 100%) 0;filter:drop-shadow(0 12px 10px color-mix(in srgb,var(--cocoa) 34%,transparent));-webkit-user-drag:none}
 @keyframes sun-drift{to{rotate:360deg}}
 @keyframes breeze{from{rotate:-1.6deg}to{rotate:1.6deg}}
 @keyframes hang-in{0%{transform:rotate(calc(6deg - var(--i) * 3deg))}30%{transform:rotate(calc(-3.5deg + var(--i) * 1.5deg))}55%{transform:rotate(1.8deg)}78%{transform:rotate(-.7deg)}100%{transform:rotate(0)}}
@@ -237,9 +251,17 @@ main:focus{outline:0}
 .searchbox input::-webkit-search-cancel-button{display:none}
 .searchbox:focus-within{box-shadow:0 0 0 3px color-mix(in srgb,var(--sun) 70%,transparent)}
 .filters,.shelf{--gutter:max(var(--pad),calc((100% - 1320px) / 2 + var(--pad)))}
-.filters{position:sticky;top:60px;z-index:20;background:var(--paper);padding-block:10px;margin-top:6px;border-bottom:1px solid var(--line)}
+.filters{position:sticky;top:60px;z-index:20;background:var(--paper);padding-block:4px;margin-top:6px;border-bottom:1px solid var(--line)}
 .pills{display:flex;gap:7px;overflow-x:auto;padding-inline:var(--gutter);scrollbar-width:none;align-items:center}
-.pill{flex:none;display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--ink);font-size:14px;font-weight:600;background:transparent;transition:transform .18s var(--spring),background-color .18s,color .18s}
+/* Nome longo de categoria vira reticencias em vez de estourar a tela (title tem o nome inteiro) */
+.pill{flex:none;display:block;max-width:min(calc(100vw - 2 * var(--pad)),320px);min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--ink);font-size:14px;font-weight:600;line-height:41px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:transparent;transition:transform .18s var(--spring),background-color .18s,color .18s}
+.pill:focus-visible{border-radius:999px;outline-offset:1px}
+/* Faixa de filtros no celular: rola de lado, comeca e termina no padding da pagina.
+   A sobra do fim e um espacador (o padding-end de um flex que rola falha em Safari antigo),
+   o encaixe para um chip sempre inteiro na esquerda e o respiro vertical deixa o foco a vista. */
+.filters .pills{padding-block:6px;padding-inline-end:0;scroll-padding-inline:var(--pad);scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+.filters .pills::after{content:'';flex:none;width:calc(var(--pad) - 7px);height:1px}
+.filters .pill{scroll-snap-align:start}
 .pill:active{transform:scale(.94)}
 .pill.on{background:var(--ink);color:var(--cream)}
 .pills-gap{flex:none;width:1px;height:24px;background:var(--line);margin-inline:3px}
@@ -392,8 +414,6 @@ details>div{padding-bottom:6px}
   .world{min-height:280px}
   .steps{grid-template-columns:repeat(3,1fr);column-gap:24px}
   .foot-grid{grid-template-columns:2fr 1fr 1fr}
-  .hanging{width:230px}.hanging.is-long{width:200px}
-  .rack{justify-content:center;height:430px}
   .hero-copy{margin-top:0}
   .sheet{left:auto;right:0;top:0;bottom:0;width:440px;max-height:none;height:100%;border-radius:20px 0 0 20px}
   .sheet[open]{animation-name:drawer-in}
@@ -419,9 +439,10 @@ details>div{padding-bottom:6px}
   .hero-copy{grid-column:1;grid-row:1;width:100%;max-width:none;margin:0;padding-block:40px 24px;padding-left:max(var(--pad),calc(50cqw - 660px + var(--pad)))}
   .hero-title{font-size:clamp(48px,min(8.4vw,15.5svh),190px)}
   .hero-copy p{font-size:clamp(15px,1.9svh,20px);max-width:42ch}
-  .rack{grid-column:2;grid-row:1;height:100%;align-self:start;padding-top:12px;justify-content:flex-start}
-  .hanging{width:clamp(160px,min(20vw,32svh),430px);max-width:none}
-  .hanging.is-long{width:clamp(140px,min(17vw,28svh),370px);max-width:none}
+  .rack{grid-column:2;grid-row:1;max-height:none;align-self:start}
+  .rack-banner{height:100%;align-self:stretch;padding-top:12px}
+  .hanging{width:min(34cqw,46svh)}
+  .hanging.is-long{width:min(28cqw,36svh)}
   .hero-sun{left:auto;right:-6%;margin:0;top:-12%;width:min(62vw,120svh)}
 }
 
@@ -441,11 +462,15 @@ details>div{padding-bottom:6px}
 
 /* Celular baixinho: a chamada precisa caber acima da barra */
 @media(max-height:660px) and (max-width:699px) and (orientation:portrait){
-  .rack{height:192px}
+  .rack{max-height:200px}
   .hero-copy p{font-size:14px;line-height:1.32;margin-bottom:10px}
   .hero{padding-bottom:16px}
   .hero .btn{min-height:46px;padding-block:8px}
-  .hanging{width:36vw}.hanging.is-long{width:27vw}
+}
+/* Tablet de pe: arara larga, cabem as quatro pecas */
+@media(min-width:700px) and (max-width:999px) and (min-height:521px){
+  .hanging{width:25cqw}.hanging.is-long{width:20cqw}
+  .hanging:nth-child(4){display:block}
 }
 
 @media(min-width:1000px){
@@ -678,10 +703,16 @@ a,button,summary,label,select,input,.pdp-gallery{touch-action:manipulation}
 .btn.busy::after{content:'';width:16px;height:16px;flex:none;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Chips: a borda some suave do lado em que ainda ha chips para rolar */
-.filters .pills.more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent)}
-.filters .pills.more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 44px);mask-image:linear-gradient(90deg,transparent,#000 44px)}
-.filters .pills.more-l.more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+/* Chips: a borda some suave do lado em que ainda ha chips para rolar. O esmaecido ocupa
+   so a margem da pagina, entao nenhum chip inteiro dentro do conteudo fica apagado. */
+.filters .pills.more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--pad)),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - var(--pad)),transparent)}
+.filters .pills.more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--pad));mask-image:linear-gradient(90deg,transparent,#000 var(--pad))}
+.filters .pills.more-l.more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 var(--pad),#000 calc(100% - var(--pad)),transparent);mask-image:linear-gradient(90deg,transparent,#000 var(--pad),#000 calc(100% - var(--pad)),transparent)}
+/* Tablet e computador: os chips quebram linha em vez de sumir na borda */
+@media(min-width:700px){
+  .filters .pills{flex-wrap:wrap;row-gap:8px;overflow:visible;padding-inline-end:var(--gutter)}
+  .filters .pills::after{display:none}
+}
 
 /* Sacola: aviso fora da barra fixa, barra so com total e botao */
 .bag-note-lead{margin:0 0 12px}

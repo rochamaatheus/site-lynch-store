@@ -65,11 +65,11 @@ require __DIR__ . '/includes/partials/header.php';
   <?php if ($heroBanner !== ''): ?>
   <div class="rack rack-banner"><img src="<?= e(asset_url($heroBanner)) ?>" alt="" fetchpriority="high" width="720" height="900"></div>
   <?php else: ?>
-  <div class="rack" data-rack tabindex="0" role="group" aria-label="Peças da arara, deslize para ver">
+  <div class="rack" data-rack role="group" aria-label="Peças da arara">
     <?php foreach ($rack as $i => [$file, $w, $h, $cat, $alt]): ?>
-    <a class="hanging<?= $h > 1000 ? ' is-long' : '' ?>" href="<?= e($rackHref($cat)) ?>" data-hanging>
+    <a class="hanging is-<?= e($file) ?><?= $h > 1000 ? ' is-long' : '' ?>" href="<?= e($rackHref($cat)) ?>" data-hanging>
       <svg class="hanger" viewBox="0 0 120 56" aria-hidden="true"><path d="M60 26V15c0-4 7-4 7-9s-4-5-7-5-6 2-6 5M60 26 8 50c-3 2-2 5 2 5h100c4 0 5-3 2-5z"/></svg>
-      <img src="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?>" srcset="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/' . $file . '-720.webp')) ?> 720w" sizes="(max-width:699px) 40vw, (max-width:999px) 230px, 22vw" alt="<?= e($alt) ?>" width="<?= $w ?>" height="<?= $h ?>"<?= $i < 2 ? ' fetchpriority="high"' : ' loading="lazy"' ?> draggable="false">
+      <img src="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?>" srcset="<?= e(asset_url('assets/hero/' . $file . '-360.webp')) ?> 360w, <?= e(asset_url('assets/hero/' . $file . '-720.webp')) ?> 720w" sizes="<?= $h > 1000 ? '(max-width:699px) 26vw, (max-width:999px) 19vw, 15vw' : '(max-width:699px) 34vw, (max-width:999px) 24vw, 18vw' ?>" alt="<?= e($alt) ?>" width="<?= $w ?>" height="<?= $h ?>"<?= $i < 2 ? ' fetchpriority="high"' : ' loading="lazy"' ?> draggable="false">
     </a>
     <?php endforeach; ?>
   </div>

@@ -133,7 +133,7 @@ require __DIR__ . '/includes/partials/header.php';
     <i class="pills-gap" aria-hidden="true"></i>
     <?php foreach ($categories as $cat): ?>
     <?php $on = $categorySlug === $cat['slug']; ?>
-    <a class="pill<?= $on ? ' on' : '' ?>" href="<?= e(url_catalog(['categoria' => $on ? '' : $cat['slug']] + $keep)) ?>"<?= $on ? ' aria-current="true"' : '' ?>><?= e($cat['name']) ?></a>
+    <a class="pill<?= $on ? ' on' : '' ?>" href="<?= e(url_catalog(['categoria' => $on ? '' : $cat['slug']] + $keep)) ?>"<?= $on ? ' aria-current="true"' : '' ?><?= mb_strlen((string) $cat['name']) > 26 ? ' title="' . e($cat['name']) . '"' : '' ?>><?= e($cat['name']) ?></a>
     <?php endforeach; ?>
   </nav>
 </div>

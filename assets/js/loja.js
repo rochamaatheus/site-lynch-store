@@ -528,7 +528,8 @@
     window.addEventListener('resize', ask, { passive: true });
     /* O filtro escolhido aparece na tela, mesmo no fim da fileira. */
     var on = $('.pill.on', row);
-    if (on && on.offsetLeft + on.offsetWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - 24;
+    var pad = parseFloat(getComputedStyle(row).paddingLeft) || 0;
+    if (on && on.offsetLeft + on.offsetWidth > row.clientWidth - pad) row.scrollLeft = on.offsetLeft - pad;
     paint();
   });
 
