@@ -69,6 +69,17 @@ CREATE TABLE IF NOT EXISTS products (
     active           TINYINT(1) NOT NULL DEFAULT 1,
     featured         TINYINT(1) NOT NULL DEFAULT 0,
     sort_order       INT NOT NULL DEFAULT 0,
+    -- Estoque e promocao (painel: acoes rapidas na lista de produtos)
+    -- stock_qty NULL = sem controle de estoque (comum em sob encomenda); 0 = esgotado.
+    -- show_stock: mostra "Restam N" na loja. sold_out: marcado como esgotado/vendido
+    -- pela Ray (continua visivel, mas nao pode ir para a sacola).
+    -- sale_price_cents: preco promocional em centavos; NULL = sem promocao.
+    -- sale_ends_on: ultimo dia da promocao (inclusive); NULL = sem data final.
+    stock_qty        SMALLINT UNSIGNED DEFAULT NULL,
+    show_stock       TINYINT(1) NOT NULL DEFAULT 0,
+    sold_out         TINYINT(1) NOT NULL DEFAULT 0,
+    sale_price_cents INT UNSIGNED DEFAULT NULL,
+    sale_ends_on     DATE DEFAULT NULL,
     created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
@@ -76,6 +87,9 @@ CREATE TABLE IF NOT EXISTS products (
     KEY idx_products_category (category_id),
     KEY idx_products_active_sort (active, sort_order),
     KEY idx_products_availability (availability),
+    -- Promocao so com preco fechado e sempre abaixo do preco normal.
+    CONSTRAINT chk_products_sale_price
+        CHECK (sale_price_cents IS NULL OR (price_cents IS NOT NULL AND sale_price_cents < price_cents)),
     CONSTRAINT fk_products_category
         FOREIGN KEY (category_id) REFERENCES categories (id)
         ON DELETE SET NULL ON UPDATE CASCADE

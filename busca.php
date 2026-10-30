@@ -15,5 +15,5 @@ echo json_encode(array_map(static fn (array $p): array => [
     'name'  => (string) $p['name'],
     'url'   => product_url((string) $p['slug']),
     'image' => product_image_thumb_url($p['primary_image'] ?? null),
-    'price' => format_price(isset($p['price_cents']) ? (int) $p['price_cents'] : null, (bool) ($p['price_on_request'] ?? true)),
+    'price' => !empty($p['is_sold_out']) ? 'Esgotado' : product_price_view($p)['now'],
 ], $rows), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);

@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { exit; }
-putenv('LYNCH_ENV_FILE=' . dirname(__DIR__) . '/.env.test.local');
-require dirname(__DIR__) . '/includes/ProductImport.php';
-require dirname(__DIR__) . '/includes/ProductRepository.php';
-require dirname(__DIR__) . '/includes/Cart.php';
-require dirname(__DIR__) . '/includes/WhatsAppMessage.php';
-require dirname(__DIR__) . '/includes/OrderRepository.php';
+// Banco de teste: o do LYNCH_ENV_FILE informado, ou o padrao .env.test.local.
+if (!getenv('LYNCH_ENV_FILE')) { putenv('LYNCH_ENV_FILE=' . dirname(__DIR__) . '/.env.test.local'); }
+require_once dirname(__DIR__) . '/includes/ProductImport.php';
+require_once dirname(__DIR__) . '/includes/ProductRepository.php';
+require_once dirname(__DIR__) . '/includes/Cart.php';
+require_once dirname(__DIR__) . '/includes/WhatsAppMessage.php';
+require_once dirname(__DIR__) . '/includes/OrderRepository.php';
 if (!str_contains(DB_NAME, '_teste_')) { throw new RuntimeException('Testes exigem banco _teste_.'); }
 $passed = [];
 $check = static function (bool $ok, string $label) use (&$passed): void { if (!$ok) { throw new RuntimeException('FAIL: ' . $label); } $passed[] = $label; };
@@ -90,6 +91,94 @@ try {
     $check(str_starts_with(WhatsAppMessage::url($items, ['number' => '5511999999999']), 'https://wa.me/5511999999999?text='), 'URL WhatsApp válida sem enviar mensagem');
 } finally { $pdo->rollBack(); cart_clear(); }
 
+// ---------------------------------------------------------------------------
+// Estoque, promocao, destaque e esgotado
+// ---------------------------------------------------------------------------
+$check(ProductRepository::stockReady(), 'Banco de teste com colunas de estoque e promoção');
+$check(sale_percent(10000, 7990) === 20 && parse_date_br('30/11/2026') === '2026-11-30' && parse_date_br('31/02/2026') === null, 'Desconto e datas calculados');
+$pdo->beginTransaction();
+try {
+    $mk = static fn (string $slug, array $extra = []): int => ProductRepository::create($extra + ['name' => 'QA estoque ' . $slug, 'slug' => "qa-st-$suffix-$slug", 'active' => true, 'price_on_request' => false, 'price_cents' => 10000, 'availability' => 'pronta_entrega']);
+    $promo = $mk('promo');
+    [$cents] = ProductRepository::parseSale(['price_cents' => 10000, 'price_on_request' => false], '', '25', '');
+    $check($cents === 7500, 'Promoção por porcentagem calcula o preço (25% de R$ 100,00 = R$ 75,00)');
+    $p = ProductRepository::quickAction($promo, 'sale_set', ['sale_price' => '79,90', 'sale_ends_on' => date('Y-m-d', strtotime('+7 days'))]);
+    $view = product_price_view($p);
+    $check($p['sale_active'] && $p['current_price_cents'] === 7990 && $view['old'] === 'R$ 100,00' && $view['now'] === 'R$ 79,90' && $view['percent'] === 20, 'Promoção vigente: preço novo, antigo riscado e 20%');
+    $check($throws(fn() => ProductRepository::quickAction($promo, 'sale_set', ['sale_price' => '100,00'])), 'Promoção igual ou acima do preço recusada');
+    $check($throws(fn() => ProductRepository::quickAction($promo, 'sale_set', ['sale_price' => '50', 'sale_ends_on' => '2020-01-01'])), 'Data final no passado recusada');
+    $onReq = $mk('consulta', ['price_on_request' => true, 'price_cents' => null]);
+    try { ProductRepository::quickAction($onReq, 'sale_set', ['sale_percent' => '10']); $msg = ''; } catch (DomainException $e) { $msg = $e->getMessage(); }
+    $check(str_contains($msg, 'Consultar valor'), 'Produto sob consulta não entra em promoção, com mensagem clara');
+    $check($throws(fn() => $pdo->exec("UPDATE products SET sale_price_cents = 20000 WHERE id = $promo")), 'CHECK do banco recusa promoção acima do preço');
+    $pdo->prepare('UPDATE products SET sale_ends_on = ? WHERE id = ?')->execute([date('Y-m-d', strtotime('-1 day')), $promo]);
+    $p = ProductRepository::findAnyById($promo);
+    $check(!$p['sale_active'] && $p['sale_expired'] && $p['current_price_cents'] === 10000, 'Promoção vencida volta ao preço normal sozinha');
+    $p = ProductRepository::quickAction($promo, 'sale_off');
+    $check($p['sale_price_cents'] === null && $p['sale_ends_on'] === null, 'Tirar promoção limpa preço e data');
+
+    $stock = $mk('estoque', ['stock_qty' => 1, 'show_stock' => true]);
+    $p = ProductRepository::quickAction($stock, 'stock_dec');
+    $check($p['stock_qty'] === 0 && $p['is_sold_out'], 'Estoque em 0 vira esgotado automaticamente');
+    $p = ProductRepository::quickAction($stock, 'stock_inc');
+    $check($p['stock_qty'] === 1 && !$p['is_sold_out'], 'Repor estoque devolve à venda');
+    $p = ProductRepository::quickAction($stock, 'sold_out');
+    $check($p['is_sold_out'] && $p['stock_qty'] === 1, 'Marcar como esgotado sem perder o número do estoque');
+    ProductRepository::quickAction($stock, 'stock_set', ['stock' => '0']);
+    $p = ProductRepository::quickAction($stock, 'reactivate');
+    $check(!$p['is_sold_out'] && $p['stock_qty'] === 1, 'Reativar peça zerada volta com 1 no estoque');
+    $p = ProductRepository::quickAction($stock, 'stock_set', ['stock' => '']);
+    $check($p['stock_qty'] === null, 'Estoque vazio = sem controle');
+    $check($throws(fn() => ProductRepository::quickAction($stock, 'stock_set', ['stock' => '-3'])), 'Estoque negativo recusado');
+    $p = ProductRepository::quickAction($stock, 'featured', ['value' => 1]);
+    $check($p['featured'] === true, 'Destaque ligado pela ação rápida');
+
+    // Sacola e checkout validados no servidor
+    ProductRepository::quickAction($stock, 'stock_set', ['stock' => '2']);
+    $out = $mk('esgotado', ['sold_out' => true]);
+    $sale = $mk('sacola');
+    ProductRepository::quickAction($sale, 'sale_set', ['sale_percent' => '10']);
+    cart_store([$stock => 5, $out => 1, $sale => 2]);
+    $items = array_column(cart_items(), null, 'id');
+    $check($items[$stock]['qty'] === 2 && $items[$stock]['qty_adjusted'], 'Sacola ajusta a quantidade ao estoque');
+    $check($items[$out]['sold_out'] && $items[$out]['subtotal_cents'] === null && cart_sold_out_items() !== [], 'Esgotado na sacola não soma e bloqueia o envio');
+    $check($items[$sale]['price_cents'] === 9000 && $items[$sale]['subtotal_cents'] === 18000 && cart_total_cents() === 38000, 'Sacola usa o preço promocional vigente');
+    $msg = WhatsAppMessage::build(cart_items());
+    $check(!str_contains($msg, 'QA estoque esgotado') && str_contains($msg, 'R$ 90,00 (promoção, de R$ 100,00)'), 'Mensagem do WhatsApp sem esgotado e com preço promocional');
+    $check(cart_room_for(ProductRepository::findById($out)) === 0 && cart_room_for(ProductRepository::findById($stock)) === 0, 'Servidor não deixa somar esgotado nem passar do estoque');
+
+    // Abas e contagens
+    $low = 3;
+    $counts = ProductRepository::adminTabCounts(['search' => "qa-st-$suffix"], $low);
+    $list = static fn (string $tab): int => count(ProductRepository::listAll(['search' => "qa-st-$suffix", 'tab' => $tab, 'low' => $low]));
+    $check($counts['todos'] === 5 && $counts['esgotado'] === $list('esgotado') && $counts['promocao'] === $list('promocao') && $counts['baixo'] === $list('baixo') && $counts['destaque'] === $list('destaque') && $counts['visivel'] === $list('visivel'), 'Contagem das abas bate com a lista filtrada');
+    $check($counts['esgotado'] === 1 && $counts['promocao'] === 1 && $counts['baixo'] === 1 && $counts['visivel'] === 1, 'Abas Esgotados, Em promoção, Estoque baixo e Estoque visível');
+} finally { $pdo->rollBack(); cart_clear(); }
+
+// Importacao com as colunas novas (fora da transacao: apply abre a sua)
+$headersNew = ProductImport::HEADERS;
+$rowNew = ['QA promo ' . $suffix, 'qa-promo-' . $suffix, 'QA temporário', '100,00', 'pronta_entrega', '', '', '0', '1', '4', '1', '80,00', '30/12/2099', '0'];
+$parsedNew = ProductImport::normalize([$headersNew, $rowNew]);
+$check(!$parsedNew['errors'] && $parsedNew['products'][0]['stock_qty'] === 4 && $parsedNew['products'][0]['sale_price_cents'] === 8000 && $parsedNew['products'][0]['sale_ends_on'] === '2099-12-30', 'Planilha com estoque e promoção normalizada');
+$bad = $rowNew; $bad[11] = '120,00';
+$check(count(ProductImport::normalize([$headersNew, $bad])['errors']) === 1, 'Planilha com promoção acima do preço recusada');
+$bad = $rowNew; $bad[3] = '';
+$check(count(ProductImport::normalize([$headersNew, $bad])['errors']) === 1, 'Planilha com promoção sem preço recusada');
+ProductImport::apply($parsedNew['products'], 'create', []);
+$oldHeaders = array_slice($headersNew, 0, 9);
+$parsedOld = ProductImport::normalize([$oldHeaders, array_slice($rowNew, 0, 9)]);
+$check(ProductImport::stockColumns($parsedOld['products']) === [], 'Planilha antiga não traz colunas de estoque');
+ProductImport::apply($parsedOld['products'], 'upsert', ProductImport::existing($parsedOld['products']));
+$after = ProductRepository::findBySlug('qa-promo-' . $suffix) ?? ProductRepository::findAnyById((int) db()->query("SELECT id FROM products WHERE slug = 'qa-promo-$suffix'")->fetchColumn());
+$check($after['stock_qty'] === 4 && $after['sale_price_cents'] === 8000 && $after['show_stock'], 'Planilha antiga atualiza sem apagar estoque e promoção');
+$cheaper = $parsedOld['products']; $cheaper[0]['price_cents'] = 7000;
+ProductImport::apply($cheaper, 'upsert', ProductImport::existing($cheaper));
+$after = ProductRepository::findAnyById((int) $after['id']);
+$check($after['price_cents'] === 7000 && $after['sale_price_cents'] === null, 'Preço novo abaixo da promoção antiga tira a promoção na importação');
+$csvNew = __DIR__ . '/fixtures/import-estoque.csv';
+file_put_contents($csvNew, implode(';', $headersNew) . "\n" . implode(';', array_replace($rowNew, [1 => 'qa-promo-csv-' . $suffix])) . "\n");
+$check(ProductImport::read($csvNew, 'csv')['products'][0]['stock_qty'] === 4, 'CSV com colunas novas lido');
+
 $password = bin2hex(random_bytes(14));
 $pdo->prepare('INSERT INTO admin_users (username,password_hash,display_name) VALUES (?,?,?) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash),active=1,failed_attempts=0,locked_until=NULL')->execute(['qa_runner', password_hash($password, PASSWORD_DEFAULT), 'QA']);
 file_put_contents(dirname(__DIR__) . '/.qa-credentials.json', json_encode(['username' => 'qa_runner', 'password' => $password]));
@@ -104,7 +193,11 @@ $queries = [
     'catalog_cursor' => 'SELECT id,sort_order FROM products WHERE active=1 AND (sort_order>0 OR (sort_order=0 AND id>8)) ORDER BY sort_order,id LIMIT 9',
     'import_slug_lookup' => "SELECT slug FROM products WHERE slug IN ('peca-de-cosplay-01','camiseta-geek-20')",
     'orders_cursor' => 'SELECT id,item_count,total_cents,status FROM checkout_logs WHERE id<100 ORDER BY id DESC LIMIT 31',
-    'dashboard_missing_photos' => 'SELECT COUNT(*) FROM products p WHERE p.active=1 AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id=p.id)',
+    'admin_tab_counts' => "SELECT COUNT(*), SUM(p.sale_price_cents IS NOT NULL AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= '2026-10-30')), SUM(p.featured = 1), SUM(p.sold_out = 0 AND p.stock_qty BETWEEN 1 AND 3), SUM(p.sold_out = 1 OR p.stock_qty = 0), SUM(p.show_stock = 1 AND p.stock_qty IS NOT NULL), SUM(p.show_stock = 0 AND p.stock_qty IS NOT NULL) FROM products p WHERE 1=1",
+    'admin_tab_promocao' => "SELECT p.id,p.name,p.sale_price_cents FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1 AND p.sale_price_cents IS NOT NULL AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= '2026-10-30') ORDER BY p.sort_order ASC, p.id ASC LIMIT 31",
+    'admin_tab_esgotado' => 'SELECT p.id,p.name FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE 1=1 AND (p.sold_out = 1 OR p.stock_qty = 0) ORDER BY p.sort_order ASC, p.id ASC LIMIT 31',
+    'home_destaques' => 'SELECT p.id,p.name,p.stock_qty,p.sold_out,p.sale_price_cents FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE p.active = 1 AND p.featured = 1 ORDER BY p.sort_order ASC, p.id ASC LIMIT 10',
+    'dashboard_missing_photos' =>'SELECT COUNT(*) FROM products p WHERE p.active=1 AND NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.product_id=p.id)',
 ];
 foreach ($queries as $label => $sql) { $plans[$label] = $pdo->query('EXPLAIN ' . $sql)->fetchAll(); }
 file_put_contents(dirname(__DIR__) . '/docs/explain.json', json_encode($plans, JSON_PRETTY_PRINT));

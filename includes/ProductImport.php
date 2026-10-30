@@ -3,12 +3,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/ProductRepository.php';
 
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
 final class ProductImport
 {
-    public const HEADERS = ['nome', 'slug', 'categoria', 'preco', 'disponibilidade', 'descricao_curta', 'descricao', 'ativo', 'destaque'];
+    public const HEADERS = ['nome', 'slug', 'categoria', 'preco', 'disponibilidade', 'descricao_curta', 'descricao', 'ativo', 'destaque', 'estoque', 'mostrar_estoque', 'preco_promocional', 'promocao_ate', 'esgotado'];
+    /** Colunas opcionais de estoque e promocao: planilha antiga sem elas nao mexe nesses campos. */
+    public const STOCK_HEADERS = ['estoque' => 'stock_qty', 'mostrar_estoque' => 'show_stock', 'preco_promocional' => 'sale_price_cents', 'promocao_ate' => 'sale_ends_on', 'esgotado' => 'sold_out'];
     public const MAX_ROWS = 500;
 
     public static function read(string $path, string $extension): array
@@ -106,7 +109,7 @@ final class ProductImport
                 foreach (['descricao_curta' => 255, 'descricao' => 5000] as $field => $limit) {
                     if (mb_strlen($data[$field] ?? '') > $limit) { throw new InvalidArgumentException("$field excede $limit caracteres."); }
                 }
-                $products[] = [
+                $product = [
                     'name' => $name, 'slug' => $slug, 'category' => $category,
                     'price_cents' => $cents, 'price_on_request' => $cents === null ? 1 : 0,
                     'availability' => $availability, 'short_description' => $data['descricao_curta'] ?? '',
@@ -114,6 +117,29 @@ final class ProductImport
                     'active' => self::flag($data['ativo'] ?? '', 1),
                     'featured' => self::flag($data['destaque'] ?? '', 0),
                 ];
+                if (array_key_exists('estoque', $data)) {
+                    $stock = $data['estoque'];
+                    if ($stock !== '' && (!preg_match('/^\d{1,5}$/', $stock) || (int) $stock > 65535)) {
+                        throw new InvalidArgumentException('Estoque deve ser um número inteiro, ou vazio para não controlar.');
+                    }
+                    $product['stock_qty'] = $stock === '' ? null : (int) $stock;
+                }
+                if (array_key_exists('mostrar_estoque', $data)) { $product['show_stock'] = self::flag($data['mostrar_estoque'], 0); }
+                if (array_key_exists('esgotado', $data)) { $product['sold_out'] = self::flag($data['esgotado'], 0); }
+                if (array_key_exists('preco_promocional', $data)) {
+                    $sale = $data['preco_promocional'];
+                    $saleCents = $sale === '' ? null : price_to_cents($sale);
+                    if ($sale !== '' && $saleCents === null) { throw new InvalidArgumentException('Preço promocional inválido. Exemplo: 79,90.'); }
+                    if ($saleCents !== null && $cents === null) { throw new InvalidArgumentException('Produto sem preço (consultar valor) não pode ter preço promocional.'); }
+                    if ($saleCents !== null && $saleCents >= $cents) { throw new InvalidArgumentException('O preço promocional precisa ser menor que o preço.'); }
+                    $product['sale_price_cents'] = $saleCents;
+                }
+                if (array_key_exists('promocao_ate', $data)) {
+                    $ends = self::date($data['promocao_ate']);
+                    if ($ends !== null && ($product['sale_price_cents'] ?? null) === null) { throw new InvalidArgumentException('promocao_ate só vale junto com preco_promocional.'); }
+                    $product['sale_ends_on'] = $ends;
+                }
+                $products[] = $product;
             } catch (InvalidArgumentException $e) { $errors[] = "Linha $line: " . $e->getMessage(); }
         }
         if (!$products && !$errors) { $errors[] = 'A planilha não contém produtos.'; }
@@ -126,14 +152,36 @@ final class ProductImport
         $value = mb_strtolower($value);
         if (in_array($value, ['1', 'sim'], true)) { return 1; }
         if (in_array($value, ['0', 'nao', 'não'], true)) { return 0; }
-        throw new InvalidArgumentException('Ativo e destaque devem ser 1 ou 0.');
+        throw new InvalidArgumentException('Ativo, destaque, mostrar_estoque e esgotado devem ser 1 (sim) ou 0 (não).');
+    }
+
+    /** Data da planilha: dia/mês/ano, ano-mês-dia ou número de data do Excel. */
+    private static function date(string $value): ?string
+    {
+        if ($value === '') { return null; }
+        if (preg_match('/^\d{5}(?:\.0+)?$/', $value)) {
+            // Serial do Excel (dias desde 30/12/1899).
+            $value = (new DateTimeImmutable('1899-12-30'))->modify('+' . (int) $value . ' days')->format('Y-m-d');
+        }
+        return parse_date_br($value) ?? throw new InvalidArgumentException('Data de promoção inválida. Use dia/mês/ano, por exemplo 30/11/2026.');
+    }
+
+    /**
+     * Colunas de estoque e promocao presentes nesta importacao (iguais em todas as linhas).
+     *
+     * @return array<int,string>
+     */
+    public static function stockColumns(array $products): array
+    {
+        return array_values(array_filter(self::STOCK_HEADERS, static fn (string $col): bool => array_key_exists($col, $products[0] ?? [])));
     }
 
     public static function existing(array $products, bool $lock = false): array
     {
         $slugs = array_column($products, 'slug');
         if (!$slugs) { return []; }
-        $stmt = db()->prepare('SELECT slug, name, category_id, price_cents, price_on_request, availability, short_description, description, active, featured, updated_at FROM products WHERE slug IN (' . implode(',', array_fill(0, count($slugs), '?')) . ')' . ($lock ? ' FOR UPDATE' : ''));
+        $extra = ProductRepository::stockReady() ? ', stock_qty, show_stock, sold_out, sale_price_cents, sale_ends_on' : '';
+        $stmt = db()->prepare('SELECT slug, name, category_id, price_cents, price_on_request, availability, short_description, description, active, featured' . $extra . ', updated_at FROM products WHERE slug IN (' . implode(',', array_fill(0, count($slugs), '?')) . ')' . ($lock ? ' FOR UPDATE' : ''));
         $stmt->execute($slugs);
         $rows = [];
         foreach ($stmt->fetchAll() as $row) { $rows[$row['slug']] = hash('sha256', json_encode($row)); }
@@ -144,6 +192,10 @@ final class ProductImport
     public static function apply(array $products, string $mode, array $expected): array
     {
         if (!$products || count($products) > self::MAX_ROWS || !in_array($mode, ['create', 'upsert'], true)) { throw new InvalidArgumentException('Importação inválida.'); }
+        $extraCols = self::stockColumns($products);
+        if ($extraCols !== [] && !ProductRepository::stockReady()) {
+            throw new RuntimeException('As colunas de estoque e promoção precisam do banco atualizado. Remova essas colunas da planilha ou atualize o banco.');
+        }
         $pdo = db();
         $pdo->beginTransaction();
         try {
@@ -167,13 +219,24 @@ final class ProductImport
                 foreach ($pdo->query('SELECT id, slug FROM categories')->fetchAll() as $row) { $categories[$row['slug']] = (int) $row['id']; }
             }
             foreach (array_chunk($products, 50) as $chunk) {
-                $sql = 'INSERT INTO products (name,slug,category_id,price_cents,price_on_request,availability,short_description,description,active,featured) VALUES ' . implode(',', array_fill(0, count($chunk), '(?,?,?,?,?,?,?,?,?,?)'));
+                // Colunas fixas + as de estoque/promocao que vieram na planilha (lista fechada).
+                $cols = array_merge(['name', 'slug', 'category_id', 'price_cents', 'price_on_request', 'availability', 'short_description', 'description', 'active', 'featured'], $extraCols);
+                $row = '(' . implode(',', array_fill(0, count($cols), '?')) . ')';
+                $sql = 'INSERT INTO products (' . implode(',', $cols) . ') VALUES ' . implode(',', array_fill(0, count($chunk), $row));
                 if ($mode === 'upsert') {
-                    $sql .= ' ON DUPLICATE KEY UPDATE name=VALUES(name),category_id=VALUES(category_id),price_cents=VALUES(price_cents),price_on_request=VALUES(price_on_request),availability=VALUES(availability),short_description=VALUES(short_description),description=VALUES(description),active=VALUES(active),featured=VALUES(featured)';
+                    $updates = array_map(static fn (string $c): string => $c . '=VALUES(' . $c . ')', array_values(array_diff($cols, ['slug'])));
+                    // Planilha antiga, sem preco_promocional: se o preco novo ficar abaixo
+                    // da promocao atual, a promocao sai (o CHECK do banco recusaria).
+                    // Vem antes de price_cents porque o MySQL aplica as atribuicoes em ordem.
+                    if (!in_array('sale_price_cents', $extraCols, true) && ProductRepository::stockReady()) {
+                        array_unshift($updates, 'sale_price_cents=IF(VALUES(price_cents) IS NULL OR sale_price_cents >= VALUES(price_cents), NULL, sale_price_cents)');
+                    }
+                    $sql .= ' ON DUPLICATE KEY UPDATE ' . implode(',', $updates);
                 }
                 $values = [];
                 foreach ($chunk as $p) {
                     array_push($values, $p['name'], $p['slug'], $categories[slugify($p['category'], 120)] ?? null, $p['price_cents'], $p['price_on_request'], $p['availability'], $p['short_description'], $p['description'], $p['active'], $p['featured']);
+                    foreach ($extraCols as $col) { $values[] = $p[$col]; }
                 }
                 $pdo->prepare($sql)->execute($values);
             }

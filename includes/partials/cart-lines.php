@@ -21,6 +21,7 @@ $bagHasFixed  = cart_has_fixed_price($bagItems);
 $bagOnRequest = cart_has_price_on_request($bagItems);
 $bagTotal     = cart_total_cents($bagItems);
 $bagReady     = WhatsAppMessage::normalizeNumber(whatsapp_number()) !== '';
+$bagSoldOut   = cart_sold_out_items($bagItems);
 ?>
 <?php if ($bagItems === []): ?>
   <div class="bag-empty">
@@ -39,16 +40,22 @@ $bagReady     = WhatsAppMessage::normalizeNumber(whatsapp_number()) !== '';
       <div class="bag-info">
         <h3><a href="<?= e($item['url']) ?>"><?= e($item['name']) ?></a></h3>
         <p class="bag-meta"><?= e($item['availability_label']) ?></p>
-        <p class="bag-price"><?= e($item['subtotal_label']) ?></p>
+        <?php if ($item['sold_out']): ?>
+        <p class="bag-price bag-out">Esgotou. Tire da sacola para enviar o pedido.</p>
+        <?php else: ?>
+        <p class="bag-price"><?php if ($item['old_subtotal_label'] !== null): ?><s><span class="sr">De </span><?= e($item['old_subtotal_label']) ?></s> <span class="sr">por </span><?php endif; ?><?= e($item['subtotal_label']) ?></p>
+        <?php endif; ?>
         <div class="bag-actions">
+          <?php if (!$item['sold_out']): ?>
           <form class="stepper" method="post" action="<?= e($bagUrl) ?>" data-cart-form>
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="product_id" value="<?= e($item['id']) ?>">
             <button name="qty" value="<?= e($item['qty'] - 1) ?>" aria-label="Tirar uma unidade de <?= e($item['name']) ?>"><?= icon('minus') ?></button>
             <output aria-label="Quantidade"><?= e($item['qty']) ?></output>
-            <button name="qty" value="<?= e(min($item['qty'] + 1, CART_MAX_QTY)) ?>" aria-label="Somar uma unidade de <?= e($item['name']) ?>"<?= $item['qty'] >= CART_MAX_QTY ? ' disabled' : '' ?>><?= icon('plus') ?></button>
+            <button name="qty" value="<?= e(min($item['qty'] + 1, $item['max_qty'])) ?>" aria-label="Somar uma unidade de <?= e($item['name']) ?>"<?= $item['qty'] >= $item['max_qty'] ? ' disabled' : '' ?>><?= icon('plus') ?></button>
           </form>
+          <?php endif; ?>
           <form method="post" action="<?= e($bagUrl) ?>" data-cart-form>
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="remove">
@@ -67,7 +74,10 @@ $bagReady     = WhatsAppMessage::normalizeNumber(whatsapp_number()) !== '';
       <b><?= $bagHasFixed ? e(format_price($bagTotal)) : 'A combinar' ?></b>
     </div>
     <p class="bag-note"><?= $bagOnRequest ? 'A loja confirma valor, frete e prazo na conversa.' : 'A loja confirma frete e prazo na conversa.' ?></p>
-    <?php if ($bagReady): ?>
+    <?php if ($bagSoldOut !== []): ?>
+      <span class="btn ink wide is-off" aria-disabled="true"><?= icon('chat') ?> Enviar pedido no WhatsApp</span>
+      <p class="bag-note">Tem peça esgotada na sacola. Tire ela para enviar o pedido.</p>
+    <?php elseif ($bagReady): ?>
       <form method="post" action="<?= e(base_url('finalizar.php')) ?>">
         <?= csrf_field() ?>
         <button class="btn ink wide" type="submit"><?= icon('chat') ?> Enviar pedido no WhatsApp</button>

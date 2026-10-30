@@ -12,6 +12,7 @@ const pass = text => results.push(text);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', msg => { if (msg.type()==='error' && !/status of 4\d\d/.test(msg.text())) errors.push('console: '+msg.text()); });
   const go = route => page.goto(base + route);
   const csrf = async () => page.locator('input[name=csrf]').last().inputValue();
   const post = async (route, data) => ctx.request.post(base+route,{form:{csrf:await csrf(),...data},maxRedirects:0});
@@ -147,6 +148,102 @@ const pass = text => results.push(text);
     await page.getByRole('button',{name:'Salvar atendimento',exact:true}).click();
     assert.equal(await page.locator('[name=status]').inputValue(),'em_atendimento');
     pass('Pedido localizado e situação atualizada');
+
+    // ---------- Estoque, promoção, destaque e esgotado (ações rápidas) ----------
+    const row = () => page.locator('#produto-'+productId);
+    const toastHas = text => page.waitForFunction(t=>{const b=document.querySelector('[data-toast]');return b&&!b.hidden&&b.textContent.includes(t);},text);
+    const listUrl = '/admin/produtos.php?busca='+encodeURIComponent('Produto QA '+suffix);
+    await go(listUrl);
+    await row().getByRole('button',{name:/Somar 1 ao estoque/}).click();
+    await toastHas('estoque 1.');
+    assert.equal(await row().locator('.stock-input').inputValue(),'1');
+    await row().locator('.stock-input').fill('2');
+    await row().locator('.stock-input').press('Enter');
+    await toastHas('estoque 2.');
+    await row().getByRole('button',{name:'Destaque',exact:true}).click();
+    await page.waitForFunction(id=>document.querySelector('#produto-'+id+' .toggle').getAttribute('aria-pressed')==='true',productId);
+    await row().getByRole('button',{name:'Mostrar estoque',exact:true}).click();
+    await toastHas('agora mostra o estoque');
+    assert.equal(await row().getByRole('button',{name:'Mostrar estoque',exact:true}).getAttribute('aria-pressed'),'true');
+    assert.equal(page.url(),base+listUrl,'Ações rápidas não recarregam a página');
+    pass('Ações rápidas na lista: estoque com + e campo, destaque e mostrar estoque sem recarregar');
+
+    await row().locator('.promo summary').click();
+    await row().locator('[name=sale_percent]').fill('20');
+    assert.equal(await row().locator('[name=sale_price]').inputValue(),'103,92');
+    await row().getByRole('button',{name:'Colocar em promoção',exact:true}).click();
+    await toastHas('Promoção aplicada');
+    assert.match(await row().locator('.prow-price').innerText(),/129,90[\s\S]*103,92/);
+    assert.equal(await page.locator('[data-count=promocao]').innerText(),'1');
+    await go('/admin/produtos.php?aba=promocao&busca='+encodeURIComponent('Produto QA '+suffix));
+    assert.equal(await page.locator('.prow').count(),1);
+    assert.equal(await page.locator('.tab[aria-current=page]').innerText().then(t=>t.replace(/\s+/g,' ').trim()),'Em promoção 1');
+    await go('/admin/produtos.php?aba=promocao');
+    assert.ok(await row().count());
+    pass('Promoção por porcentagem calculada, preço riscado e aba Em promoção com contagem');
+
+    await page.setViewportSize({width:390,height:844});
+    await go('/produto.php?slug=produto-qa-'+suffix);
+    assert.match(await page.locator('.seals-pdp').innerText(),/Promoção 20%[\s\S]*Destaque/);
+    assert.match(await page.locator('.pdp-price').innerText(),/129,90[\s\S]*103,92/);
+    assert.match(await page.locator('.pdp-stock').innerText(),/Restam 2 unidades/);
+    await go('/carrinho.php');
+    assert.equal(await page.locator('.bag-page output').last().innerText(),'2','Sacola ajustada ao estoque');
+    assert.match(await page.locator('main').innerText(),/207,84/);
+    const promoCheckout = await post('/finalizar.php',{});
+    assert.match(decodeURIComponent(promoCheckout.headers().location),/Qtd: 2 \| R\$ 103,92 \(promoção, de R\$ 129,90\)/);
+    pass('Vitrine com selos, Restam 2 e sacola/WhatsApp com preço promocional e estoque do servidor');
+
+    await go(listUrl);
+    await row().getByRole('button',{name:'Marcar como esgotado',exact:true}).click();
+    await toastHas('marcado como esgotado');
+    assert.match(await row().getAttribute('class'),/is-out/);
+    const blocked = await post('/finalizar.php',{});
+    assert.equal(blocked.status(),303);
+    assert.doesNotMatch(blocked.headers().location,/wa\.me/);
+    const addSold = await ctx.request.post(base+'/carrinho.php',{form:{csrf:await csrf(),action:'add',product_id:productId,qty:'1'},headers:{'X-Lynch-Ajax':'1'}});
+    const addState = await addSold.json();
+    assert.equal(addState.message.type,'error');
+    assert.match(addState.message.message,/esgotou/);
+    assert.equal(addState.count,2,'Sacola não ganhou a peça esgotada');
+    const addSoldNoJs = await post('/carrinho.php',{action:'add',product_id:productId,qty:'1'});
+    assert.equal(addSoldNoJs.status(),303);
+    await go('/produto.php?slug=produto-qa-'+suffix);
+    assert.equal(await page.getByRole('button',{name:'Esgotado',exact:true}).isDisabled(),true);
+    await go('/carrinho.php');
+    assert.match(await page.locator('main').innerText(),/Esgotou\. Tire da sacola/);
+    assert.equal(await page.locator('.bag-foot form[action$="finalizar.php"]').count(),0);
+    pass('Esgotado fica na loja, mas o servidor bloqueia sacola e checkout');
+
+    await go('/admin/produtos.php?aba=esgotado');
+    assert.ok(await row().count());
+    await row().getByRole('button',{name:'Reativar venda',exact:true}).click();
+    await toastHas('voltou à venda');
+    assert.doesNotMatch(await row().getAttribute('class'),/is-out/);
+    const noJs = await post('/admin/produto-rapido.php',{id:productId,op:'featured_off',back:'/admin/produtos.php?aba=destaque'});
+    assert.equal(noJs.status(),303);
+    assert.match(noJs.headers().location,/\/admin\/produtos\.php\?aba=destaque#produto-/);
+    const badCsrf = await ctx.request.post(base+'/admin/produto-rapido.php',{form:{csrf:'x',id:productId,op:'featured_on'},maxRedirects:0});
+    assert.equal(badCsrf.status(),303);
+    await go(listUrl);
+    assert.equal(await row().getByRole('button',{name:'Destaque',exact:true}).getAttribute('aria-pressed'),'false');
+    pass('Abas Esgotados e reativação; ação rápida sem JavaScript volta para a aba; CSRF inválido recusado');
+
+    await go('/admin/importar.php');
+    const csvNew = 'nome;slug;categoria;preco;disponibilidade;descricao_curta;descricao;ativo;destaque;estoque;mostrar_estoque;preco_promocional;promocao_ate;esgotado\nPromo QA '+suffix+';promo-qa-'+suffix+';QA '+suffix+';100,00;pronta_entrega;Resumo;Detalhes;1;1;3;1;80,00;30/12/2099;0\n';
+    await page.locator('[name=sheet]').setInputFiles({name:'estoque.csv',mimeType:'text/csv',buffer:Buffer.from(csvNew)});
+    await page.getByRole('button',{name:'Conferir planilha',exact:true}).click();
+    assert.match(await page.locator('main').innerText(),/R\$ 80,00 até 30\/12\/2099/);
+    await page.getByRole('button',{name:/Confirmar importação/}).click();
+    assert.match(await page.locator('main').innerText(),/1 produtos criados/);
+    const exportedNew = await (await ctx.request.get(base+'/admin/exportar.php')).text();
+    assert.match(exportedNew,/estoque;mostrar_estoque;preco_promocional;promocao_ate;esgotado/);
+    assert.match(exportedNew,/promo-qa-[^\n]*;3;1;80,00;30\/12\/2099;0/);
+    const model = await (await ctx.request.get(base+'/admin/exportar.php?modelo=1')).text();
+    assert.match(model,/;5;1;79,90;;0/);
+    await go('/produto.php?slug=promo-qa-'+suffix);
+    assert.match(await page.locator('.pdp-price').innerText(),/100,00[\s\S]*80,00/);
+    pass('Importação e exportação com estoque e promoção, modelo atualizado');
     await go('/admin/configuracoes.php');
     await post('/admin/configuracoes.php',settings);
     await go('/admin/produto-form.php?id='+productId);
@@ -154,7 +251,7 @@ const pass = text => results.push(text);
     assert.equal((await ctx.request.get(base+'/produto.php?slug=produto-qa-'+suffix)).status(),404);
     pass('Desativação retira produto da loja');
 
-    const pages = ['/','/loja.php','/favoritos.php','/produto.php?slug=peca-de-cosplay-01','/carrinho.php','/admin/index.php','/admin/produtos.php','/admin/importar.php','/admin/pedidos.php','/admin/configuracoes.php','/admin/conta.php'];
+    const pages = ['/','/loja.php','/favoritos.php','/produto.php?slug=peca-de-cosplay-01','/produto.php?slug=promo-qa-'+suffix,'/carrinho.php','/admin/index.php','/admin/produtos.php','/admin/produtos.php?aba=promocao','/admin/produto-form.php?id='+productId,'/admin/importar.php','/admin/pedidos.php','/admin/configuracoes.php','/admin/conta.php'];
     const axeIssues = [];
     for (const width of [320,390,768,1440]) {
       await page.setViewportSize({width,height:900});
@@ -162,6 +259,9 @@ const pass = text => results.push(text);
         await go(route);
         const overflow = await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
         assert.equal(overflow,false,'Overflow '+width+' '+route);
+        // Alvos de toque das telas novas (ações rápidas, abas, sacola): pelo menos 44px.
+        const small = await page.evaluate(()=>[...document.querySelectorAll('.prow button,.prow input:not([type=hidden]),.prow summary,.prow a.btn,.tabs a,.filters-box>summary,.buybar button,.card .add')].filter(e=>{const w=e.offsetWidth,h=e.offsetHeight;return e.getClientRects().length&&w>0&&h>0&&!e.closest('[hidden]')&&(h<44||w<44);}).map(e=>e.outerHTML.slice(0,80)));
+        assert.deepEqual(small,[],'Alvo menor que 44px em '+width+' '+route);
         if (width===390) {
           // Injeta o axe por avaliacao direta: a CSP do site (script-src 'self') bloqueia <script> inline, e queremos manter assim.
           await page.evaluate(fs.readFileSync(require.resolve('axe-core/axe.min.js'),'utf8'));
@@ -172,7 +272,7 @@ const pass = text => results.push(text);
     }
     fs.writeFileSync('docs/accessibility-tests.json',JSON.stringify(axeIssues,null,2));
     assert.deepEqual(axeIssues,[],'Violações WCAG');
-    pass('11 páginas sem overflow em 320, 390, 768 e 1440px e sem violações axe WCAG');
+    pass(pages.length+' páginas sem overflow em 320, 390, 768 e 1440px e sem violações axe WCAG');
     await page.setViewportSize({width:390,height:844});
     await go('/'); await page.screenshot({path:'docs/qa-home-mobile.png'});
     await go('/produto.php?slug=peca-de-cosplay-01'); await page.screenshot({path:'docs/qa-product-mobile.png'});

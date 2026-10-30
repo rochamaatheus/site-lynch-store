@@ -70,6 +70,10 @@ final class WhatsAppMessage
         $n = 0;
 
         foreach ($items as $item) {
+            // Peca esgotada nunca entra na mensagem (finalizar.php ja bloqueia antes).
+            if (!empty($item['sold_out'])) {
+                continue;
+            }
             $n++;
 
             $name  = trim((string) ($item['name'] ?? 'Produto'));
@@ -86,8 +90,10 @@ final class WhatsAppMessage
             }
 
             $price = (string) ($item['price_label'] ?? format_price($cents, $onRequest));
+            if (!$onRequest && !empty($item['on_sale']) && !empty($item['regular_price_cents'])) {
+                $price .= ' (promoção, de ' . format_price((int) $item['regular_price_cents']) . ')';
+            }
 
-            // Travessao (em dash) igual ao template do plano.
             $lines[] = $n . '. ' . $name . ' | Qtd: ' . $qty . ' | ' . $price;
 
             if ($withLinks) {

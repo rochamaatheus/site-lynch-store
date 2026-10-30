@@ -48,7 +48,11 @@ $images = is_array($product['images'] ?? null) ? $product['images'] : [];
 $name   = (string) $product['name'];
 $avail  = (string) $product['availability'];
 $availLabel = availability_label($avail);
-$price  = format_price($product['price_cents'], (bool) $product['price_on_request']);
+$priceView = product_price_view($product);
+$price  = $priceView['now'];
+$soldOut = !empty($product['is_sold_out']);
+$stockLeft = !$soldOut && !empty($product['show_stock']) && $product['stock_qty'] !== null ? (int) $product['stock_qty'] : 0;
+$stockLow  = $stockLeft > 0 && $stockLeft <= low_stock_threshold();
 $categoryName = (string) ($product['category_name'] ?? '');
 $categorySlug = (string) ($product['category_slug'] ?? '');
 
@@ -107,16 +111,16 @@ $pageJsonLd = json_encode(array_filter([
     )),
     'category'    => $categoryName,
     'brand'       => ['@type' => 'Brand', 'name' => 'Lynch Store'],
-    'offers'      => ($product['price_on_request'] || $product['price_cents'] === null) ? null : [
+    'offers'      => $product['current_price_cents'] === null ? null : array_filter([
         '@type'         => 'Offer',
         'url'           => $pageCanonical,
         'priceCurrency' => 'BRL',
-        'availability'  => $avail === 'pronta_entrega'
-            ? 'https://schema.org/InStock'
-            : 'https://schema.org/PreOrder',
-    ] + ($product['price_on_request'] || $product['price_cents'] === null
-        ? []
-        : ['price' => number_format(((int) $product['price_cents']) / 100, 2, '.', '')]),
+        'availability'  => $soldOut
+            ? 'https://schema.org/SoldOut'
+            : ($avail === 'pronta_entrega' ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder'),
+        'price'         => number_format(((int) $product['current_price_cents']) / 100, 2, '.', ''),
+        'priceValidUntil' => $priceView['on_sale'] ? $product['sale_ends_on'] : null,
+    ]),
 ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
 require __DIR__ . '/includes/partials/header.php';
@@ -144,7 +148,20 @@ require __DIR__ . '/includes/partials/header.php';
     <a class="pdp-cat" href="<?= e(url_catalog(['categoria' => $categorySlug])) ?>"><?= e($categoryName) ?></a>
     <?php endif; ?>
     <h1 class="pdp-name"><?= e($name) ?></h1>
-    <p class="pdp-price"><?= e($price) ?></p>
+    <?php if ($soldOut || $priceView['on_sale'] || !empty($product['featured'])): ?>
+    <p class="seals seals-pdp">
+      <?php if ($soldOut): ?><span class="seal seal-out">Esgotado</span><?php endif; ?>
+      <?php if (!$soldOut && $priceView['on_sale']): ?><span class="seal seal-sale">Promoção <?= e($priceView['percent']) ?>%</span><?php endif; ?>
+      <?php if (!empty($product['featured'])): ?><span class="seal seal-star">Destaque</span><?php endif; ?>
+    </p>
+    <?php endif; ?>
+    <p class="pdp-price"><?php if ($priceView['old'] !== null): ?><s><span class="sr">De </span><?= e($priceView['old']) ?></s> <span class="sr">por </span><?php endif; ?><?= e($price) ?></p>
+    <?php if ($priceView['on_sale'] && !empty($product['sale_ends_on'])): ?><p class="pdp-stock">Promoção até <?= e(format_date_br($product['sale_ends_on'])) ?></p><?php endif; ?>
+    <?php if ($soldOut): ?>
+    <p class="pdp-stock is-out">Esta peça esgotou. Pergunte no WhatsApp se ela volta ou se dá para fazer sob encomenda.</p>
+    <?php elseif ($stockLeft > 0): ?>
+    <p class="pdp-stock<?= $stockLow ? ' is-low' : '' ?>"><?= $stockLow ? ($stockLeft === 1 ? 'Resta 1 unidade' : 'Restam ' . e($stockLeft) . ' unidades') : e($stockLeft) . ' em estoque' ?></p>
+    <?php endif; ?>
     <p class="pdp-desc"><?= e($description) ?></p>
 
     <div class="buybar">
@@ -155,7 +172,11 @@ require __DIR__ . '/includes/partials/header.php';
         <input type="hidden" name="product_id" value="<?= e($productId) ?>">
         <input type="hidden" name="qty" value="1">
         <input type="hidden" name="redirect_to" value="<?= e($cartBackTo) ?>">
+        <?php if ($soldOut): ?>
+        <button class="btn ink wide" type="submit" disabled>Esgotado</button>
+        <?php else: ?>
         <button class="btn ink wide" type="submit">Colocar na sacola</button>
+        <?php endif; ?>
       </form>
     </div>
 

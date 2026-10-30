@@ -18,6 +18,7 @@ if (array_intersect(['mode', 'categoria', 'busca', 'mostrar_sob', 'mostrar_pront
 }
 
 $categories = array_values(array_filter(CategoryRepository::listActiveWithCounts(), static fn (array $c): bool => (int) $c['product_count'] > 0));
+$featured   = ProductRepository::listActive(['featured' => true, 'limit' => 10]);
 $ready      = ProductRepository::listActive(['availability' => 'pronta_entrega', 'limit' => 10]);
 $made       = ProductRepository::listActive(['availability' => 'sob_encomenda', 'limit' => 6]);
 
@@ -90,6 +91,19 @@ require __DIR__ . '/includes/partials/header.php';
     <?php endforeach; ?>
   </div>
 </section>
+
+<?php if ($featured !== []): ?>
+<section class="band" aria-labelledby="destaque-title">
+  <div class="wrap band-head">
+    <h2 class="title" id="destaque-title">Destaques da arara</h2>
+  </div>
+  <div class="shelf" tabindex="0" role="group" aria-labelledby="destaque-title">
+    <?php foreach ($featured as $product): ?>
+      <?php include __DIR__ . '/includes/partials/product-card.php'; ?>
+    <?php endforeach; ?>
+  </div>
+</section>
+<?php endif; ?>
 
 <?php if ($ready !== []): ?>
 <section class="band band-kraft" aria-labelledby="pronta-title">

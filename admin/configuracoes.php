@@ -34,7 +34,7 @@ function cfg_back(string $url): never
 /** Campos de texto que voltam preenchidos quando o envio é recusado. */
 const CFG_TEXT_FIELDS = [
     'whatsapp_number', 'whatsapp_message_intro', 'hero_title', 'hero_cta_label', 'hero_subtitle',
-    'contact_email', 'instagram_url', 'footer_about', 'store_policies',
+    'contact_email', 'instagram_url', 'footer_about', 'store_policies', 'low_stock_threshold',
 ];
 
 /** Recusa o envio: guarda o que a Ray digitou para ela só corrigir o erro. */
@@ -118,6 +118,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     foreach (['footer_about' => 500, 'store_policies' => 5000, 'contact_email' => 180, 'instagram_url' => 255] as $field => $limit) {
         $novos[$field] = mb_substr(trim((string) ($_POST[$field] ?? '')), 0, $limit);
     }
+    $lowRaw = trim((string) ($_POST['low_stock_threshold'] ?? '3'));
+    if (!preg_match('/^\d{1,2}$/D', $lowRaw) || (int) $lowRaw < 1) {
+        flash_set('error', 'O aviso de estoque baixo precisa ser um número de 1 a 99. Nada foi salvo.'); cfg_fail($selfUrl);
+    }
+    $novos['low_stock_threshold'] = (string) (int) $lowRaw;
     if ($novos['contact_email'] !== '' && !filter_var($novos['contact_email'], FILTER_VALIDATE_EMAIL)) {
         flash_set('error', 'Informe um e-mail válido. Nada foi salvo.'); cfg_fail($selfUrl);
     }
@@ -296,6 +301,18 @@ require __DIR__ . '/partials/admin-header.php';
       <label for="c-banner"><?= $vBanner !== '' ? 'Substituir por outra imagem' : 'Enviar imagem' ?></label>
       <input type="file" id="c-banner" name="hero_banner" accept="image/jpeg,image/png,image/webp"
              data-max-mb="<?= $maxMb ?>"<?= $postLimitMb > 0 ? ' data-max-total-mb="' . $postLimitMb . '"' : '' ?>>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="sec">Estoque</h2>
+    <div class="form-grid">
+      <div class="field third">
+        <label for="c-low">Avisar estoque baixo com</label>
+        <input type="number" id="c-low" name="low_stock_threshold" min="1" max="99" step="1" inputmode="numeric"
+               value="<?= e($val('low_stock_threshold', (string) low_stock_threshold())) ?>">
+        <span class="hint">Com essa quantidade ou menos, o produto aparece em "Estoque baixo" no painel e a loja mostra "Restam" (se o estoque estiver visível).</span>
+      </div>
     </div>
   </div>
 

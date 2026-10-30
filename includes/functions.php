@@ -50,6 +50,63 @@ function format_price(?int $cents, bool $onRequest = false): string
     return 'R$ ' . number_format($cents / 100, 2, ',', '.');
 }
 
+/** Desconto inteiro arredondado, ex.: 10000 -> 7990 = 20. */
+function sale_percent(int $priceCents, int $saleCents): int
+{
+    if ($priceCents <= 0 || $saleCents >= $priceCents) {
+        return 0;
+    }
+    return max(1, (int) round(($priceCents - $saleCents) * 100 / $priceCents));
+}
+
+/**
+ * Preco de um produto ja hidratado (ProductRepository::hydrate): o vigente e,
+ * se houver promocao valida hoje, o antigo para riscar.
+ *
+ * @param array<string,mixed> $product
+ * @return array{now:string,old:?string,on_sale:bool,percent:?int}
+ */
+function product_price_view(array $product): array
+{
+    $onSale = !empty($product['sale_active']);
+    $now = $onSale
+        ? format_price((int) $product['sale_price_cents'])
+        : format_price(isset($product['price_cents']) ? (int) $product['price_cents'] : null, (bool) ($product['price_on_request'] ?? true));
+
+    return [
+        'now'     => $now,
+        'old'     => $onSale ? format_price((int) $product['price_cents']) : null,
+        'on_sale' => $onSale,
+        'percent' => $onSale ? (int) $product['sale_percent'] : null,
+    ];
+}
+
+/** "2026-11-30" ou "30/11/2026" -> "2026-11-30"; null se invalida. */
+function parse_date_br(string $text): ?string
+{
+    $text = trim($text);
+    if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $text, $m)) {
+        [$y, $mo, $d] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+    } elseif (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})$#D', $text, $m)) {
+        [$d, $mo, $y] = [(int) $m[1], (int) $m[2], (int) $m[3]];
+    } else {
+        return null;
+    }
+    if ($y < 2000 || $y > 2100 || !checkdate($mo, $d, $y)) {
+        return null;
+    }
+    return sprintf('%04d-%02d-%02d', $y, $mo, $d);
+}
+
+/** "2026-11-30" -> "30/11/2026". */
+function format_date_br(?string $date): string
+{
+    if ($date === null || !preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $date, $m)) {
+        return '';
+    }
+    return $m[3] . '/' . $m[2] . '/' . $m[1];
+}
+
 // ---------------------------------------------------------------------------
 // URLs
 // ---------------------------------------------------------------------------

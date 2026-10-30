@@ -284,15 +284,24 @@ function cart_items(): array
         }
 
         $onRequest  = (bool) ($product['price_on_request'] ?? true);
-        $priceCents = isset($product['price_cents']) ? (int) $product['price_cents'] : null;
-        if ($onRequest) {
-            $priceCents = null;
+        // Preco VIGENTE (promocao valida hoje ou preco normal), sempre do banco.
+        $priceCents = $onRequest ? null : ($product['current_price_cents'] ?? null);
+        $soldOut    = !empty($product['is_sold_out']);
+        $stock      = $product['stock_qty'] ?? null;
+
+        // Mais unidades na sacola do que o estoque: ajusta para o que existe.
+        $qtyAdjusted = false;
+        if (!$soldOut && $stock !== null && $qty > $stock) {
+            $qty = (int) $stock;
+            $cart[$productId] = $qty;
+            $qtyAdjusted = true;
         }
 
-        $subtotal = $priceCents === null ? null : $priceCents * $qty;
+        $subtotal = ($priceCents === null || $soldOut) ? null : $priceCents * $qty;
         $slug     = (string) ($product['slug'] ?? '');
         $altText  = (string) ($product['primary_image_alt'] ?? '');
         $name     = (string) ($product['name'] ?? 'Produto');
+        $onSale   = !$soldOut && !empty($product['sale_active']);
 
         $items[] = [
             'id'                 => (int) $product['id'],
@@ -302,9 +311,16 @@ function cart_items(): array
             'qty'                => $qty,
             'price_cents'        => $priceCents,
             'price_on_request'   => $onRequest,
-            'price_label'        => format_price($priceCents, $onRequest),
+            'price_label'        => $soldOut ? 'Esgotado' : format_price($priceCents, $onRequest),
+            'regular_price_cents'=> $onSale ? (int) $product['price_cents'] : null,
+            'on_sale'            => $onSale,
+            'sold_out'           => $soldOut,
+            'stock'              => $stock,
+            'max_qty'            => $stock !== null ? min(CART_MAX_QTY, (int) $stock) : CART_MAX_QTY,
+            'qty_adjusted'       => $qtyAdjusted,
             'subtotal_cents'     => $subtotal,
-            'subtotal_label'     => $subtotal === null ? 'Consultar valor' : format_price($subtotal),
+            'subtotal_label'     => $soldOut ? 'Esgotado' : ($subtotal === null ? 'Consultar valor' : format_price($subtotal)),
+            'old_subtotal_label' => $onSale ? format_price((int) $product['price_cents'] * $qty) : null,
             'image'              => product_image_url($product['primary_image'] ?? null),
             'image_alt'          => $altText !== '' ? $altText : $name,
             'availability'       => (string) ($product['availability'] ?? 'sob_encomenda'),
@@ -313,8 +329,9 @@ function cart_items(): array
         ];
     }
 
-    // Limpa as linhas orfas da sessao (uma unica escrita, so se houver o que tirar).
-    if ($orphans !== []) {
+    // Limpa as linhas orfas e grava quantidades ajustadas ao estoque (uma escrita).
+    $adjusted = array_filter($items, static fn (array $i): bool => $i['qty_adjusted']);
+    if ($orphans !== [] || $adjusted !== []) {
         foreach ($orphans as $orphanId) {
             unset($cart[$orphanId]);
         }
@@ -386,12 +403,40 @@ function cart_total_cents(?array $items = null): int
 function cart_has_price_on_request(?array $items = null): bool
 {
     foreach ($items ?? cart_items() as $item) {
-        if (!empty($item['price_on_request'])) {
+        if (!empty($item['price_on_request']) && empty($item['sold_out'])) {
             return true;
         }
     }
 
     return false;
+}
+
+/**
+ * Itens esgotados que ainda estao na sacola (bloqueiam o envio do pedido).
+ *
+ * @param array<int,array<string,mixed>>|null $items
+ * @return array<int,array<string,mixed>>
+ */
+function cart_sold_out_items(?array $items = null): array
+{
+    return array_values(array_filter($items ?? cart_items(), static fn (array $i): bool => !empty($i['sold_out'])));
+}
+
+/**
+ * Quantas unidades ainda cabem na sacola para este produto (0 = esgotado ou
+ * no limite do estoque). Decidido no servidor, com o produto lido do banco.
+ *
+ * @param array<string,mixed> $product linha de ProductRepository
+ */
+function cart_room_for(array $product): int
+{
+    if (!empty($product['is_sold_out'])) {
+        return 0;
+    }
+    $max = $product['stock_qty'] !== null ? min(CART_MAX_QTY, (int) $product['stock_qty']) : CART_MAX_QTY;
+    $inBag = cart_raw()[(int) $product['id']] ?? 0;
+
+    return max(0, $max - $inBag);
 }
 
 /**

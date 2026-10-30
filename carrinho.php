@@ -84,12 +84,23 @@ if ($requestMethod === 'POST') {
 
     switch ($action) {
         case 'add':
-            if ($productId <= 0 || ProductRepository::findById($productId) === null) {
+            $addProduct = $productId > 0 ? ProductRepository::findById($productId) : null;
+            if ($addProduct === null) {
                 flash_set('error', 'Produto indisponível no momento.');
                 cart_redirect($cartUrl);
             }
+            // Estoque e esgotado decididos aqui, com o produto lido do banco.
+            if (!empty($addProduct['is_sold_out'])) {
+                flash_set('error', 'Esta peça esgotou e não pode ir para a sacola.');
+                cart_redirect(cart_back_url());
+            }
+            $room = cart_room_for($addProduct);
+            if ($room <= 0) {
+                flash_set('error', 'Você já tem na sacola todas as unidades disponíveis desta peça.');
+                cart_redirect(cart_back_url());
+            }
 
-            if (cart_add($productId, $qty)) {
+            if (cart_add($productId, min(max(1, $qty), $room))) {
                 flash_set('success', 'Peça na sacola.');
             } else {
                 flash_set('error', 'A sacola chegou ao limite de ' . CART_MAX_LINES . ' peças diferentes. Finalize este pedido e faça outro para o restante.');
@@ -98,6 +109,17 @@ if ($requestMethod === 'POST') {
             // no break (cart_redirect nunca retorna)
 
         case 'update':
+            $updProduct = $qty > 0 && $productId > 0 ? ProductRepository::findById($productId) : null;
+            if ($qty > 0 && $updProduct !== null && $updProduct['stock_qty'] !== null && empty($updProduct['is_sold_out']) && $qty > (int) $updProduct['stock_qty']) {
+                $qty = min(CART_MAX_QTY, (int) $updProduct['stock_qty']);
+                cart_update($productId, $qty);
+                flash_set('info', 'Só temos ' . $qty . ' ' . ($qty === 1 ? 'unidade' : 'unidades') . ' desta peça. Ajustamos a quantidade.');
+                cart_redirect($cartUrl);
+            }
+            if ($qty > 0 && $updProduct !== null && !empty($updProduct['is_sold_out'])) {
+                flash_set('error', 'Esta peça esgotou. Tire da sacola para enviar o pedido.');
+                cart_redirect($cartUrl);
+            }
             if (!cart_update($productId, $qty)) {
                 flash_set('error', 'Não foi possível atualizar essa peça. Confira a sacola e tente de novo.');
             } elseif ($qty > CART_MAX_QTY) {

@@ -20,41 +20,51 @@ require_once dirname(__DIR__) . '/includes/functions.php';
 require_once dirname(__DIR__) . '/includes/ProductRepository.php';
 require_once dirname(__DIR__) . '/includes/CategoryRepository.php';
 
+require_once dirname(__DIR__) . '/includes/SettingsRepository.php';
+
 // ---------------------------------------------------------------------------
 // Filtros (tudo vindo da URL e normalizado antes de virar consulta)
 // ---------------------------------------------------------------------------
-$busca        = trim((string) ($_GET['busca'] ?? ''));
-$categoriaId  = isset($_GET['categoria']) && $_GET['categoria'] !== '' ? (int) $_GET['categoria'] : 0;
-$disponib     = (string) ($_GET['disponibilidade'] ?? '');
-$status       = (string) ($_GET['status'] ?? '');
-
-if (!in_array($disponib, ProductRepository::AVAILABILITIES, true)) {
-    $disponib = '';
-}
-if (!in_array($status, ['ativo', 'inativo'], true)) {
-    $status = '';
-}
-
-$filtros = [
-    'search'       => $busca,
-    'category_id'  => $categoriaId,
-    'availability' => $disponib,
-    'status'       => $status,
-];
+$filtros     = ProductRepository::adminFiltersFromQuery($_GET);
+$busca       = $filtros['search'];
+$categoriaId = $filtros['category_id'];
+$disponib    = $filtros['availability'];
+$status      = $filtros['status'];
+$aba         = $filtros['tab'];
+$low         = low_stock_threshold();
+$stockReady  = ProductRepository::stockReady();
+$filtros['low'] = $low;
 
 $cursor = is_string($_GET['cursor'] ?? null) ? substr($_GET['cursor'], 0, 128) : '';
 $produtos   = ProductRepository::listAll($filtros + ['limit' => 31, 'cursor' => $cursor]);
 $hasMore = count($produtos) > 30;
 if ($hasMore) { array_pop($produtos); }
+$keep = array_filter(['busca' => $busca, 'categoria' => $categoriaId ?: '', 'disponibilidade' => $disponib, 'status' => $status], static fn ($v) => $v !== '');
 $nextUrl = '';
 if ($hasMore) {
     $last = end($produtos);
-    $params = ['busca' => $busca, 'categoria' => $categoriaId, 'disponibilidade' => $disponib, 'status' => $status, 'cursor' => base64_encode(json_encode([(int) $last['sort_order'], (int) $last['id']]))];
-    $nextUrl = base_url('admin/produtos.php') . '?' . http_build_query($params);
+    $nextUrl = base_url('admin/produtos.php') . '?' . http_build_query($keep + ['aba' => $aba, 'cursor' => base64_encode(json_encode([(int) $last['sort_order'], (int) $last['id']]))]);
 }
 $total      = ProductRepository::countAll($filtros);
+$contagens  = ProductRepository::adminTabCounts($filtros, $low);
 $categorias = CategoryRepository::listAll();
 $temFiltro  = $busca !== '' || $categoriaId !== 0 || $disponib !== '' || $status !== '';
+
+// Endereco atual da lista: as acoes rapidas voltam para ca sem JavaScript.
+$back = (string) (parse_url(APP_BASE_URL, PHP_URL_PATH) ?? '') . '/admin/produtos.php' . (($q = http_build_query($keep + array_filter(['aba' => $aba, 'cursor' => $cursor]))) !== '' ? '?' . $q : '');
+
+$abas = [
+    ''         => 'Todos',
+    'promocao' => 'Em promoção',
+    'destaque' => 'Em destaque',
+    'baixo'    => 'Estoque baixo',
+    'esgotado' => 'Esgotados',
+    'visivel'  => 'Estoque visível',
+    'oculto'   => 'Estoque oculto',
+];
+if (!$stockReady) {
+    $abas = ['' => 'Todos', 'destaque' => 'Em destaque'];
+}
 
 $base      = APP_BASE_URL;
 $pageTitle = 'Produtos';
@@ -77,10 +87,26 @@ require __DIR__ . '/partials/admin-header.php';
   </div>
 </div>
 
+<nav class="tabs" aria-label="Mostrar produtos" data-tabs>
+  <?php foreach ($abas as $chave => $rotulo): ?>
+    <?php $n = $chave === '' ? $contagens['todos'] : $contagens[$chave]; ?>
+    <a class="tab<?= $aba === $chave ? ' on' : '' ?>" href="<?= e(base_url('admin/produtos.php') . (($tq = http_build_query($keep + array_filter(['aba' => $chave]))) !== '' ? '?' . $tq : '')) ?>"<?= $aba === $chave ? ' aria-current="page"' : '' ?>>
+      <?= e($rotulo) ?> <span class="tab-n" data-count="<?= e($chave === '' ? 'todos' : $chave) ?>"><?= $n ?></span>
+    </a>
+  <?php endforeach; ?>
+</nav>
+
+<?php if (!$stockReady): ?>
+  <div class="flash info" role="status">Estoque e promoção ficam disponíveis assim que o banco da loja for atualizado.</div>
+<?php endif; ?>
+
+<details class="filters-box"<?= $temFiltro ? ' open' : '' ?>>
+  <summary>Buscar e filtrar<?= $temFiltro ? ' (filtros ativos)' : '' ?></summary>
 <form class="filters" method="get" action="<?= e($base) ?>/admin/produtos.php">
+  <?php if ($aba !== ''): ?><input type="hidden" name="aba" value="<?= e($aba) ?>"><?php endif; ?>
   <div class="field grow">
     <label for="f-busca">Buscar</label>
-    <input type="search" id="f-busca" name="busca" value="<?= e($busca) ?>" placeholder="Nome ou slug do produto">
+    <input type="search" id="f-busca" name="busca" value="<?= e($busca) ?>" placeholder="Nome do produto">
   </div>
   <div class="field">
     <label for="f-cat">Categoria</label>
@@ -103,106 +129,45 @@ require __DIR__ . '/partials/admin-header.php';
     </select>
   </div>
   <div class="field">
-    <label for="f-status">Status</label>
+    <label for="f-status">Na loja</label>
     <select id="f-status" name="status">
       <option value="">Todos</option>
-      <option value="ativo" <?= $status === 'ativo' ? 'selected' : '' ?>>Ativos</option>
-      <option value="inativo" <?= $status === 'inativo' ? 'selected' : '' ?>>Inativos</option>
+      <option value="ativo" <?= $status === 'ativo' ? 'selected' : '' ?>>Aparecendo na loja</option>
+      <option value="inativo" <?= $status === 'inativo' ? 'selected' : '' ?>>Fora da loja</option>
     </select>
   </div>
   <div class="btns">
     <button class="btn primary" type="submit">Filtrar</button>
     <?php if ($temFiltro): ?>
-      <a class="btn ghost" href="<?= e($base) ?>/admin/produtos.php">Limpar</a>
+      <a class="btn ghost" href="<?= e($base) ?>/admin/produtos.php<?= $aba !== '' ? '?aba=' . e($aba) : '' ?>">Limpar</a>
     <?php endif; ?>
   </div>
 </form>
+</details>
 
-<div class="card">
+<p class="sr" role="status" aria-live="polite" data-quick-status></p>
+
 <?php if ($produtos === []): ?>
+  <div class="card">
   <div class="empty-state">
-    <?= $temFiltro
-        ? 'Nenhum produto bate com esses filtros.'
+    <?= $temFiltro || $aba !== ''
+        ? 'Nenhum produto aqui com essa escolha.'
         : 'Nenhum produto cadastrado ainda. Use o botão "Novo produto" para começar.' ?>
   </div>
-<?php else: ?>
-  <div class="table-wrap">
-    <table class="data cards-mobile">
-      <thead>
-        <tr>
-          <th scope="col" class="col-photo">Foto</th>
-          <th scope="col">Produto</th>
-          <th scope="col">Categoria</th>
-          <th scope="col">Disponibilidade</th>
-          <th scope="col">Preço</th>
-          <th scope="col">Ordem</th>
-          <th scope="col">Status</th>
-          <th scope="col" class="col-actions">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-      <?php foreach ($produtos as $p): ?>
-        <?php
-          $pid    = (int) $p['id'];
-          $ativo  = (bool) $p['active'];
-          $foto   = (string) ($p['primary_image'] ?? '');
-        ?>
-        <tr class="<?= $ativo ? '' : 'is-off' ?>">
-          <td class="cell-photo">
-            <?php if ($foto !== ''): ?>
-              <img class="thumb" src="<?= e(asset_url($foto)) ?>" alt="" loading="lazy">
-            <?php else: ?>
-              <span class="thumb empty">sem<br>foto</span>
-            <?php endif; ?>
-          </td>
-          <td class="cell-name">
-            <b><?= e((string) $p['name']) ?></b>
-            <small><?= e((string) $p['slug']) ?></small>
-          </td>
-          <td data-label="Categoria">
-            <?php if (!empty($p['category_name'])): ?>
-              <span class="badge kraft"><?= e((string) $p['category_name']) ?></span>
-            <?php else: ?>
-              <span class="badge off">sem categoria</span>
-            <?php endif; ?>
-          </td>
-          <td data-label="Disponibilidade">
-            <span class="badge <?= $p['availability'] === 'pronta_entrega' ? 'on' : 'sun' ?>">
-              <?= e(availability_label((string) $p['availability'])) ?>
-            </span>
-          </td>
-          <td data-label="Preço"><?= e(format_price($p['price_cents'], (bool) $p['price_on_request'])) ?></td>
-          <td data-label="Ordem"><?= (int) $p['sort_order'] ?></td>
-          <td data-label="Status">
-            <span class="badge <?= $ativo ? 'on' : 'off' ?>"><?= $ativo ? 'Ativo' : 'Inativo' ?></span>
-            <?php if (!empty($p['featured'])): ?><span class="badge sun">destaque</span><?php endif; ?>
-          </td>
-          <td class="cell-actions">
-            <a class="btn small" href="<?= e($base) ?>/admin/produto-form.php?id=<?= $pid ?>">Editar</a>
-            <a class="btn small ghost" href="<?= e($base) ?>/admin/produto-imagens.php?id=<?= $pid ?>">Fotos</a>
-            <form method="post" action="<?= e($base) ?>/admin/produto-excluir.php"
-                  data-confirm="<?= $ativo ? 'Desativar este produto? Ele sai da loja, mas continua aqui e você pode reativar quando quiser.' : 'Reativar este produto? Ele volta a aparecer na loja.' ?>">
-              <?= csrf_field() ?>
-              <input type="hidden" name="id" value="<?= $pid ?>">
-              <input type="hidden" name="action" value="<?= $ativo ? 'delete' : 'restore' ?>">
-              <button class="btn small <?= $ativo ? 'ghost' : '' ?>" type="submit">
-                <?= $ativo ? 'Desativar' : 'Reativar' ?>
-              </button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table>
   </div>
+<?php else: ?>
+  <ul class="plist">
+  <?php foreach ($produtos as $p): ?>
+    <?php include __DIR__ . '/partials/product-row.php'; ?>
+  <?php endforeach; ?>
+  </ul>
   <p class="note">
-    "Desativar" tira o produto da loja, mas ele continua aqui e pode ser reativado
-    a qualquer momento. As fotos já enviadas nunca são apagadas por essa ação.
+    "Marcar como esgotado" deixa o produto na loja com o selo Esgotado, sem poder ir para a sacola.
+    "Tirar da loja" esconde o produto da vitrine. As fotos nunca são apagadas por essas ações.
   </p>
 <?php endif; ?>
-</div>
 <nav class="actions" aria-label="Paginação dos produtos">
-<?php if ($cursor !== ''): ?><a class="btn" href="<?= e(base_url('admin/produtos.php')) ?>">Voltar ao início</a><?php endif; ?>
+<?php if ($cursor !== ''): ?><a class="btn" href="<?= e(base_url('admin/produtos.php') . (($tq = http_build_query($keep + array_filter(['aba' => $aba]))) !== '' ? '?' . $tq : '')) ?>">Voltar ao início</a><?php endif; ?>
 <?php if ($nextUrl): ?><a class="btn primary" href="<?= e($nextUrl) ?>">Próximos produtos</a><?php endif; ?>
 </nav>
 <?php

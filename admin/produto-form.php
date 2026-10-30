@@ -48,6 +48,11 @@ $vPrice     = cents_to_input($produto['price_cents'] ?? null);
 $vActive    = $editando ? (bool) $produto['active'] : true;
 $vFeatured  = $editando ? (bool) $produto['featured'] : false;
 $vSort      = (int) ($produto['sort_order'] ?? 0);
+$vStock     = isset($produto['stock_qty']) ? (string) $produto['stock_qty'] : '';
+$vShowStock = $editando ? (bool) $produto['show_stock'] : false;
+$vSoldOut   = $editando ? (bool) $produto['sold_out'] : false;
+$vSale      = cents_to_input($produto['sale_price_cents'] ?? null);
+$vSaleEnds  = (string) ($produto['sale_ends_on'] ?? '');
 $old = $_SESSION['product_form_old'] ?? null;
 unset($_SESSION['product_form_old']);
 if (is_array($old) && (int) $old['id'] === $id) {
@@ -57,7 +62,10 @@ if (is_array($old) && (int) $old['id'] === $id) {
     $vCategory = (int) ($d['category_id'] ?? 0); $vAvail = (string) ($d['availability'] ?? 'sob_encomenda');
     $vOnRequest = !empty($d['price_on_request']); $vPrice = (string) ($d['price'] ?? '');
     $vActive = !empty($d['active']); $vFeatured = !empty($d['featured']); $vSort = (int) ($d['sort_order'] ?? 0);
+    $vStock = (string) ($d['stock_qty'] ?? ''); $vShowStock = !empty($d['show_stock']); $vSoldOut = !empty($d['sold_out']);
+    $vSale = (string) ($d['sale_price'] ?? ''); $vSaleEnds = (string) ($d['sale_ends_on'] ?? '');
 }
+$stockReady = ProductRepository::stockReady();
 
 $imagens = $editando ? (array) ($produto['images'] ?? []) : [];
 
@@ -182,10 +190,52 @@ require __DIR__ . '/partials/admin-header.php';
       </label>
       <label class="checkline">
         <input type="checkbox" name="featured" value="1" <?= $vFeatured ? 'checked' : '' ?>>
-        Destaque
+        Destaque (selo na loja e vitrine da página inicial)
       </label>
     </div>
   </div>
+
+  <?php if ($stockReady): ?>
+  <fieldset class="form-section" data-promo data-price-input="#f-price">
+    <legend>Estoque e promoção</legend>
+    <div class="form-grid">
+      <div class="field third">
+        <label for="f-stock">Estoque</label>
+        <input type="number" id="f-stock" name="stock_qty" min="0" max="<?= ProductRepository::STOCK_MAX ?>" step="1" inputmode="numeric"
+               value="<?= e($vStock) ?>" placeholder="não controla" aria-describedby="h-stock">
+        <span class="hint" id="h-stock">Quantas peças você tem. Vazio: não controla (bom para sob encomenda). Em 0, fica esgotado sozinho.</span>
+      </div>
+      <div class="field third">
+        <label for="f-sale">Preço promocional (R$)</label>
+        <input type="text" id="f-sale" name="sale_price" inputmode="decimal" value="<?= e($vSale) ?>" placeholder="79,90" data-promo-price aria-describedby="h-sale">
+        <span class="hint" id="h-sale">Menor que o preço normal. Vazio: sem promoção.</span>
+      </div>
+      <div class="field third">
+        <label for="f-pct">ou desconto (%)</label>
+        <input type="text" id="f-pct" name="sale_percent" inputmode="numeric" placeholder="20" data-promo-pct aria-describedby="h-pct"
+               value="<?= $vSale !== '' && !$vOnRequest && price_to_cents($vSale) !== null && price_to_cents($vPrice) ? e(sale_percent((int) price_to_cents($vPrice), (int) price_to_cents($vSale))) : '' ?>">
+        <span class="hint" id="h-pct">Digite um ou outro: o sistema calcula o outro.</span>
+      </div>
+      <div class="field third">
+        <label for="f-sale-ends">Promoção até (opcional)</label>
+        <input type="date" id="f-sale-ends" name="sale_ends_on" value="<?= e($vSaleEnds) ?>" aria-describedby="h-ends">
+        <span class="hint" id="h-ends">Último dia com o preço promocional. Vazio: até você tirar.</span>
+      </div>
+      <div class="field third">
+        <span class="lbl">Na loja</span>
+        <label class="checkline">
+          <input type="checkbox" name="show_stock" value="1" <?= $vShowStock ? 'checked' : '' ?>>
+          Mostrar estoque ("Restam 2")
+        </label>
+        <label class="checkline">
+          <input type="checkbox" name="sold_out" value="1" <?= $vSoldOut ? 'checked' : '' ?>>
+          Esgotado ou vendido
+        </label>
+        <span class="hint">Esgotado continua aparecendo na loja, mas não pode ir para a sacola.</span>
+      </div>
+    </div>
+  </fieldset>
+  <?php endif; ?>
 
   <div class="form-actions">
     <button class="btn primary" type="submit">

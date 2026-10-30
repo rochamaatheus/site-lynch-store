@@ -17,15 +17,59 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
 
 final class ProductRepository
 {
     /** Ordem canonica das imagens de um produto: capa primeiro. */
     private const IMAGE_ORDER = 'pi.is_primary DESC, pi.sort_order ASC, pi.id ASC';
-    private const DETAIL_COLUMNS = 'p.id,p.category_id,p.name,p.slug,p.short_description,p.description,p.price_cents,p.price_on_request,p.availability,p.active,p.featured,p.sort_order,p.created_at,p.updated_at';
+    private const BASE_DETAIL_COLUMNS = 'p.id,p.category_id,p.name,p.slug,p.short_description,p.description,p.price_cents,p.price_on_request,p.availability,p.active,p.featured,p.sort_order,p.created_at,p.updated_at';
 
     /** Valores aceitos pela coluna ENUM availability. */
     public const AVAILABILITIES = ['sob_encomenda', 'pronta_entrega'];
+
+    /** Limite padrao de "estoque baixo" (Configuracoes pode trocar). */
+    public const LOW_STOCK_DEFAULT = 3;
+
+    /** Teto da coluna SMALLINT UNSIGNED stock_qty. */
+    public const STOCK_MAX = 65535;
+
+    /** Abas da lista do painel. */
+    public const ADMIN_TABS = ['promocao', 'destaque', 'baixo', 'esgotado', 'visivel', 'oculto'];
+
+    private static ?bool $stockReady = null;
+
+    /**
+     * true quando o banco ja tem as colunas de estoque e promocao (db/upgrade.php).
+     * Enquanto o upgrade nao for aplicado, a loja continua funcionando como antes:
+     * as leituras devolvem "sem estoque controlado, sem promocao" e as acoes novas
+     * do painel avisam que falta atualizar o banco. Uma consulta por requisicao.
+     */
+    public static function stockReady(): bool
+    {
+        if (self::$stockReady === null) {
+            self::$stockReady = db()->query("SHOW COLUMNS FROM products LIKE 'sale_ends_on'")->fetch() !== false;
+        }
+        return self::$stockReady;
+    }
+
+    /** Colunas de estoque e promocao, ou literais neutros se o banco for antigo. */
+    private static function stockColumns(): string
+    {
+        return self::stockReady()
+            ? 'p.stock_qty, p.show_stock, p.sold_out, p.sale_price_cents, p.sale_ends_on'
+            : 'NULL AS stock_qty, 0 AS show_stock, 0 AS sold_out, NULL AS sale_price_cents, NULL AS sale_ends_on';
+    }
+
+    private static function detailColumns(): string
+    {
+        return self::BASE_DETAIL_COLUMNS . ', ' . self::stockColumns();
+    }
+
+    private static function today(): string
+    {
+        return date('Y-m-d');
+    }
 
     // -----------------------------------------------------------------------
     // Listagem
@@ -302,7 +346,7 @@ final class ProductRepository
     public static function findAnyById(int $id): ?array
     {
         $stmt = db()->prepare(
-            'SELECT ' . self::DETAIL_COLUMNS . ', c.name AS category_name, c.slug AS category_slug, c.active AS category_active
+            'SELECT ' . self::detailColumns() . ', c.name AS category_name, c.slug AS category_slug, c.active AS category_active
                FROM products p
                LEFT JOIN categories c ON c.id = p.category_id
               WHERE p.id = :id
@@ -339,14 +383,17 @@ final class ProductRepository
     public static function create(array $data): int
     {
         $d = self::normalizeWritable($data);
+        $stockCols = self::stockReady() ? ', stock_qty, show_stock, sold_out, sale_price_cents, sale_ends_on' : '';
+        $stockVals = self::stockReady() ? ', :stock_qty, :show_stock, :sold_out, :sale_price_cents, :sale_ends_on' : '';
+        if (!self::stockReady()) { $d = array_diff_key($d, array_flip([':stock_qty', ':show_stock', ':sold_out', ':sale_price_cents', ':sale_ends_on'])); }
 
         $stmt = db()->prepare(
             'INSERT INTO products
                  (category_id, name, slug, short_description, description,
-                  price_cents, price_on_request, availability, active, featured, sort_order)
+                  price_cents, price_on_request, availability, active, featured, sort_order' . $stockCols . ')
              VALUES
                  (:category_id, :name, :slug, :short_description, :description,
-                  :price_cents, :price_on_request, :availability, :active, :featured, :sort_order)'
+                  :price_cents, :price_on_request, :availability, :active, :featured, :sort_order' . $stockVals . ')'
         );
         $stmt->execute($d);
 
@@ -362,6 +409,13 @@ final class ProductRepository
     {
         $d       = self::normalizeWritable($data);
         $d[':id'] = $id;
+        $stockSet = '';
+        if (self::stockReady()) {
+            $stockSet = ', stock_qty = :stock_qty, show_stock = :show_stock, sold_out = :sold_out,
+                    sale_price_cents = :sale_price_cents, sale_ends_on = :sale_ends_on';
+        } else {
+            $d = array_diff_key($d, array_flip([':stock_qty', ':show_stock', ':sold_out', ':sale_price_cents', ':sale_ends_on']));
+        }
 
         $stmt = db()->prepare(
             'UPDATE products
@@ -375,10 +429,212 @@ final class ProductRepository
                     availability      = :availability,
                     active            = :active,
                     featured          = :featured,
-                    sort_order        = :sort_order
+                    sort_order        = :sort_order' . $stockSet . '
               WHERE id = :id'
         );
         $stmt->execute($d);
+    }
+
+    // -----------------------------------------------------------------------
+    // ADMIN - acoes rapidas da lista (estoque, promocao, destaque, esgotado)
+    //
+    // Cada uma e um UPDATE de uma linha, parametrizado, e devolve o produto
+    // atualizado. Erros que a Ray precisa entender saem como DomainException
+    // com a mensagem pronta para a tela.
+    // -----------------------------------------------------------------------
+
+    /**
+     * @return array<string,mixed> produto atualizado
+     */
+    public static function quickAction(int $id, string $op, array $input = []): array
+    {
+        $product = self::findAnyById($id);
+        if ($product === null) {
+            throw new DomainException('Produto não encontrado. Atualize a lista.');
+        }
+        if (!self::stockReady() && $op !== 'featured') {
+            throw new DomainException('Falta atualizar o banco da loja para usar estoque e promoção. Avise o suporte.');
+        }
+
+        $pdo = db();
+        switch ($op) {
+            case 'featured':
+                $pdo->prepare('UPDATE products SET featured = ? WHERE id = ?')->execute([!empty($input['value']) ? 1 : 0, $id]);
+                break;
+
+            case 'show_stock':
+                $pdo->prepare('UPDATE products SET show_stock = ? WHERE id = ?')->execute([!empty($input['value']) ? 1 : 0, $id]);
+                break;
+
+            case 'stock_set':
+                $stock = self::parseStock($input['stock'] ?? '');
+                // Repor estoque de um produto zerado o devolve a venda; marcar 0 o
+                // deixa esgotado sozinho (is_sold_out e derivado de stock_qty = 0).
+                $pdo->prepare('UPDATE products SET sold_out = IF(stock_qty = 0 AND ? > 0, 0, sold_out), stock_qty = ? WHERE id = ?')
+                    ->execute([$stock ?? 0, $stock, $id]);
+                break;
+
+            case 'stock_inc':
+                $pdo->prepare('UPDATE products SET sold_out = IF(stock_qty = 0, 0, sold_out), stock_qty = COALESCE(stock_qty, 0) + 1 WHERE id = ? AND (stock_qty IS NULL OR stock_qty < ' . self::STOCK_MAX . ')')
+                    ->execute([$id]);
+                break;
+
+            case 'stock_dec':
+                $pdo->prepare('UPDATE products SET stock_qty = stock_qty - 1 WHERE id = ? AND stock_qty > 0')->execute([$id]);
+                break;
+
+            case 'sold_out':
+                $pdo->prepare('UPDATE products SET sold_out = 1 WHERE id = ?')->execute([$id]);
+                break;
+
+            case 'reactivate':
+                // Peca unica que tinha zerado volta com 1; a Ray ajusta se tiver mais.
+                $pdo->prepare('UPDATE products SET sold_out = 0, stock_qty = IF(stock_qty = 0, 1, stock_qty) WHERE id = ?')->execute([$id]);
+                break;
+
+            case 'sale_set':
+                [$cents, $ends] = self::parseSale($product, (string) ($input['sale_price'] ?? ''), (string) ($input['sale_percent'] ?? ''), (string) ($input['sale_ends_on'] ?? ''));
+                if ($cents === null) {
+                    throw new DomainException('Informe o preço promocional ou a porcentagem de desconto.');
+                }
+                $pdo->prepare('UPDATE products SET sale_price_cents = ?, sale_ends_on = ? WHERE id = ?')->execute([$cents, $ends, $id]);
+                break;
+
+            case 'sale_off':
+                $pdo->prepare('UPDATE products SET sale_price_cents = NULL, sale_ends_on = NULL WHERE id = ?')->execute([$id]);
+                break;
+
+            default:
+                throw new DomainException('Ação desconhecida.');
+        }
+
+        return self::findAnyById($id) ?? $product;
+    }
+
+    /**
+     * Estoque digitado: '' = sem controle (NULL), senao inteiro 0..65535.
+     */
+    public static function parseStock(mixed $raw): ?int
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return null;
+        }
+        if (!preg_match('/^\d{1,5}$/', $raw) || (int) $raw > self::STOCK_MAX) {
+            throw new DomainException('Estoque deve ser um número inteiro de 0 a ' . self::STOCK_MAX . ', ou vazio para não controlar.');
+        }
+        return (int) $raw;
+    }
+
+    /**
+     * Valida e calcula a promocao. Aceita o preco promocional OU a porcentagem
+     * (o preco tem prioridade). Devolve [centavos|null, data|null].
+     *
+     * @param array<string,mixed> $product precisa de price_cents e price_on_request
+     * @return array{0:?int,1:?string}
+     */
+    public static function parseSale(array $product, string $priceText, string $percentText, string $endsText): array
+    {
+        $priceText = trim($priceText);
+        $percentText = trim(str_replace('%', '', $percentText));
+        $endsText = trim($endsText);
+        if ($priceText === '' && $percentText === '') {
+            return [null, null];
+        }
+
+        $price = !empty($product['price_on_request']) ? null : ($product['price_cents'] ?? null);
+        if ($price === null) {
+            throw new DomainException('Produto com "Consultar valor" não pode entrar em promoção. Cadastre o preço normal primeiro.');
+        }
+        $price = (int) $price;
+
+        if ($priceText !== '') {
+            $cents = price_to_cents($priceText);
+            if ($cents === null) {
+                throw new DomainException('Preço promocional inválido. Exemplo: 79,90.');
+            }
+        } else {
+            $percent = str_replace(',', '.', $percentText);
+            if (!is_numeric($percent) || (float) $percent <= 0 || (float) $percent >= 100) {
+                throw new DomainException('O desconto deve ser uma porcentagem entre 1 e 99.');
+            }
+            $cents = (int) round($price * (100 - (float) $percent) / 100);
+        }
+        if ($cents < 1 || $cents >= $price) {
+            throw new DomainException('O preço promocional precisa ser menor que o preço normal (' . format_price($price) . ').');
+        }
+
+        $ends = null;
+        if ($endsText !== '') {
+            $ends = parse_date_br($endsText);
+            if ($ends === null) {
+                throw new DomainException('Data final inválida. Use o calendário ou o formato dia/mês/ano.');
+            }
+            if ($ends < self::today()) {
+                throw new DomainException('A data final da promoção já passou. Escolha hoje ou uma data futura, ou deixe vazio.');
+            }
+        }
+
+        return [$cents, $ends];
+    }
+
+    /**
+     * Filtros da lista do painel a partir da query string (normalizados).
+     *
+     * @param array<string,mixed> $q
+     * @return array{search:string,category_id:int,availability:string,status:string,tab:string}
+     */
+    public static function adminFiltersFromQuery(array $q): array
+    {
+        $availability = is_string($q['disponibilidade'] ?? null) ? $q['disponibilidade'] : '';
+        $status = is_string($q['status'] ?? null) ? $q['status'] : '';
+        $tab = is_string($q['aba'] ?? null) ? $q['aba'] : '';
+
+        return [
+            'search'       => is_string($q['busca'] ?? null) ? mb_substr(trim($q['busca']), 0, 100) : '',
+            'category_id'  => is_scalar($q['categoria'] ?? null) && $q['categoria'] !== '' ? (int) $q['categoria'] : 0,
+            'availability' => in_array($availability, self::AVAILABILITIES, true) ? $availability : '',
+            'status'       => in_array($status, ['ativo', 'inativo'], true) ? $status : '',
+            'tab'          => in_array($tab, self::ADMIN_TABS, true) ? $tab : '',
+        ];
+    }
+
+    /**
+     * Contagem das abas da lista (uma consulta so), respeitando busca e filtros.
+     *
+     * @param array<string,mixed> $filters
+     * @return array<string,int>
+     */
+    public static function adminTabCounts(array $filters, int $low): array
+    {
+        $empty = ['todos' => 0] + array_fill_keys(self::ADMIN_TABS, 0);
+        unset($filters['tab'], $filters['cursor']);
+        [$where, $params] = self::buildAdminFilters($filters);
+
+        if (!self::stockReady()) {
+            $stmt = db()->prepare('SELECT COUNT(*) AS todos, COALESCE(SUM(p.featured = 1), 0) AS destaque FROM products p WHERE ' . $where);
+            $stmt->execute($params);
+            $row = $stmt->fetch() ?: [];
+            return array_map('intval', array_merge($empty, $row));
+        }
+
+        $params[':today_count'] = self::today();
+        $params[':low_count']   = $low;
+        $stmt = db()->prepare(
+            'SELECT COUNT(*) AS todos,
+                    COALESCE(SUM(p.sale_price_cents IS NOT NULL AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= :today_count)), 0) AS promocao,
+                    COALESCE(SUM(p.featured = 1), 0) AS destaque,
+                    COALESCE(SUM(p.sold_out = 0 AND p.stock_qty BETWEEN 1 AND :low_count), 0) AS baixo,
+                    COALESCE(SUM(p.sold_out = 1 OR p.stock_qty = 0), 0) AS esgotado,
+                    COALESCE(SUM(p.show_stock = 1 AND p.stock_qty IS NOT NULL), 0) AS visivel,
+                    COALESCE(SUM(p.show_stock = 0 AND p.stock_qty IS NOT NULL), 0) AS oculto
+               FROM products p
+              WHERE ' . $where
+        );
+        $stmt->execute($params);
+        $row = $stmt->fetch() ?: [];
+
+        return array_map('intval', array_merge($empty, $row));
     }
 
     /**
@@ -697,7 +953,24 @@ final class ProductRepository
         $short = trim((string) ($data['short_description'] ?? ''));
         $long  = trim((string) ($data['description'] ?? ''));
 
+        $stock = $data['stock_qty'] ?? null;
+        $stock = ($stock === null || $stock === '') ? null : max(0, min(self::STOCK_MAX, (int) $stock));
+
+        // Promocao so com preco fechado e abaixo do normal (o CHECK do banco
+        // recusaria o resto; quem chama ja avisou a Ray antes de chegar aqui).
+        $sale = $data['sale_price_cents'] ?? null;
+        $sale = ($sale === null || $sale === '') ? null : (int) $sale;
+        if ($onRequest || $cents === null || $sale === null || $sale < 1 || $sale >= $cents) {
+            $sale = null;
+        }
+        $ends = $sale === null ? null : (($data['sale_ends_on'] ?? '') !== '' ? (string) $data['sale_ends_on'] : null);
+
         return [
+            ':stock_qty'         => $stock,
+            ':show_stock'        => !empty($data['show_stock']) ? 1 : 0,
+            ':sold_out'          => !empty($data['sold_out']) ? 1 : 0,
+            ':sale_price_cents'  => $sale,
+            ':sale_ends_on'      => $ends,
             ':category_id'       => $categoryId > 0 ? $categoryId : null,
             ':name'              => mb_substr(trim((string) ($data['name'] ?? '')), 0, 180),
             ':slug'              => mb_substr(trim((string) ($data['slug'] ?? '')), 0, 200),
@@ -756,6 +1029,28 @@ final class ProductRepository
             $where[] = 'p.active = 0';
         }
 
+        // Abas da lista. Lista fechada: o valor da URL nunca entra no SQL.
+        $tab = isset($filters['tab']) ? (string) $filters['tab'] : '';
+        if ($tab === 'destaque') {
+            $where[] = 'p.featured = 1';
+        } elseif (in_array($tab, self::ADMIN_TABS, true)) {
+            if (!self::stockReady()) {
+                $where[] = '1=0';
+            } elseif ($tab === 'promocao') {
+                $where[] = 'p.sale_price_cents IS NOT NULL AND (p.sale_ends_on IS NULL OR p.sale_ends_on >= :today_tab)';
+                $params[':today_tab'] = self::today();
+            } elseif ($tab === 'baixo') {
+                $where[] = 'p.sold_out = 0 AND p.stock_qty BETWEEN 1 AND :low_tab';
+                $params[':low_tab'] = max(1, (int) ($filters['low'] ?? self::LOW_STOCK_DEFAULT));
+            } elseif ($tab === 'esgotado') {
+                $where[] = '(p.sold_out = 1 OR p.stock_qty = 0)';
+            } elseif ($tab === 'visivel') {
+                $where[] = 'p.show_stock = 1 AND p.stock_qty IS NOT NULL';
+            } elseif ($tab === 'oculto') {
+                $where[] = 'p.show_stock = 0 AND p.stock_qty IS NOT NULL';
+            }
+        }
+
         if (!empty($filters['cursor']) && is_string($filters['cursor'])) {
             $cursor = json_decode(base64_decode($filters['cursor'], true) ?: '', true);
             if (is_array($cursor) && count($cursor) === 2 && is_int($cursor[0]) && is_int($cursor[1]) && $cursor[1] > 0) {
@@ -785,6 +1080,7 @@ final class ProductRepository
             p.active,
             p.featured,
             p.sort_order,
+            " . self::stockColumns() . ",
             c.name AS category_name,
             c.slug AS category_slug,
             (
@@ -861,7 +1157,7 @@ final class ProductRepository
      */
     private static function findOneBy(string $condition, array $params): ?array
     {
-        $sql = 'SELECT ' . self::DETAIL_COLUMNS . ',
+        $sql = 'SELECT ' . self::detailColumns() . ',
                     c.name AS category_name,
                     c.slug AS category_slug
                   FROM products p
@@ -903,6 +1199,24 @@ final class ProductRepository
         // no WHERE); quando ausente, o registro so pode ter vindo de la = ativo.
         $row['active']           = (bool) ($row['active'] ?? true);
         $row['sort_order']       = (int) ($row['sort_order'] ?? 0);
+
+        // Estoque e promocao. Os campos derivados (sale_active, current_price_cents,
+        // is_sold_out) sao a UNICA fonte de verdade para vitrine, sacola e checkout.
+        $row['stock_qty']        = isset($row['stock_qty']) ? (int) $row['stock_qty'] : null;
+        $row['show_stock']       = !empty($row['show_stock']);
+        $row['sold_out']         = !empty($row['sold_out']);
+        $row['sale_price_cents'] = isset($row['sale_price_cents']) ? (int) $row['sale_price_cents'] : null;
+        $row['sale_ends_on']     = isset($row['sale_ends_on']) && $row['sale_ends_on'] !== '' ? (string) $row['sale_ends_on'] : null;
+
+        $hasPrice = !$row['price_on_request'] && $row['price_cents'] !== null;
+        $row['sale_expired'] = $row['sale_price_cents'] !== null && $row['sale_ends_on'] !== null && $row['sale_ends_on'] < self::today();
+        $row['sale_active']  = $hasPrice
+            && $row['sale_price_cents'] !== null
+            && $row['sale_price_cents'] < $row['price_cents']
+            && !$row['sale_expired'];
+        $row['current_price_cents'] = $row['sale_active'] ? $row['sale_price_cents'] : ($hasPrice ? $row['price_cents'] : null);
+        $row['sale_percent'] = $row['sale_active'] ? sale_percent((int) $row['price_cents'], (int) $row['sale_price_cents']) : null;
+        $row['is_sold_out']  = $row['sold_out'] || $row['stock_qty'] === 0;
 
         return $row;
     }

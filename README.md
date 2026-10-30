@@ -35,7 +35,9 @@ O pacote é destinado a **instalação nova em banco vazio**. Para atualizar uma
 
 ## Painel
 
-- Produtos: criar, editar, pesquisar, paginar, destacar, desativar e reativar.
+- Produtos: criar, editar, pesquisar, paginar, tirar da loja e voltar para a loja.
+- Estoque e promoção direto na lista: estoque com + e −, Destaque, Mostrar estoque, Marcar como esgotado/Reativar venda e Promoção (preço ou %, data final opcional), sem abrir o formulário. Abas com contagem: Todos, Em promoção, Em destaque, Estoque baixo, Esgotados, Estoque visível e oculto. O limite de estoque baixo fica em Configurações.
+- Esgotado continua visível na loja com selo, mas o servidor recusa a peça na sacola e no envio do pedido. Estoque em 0 deixa o produto esgotado sozinho; estoque vazio significa sem controle. O envio do pedido não baixa estoque: a loja ajusta quando a venda se confirma.
 - Fotos: upload validado por conteúdo, derivados WebP, capa, ordenação e ajuste do ponto de recorte.
 - Categorias: cadastro, edição, ativação e organização.
 - Importar: CSV ou XLSX, prévia, criação ou atualização por slug, mensagens por linha e transação integral.
@@ -61,6 +63,13 @@ Baixe o modelo em Importar ou exporte o catálogo existente. Máximo de 500 prod
 | descricao | Até 5.000 caracteres |
 | ativo | 1 ou 0; padrão 1 |
 | destaque | 1 ou 0; padrão 0 |
+| estoque | Opcional. Quantidade; vazio para não controlar |
+| mostrar_estoque | Opcional. 1 mostra "Restam N" na loja |
+| preco_promocional | Opcional. Menor que o preço; vazio sem promoção |
+| promocao_ate | Opcional. Último dia da promoção, 30/11/2026 |
+| esgotado | Opcional. 1 marca como esgotado |
+
+Planilhas antigas, sem as colunas opcionais, continuam importando e não mexem em estoque e promoção.
 
 Ao atualizar por slug, a planilha substitui esses campos, inclusive vazios. Fotos e ordem da vitrine são preservadas. Confira a prévia antes de confirmar. Fotos são enviadas na tela de cada produto. A importação não busca URLs externas.
 
@@ -94,7 +103,7 @@ O ensaio de instalação usa tests/prepare-install.php, Apache isolado na porta 
 - assets/: CSS, JavaScript, fontes locais e imagens da marca.
 - uploads/: fotos do catálogo, sem execução de PHP.
 - db/schema.sql: schema de instalação nova.
-- db/upgrade.php: evolução do schema legado, bloqueada fora de bancos de teste.
+- db/upgrade.php: evolução do schema legado (idempotente; `--rollback` desfaz estoque e promoção em banco de teste). Em banco real exige `--aplicar-em=<banco> --backup=<dump.sql>`, depois de validado em cópia.
 - scripts/: build, ambiente local e otimização de assets.
 - tests/: testes de PHP, navegador, instalação e Lighthouse.
 - docs/: evidências de validação.

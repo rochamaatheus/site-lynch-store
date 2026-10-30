@@ -59,6 +59,19 @@ if ($items === []) {
     checkout_fail('Sua sacola está vazia. Escolha uma peça antes de enviar o pedido.', $cartUrl);
 }
 
+// Esgotado e estoque conferidos no servidor: cart_items() ja releu o banco e
+// ajustou quantidades acima do estoque; peca esgotada bloqueia o envio.
+$soldOut = cart_sold_out_items($items);
+if ($soldOut !== []) {
+    $names = implode(', ', array_map(static fn (array $i): string => (string) $i['name'], $soldOut));
+    checkout_fail('Esgotou: ' . $names . '. Tire da sacola para enviar o pedido.', $cartUrl);
+}
+foreach ($items as $item) {
+    if (!empty($item['qty_adjusted'])) {
+        checkout_fail('O estoque de ' . $item['name'] . ' mudou e ajustamos a quantidade. Confira a sacola e envie de novo.', $cartUrl);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 3. Link do WhatsApp
 // ---------------------------------------------------------------------------
@@ -87,6 +100,7 @@ $snapshot = array_map(
         'qty'              => $item['qty'],
         'price_cents'      => $item['price_cents'],
         'price_on_request' => $item['price_on_request'],
+        'regular_price_cents' => $item['regular_price_cents'],
         'subtotal_cents'   => $item['subtotal_cents'],
     ],
     $items

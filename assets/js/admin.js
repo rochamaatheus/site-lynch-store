@@ -162,4 +162,130 @@
     chk.addEventListener('change', syncPreco);
     syncPreco();
   }
+
+  /* ---------- Estoque e promoção ---------- */
+  document.documentElement.classList.add('js');
+
+  function toCents(text) {
+    var raw = String(text || '').replace(/R\$\s*/, '').replace(/\s/g, '');
+    if (!raw) { return null; }
+    if (raw.indexOf(',') !== -1) { raw = raw.replace(/\./g, '').replace(',', '.'); }
+    var n = Number(raw);
+    return isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+  }
+  function centsText(cents) { return (cents / 100).toFixed(2).replace('.', ','); }
+
+  /* Preço promocional e % de desconto: preencher um calcula o outro. */
+  document.addEventListener('input', function (event) {
+    var field = event.target;
+    var form = field.closest && field.closest('[data-promo]');
+    if (!form) { return; }
+    var baseInput = form.getAttribute('data-price-input') ? document.querySelector(form.getAttribute('data-price-input')) : null;
+    var base = baseInput ? toCents(baseInput.value) : Number(form.getAttribute('data-price'));
+    var priceField = form.querySelector('[data-promo-price]');
+    var pctField = form.querySelector('[data-promo-pct]');
+    if (!base || !priceField || !pctField) { return; }
+    if (field === priceField) {
+      var cents = toCents(priceField.value);
+      pctField.value = cents && cents < base ? String(Math.round((base - cents) * 100 / base)) : '';
+    } else if (field === pctField) {
+      var pct = Number(String(pctField.value).replace(',', '.').replace('%', ''));
+      priceField.value = pct > 0 && pct < 100 ? centsText(Math.round(base * (100 - pct) / 100)) : '';
+    }
+  });
+
+  var statusBox = document.querySelector('[data-quick-status]');
+  var toastTimer;
+  function toast(message, ok) {
+    if (statusBox) { statusBox.textContent = message; }
+    var box = document.querySelector('[data-toast]');
+    if (!box) {
+      box = document.createElement('div');
+      box.setAttribute('data-toast', '');
+      box.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(box);
+    }
+    box.className = 'flash toast ' + (ok ? 'success' : 'error');
+    box.textContent = message;
+    box.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.hidden = true; }, 3600);
+  }
+
+  /* Ações rápidas da lista: salva sem recarregar e redesenha só o produto.
+     Sem JavaScript o mesmo formulário faz POST normal e volta para a lista. */
+  document.addEventListener('submit', function (event) {
+    var form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-quick') || event.defaultPrevented || !window.fetch) { return; }
+    event.preventDefault();
+    if (form.getAttribute('data-sending')) { return; }
+    form.setAttribute('data-sending', '1');
+    var data = new FormData(form);
+    var submitter = event.submitter;
+    if (submitter && submitter.name) { data.set(submitter.name, submitter.value); }
+    var id = data.get('id');
+    var row = document.getElementById('produto-' + id);
+    var focusKey = submitter && submitter.name ? submitter.name + '=' + submitter.value.replace(/_(on|off)$/, '') : null;
+    if (submitter && submitter.classList.contains('step')) { focusKey = 'step=' + ((form.getAttribute('id') || '').indexOf('menos') !== -1 ? '0' : '1'); }
+    if (!focusKey && document.activeElement && document.activeElement.name) { focusKey = 'field=' + document.activeElement.name; }
+    if (row) { row.setAttribute('aria-busy', 'true'); }
+
+    window.fetch(form.getAttribute('action'), {
+      method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-Lynch-Ajax': '1' }
+    }).then(function (res) {
+      return res.json().catch(function () { throw new Error('status ' + res.status); });
+    }).then(function (state) {
+      if (state.html && row) {
+        var holder = document.createElement('ul');
+        holder.innerHTML = state.html;
+        var fresh = holder.firstElementChild;
+        row.replaceWith(fresh);
+        row = fresh;
+        restoreFocus(fresh, focusKey);
+      }
+      if (state.counts) {
+        Object.keys(state.counts).forEach(function (key) {
+          var badge = document.querySelector('[data-count="' + key + '"]');
+          if (badge) { badge.textContent = state.counts[key]; }
+        });
+      }
+      toast(state.message || (state.ok ? 'Salvo.' : 'Não foi possível salvar.'), !!state.ok);
+    }).catch(function () {
+      form.submit();
+    }).finally(function () {
+      if (row) { row.removeAttribute('aria-busy'); }
+      form.removeAttribute('data-sending');
+    });
+  });
+
+  /* Depois de redesenhar, o foco volta para o controle equivalente. */
+  function restoreFocus(row, key) {
+    if (!key) { return; }
+    var target = null;
+    if (key.indexOf('step=') === 0) {
+      target = row.querySelectorAll('.step')[Number(key.slice(5))] || null;
+      if (target && target.disabled) { target = row.querySelector('.stock-input'); }
+    } else if (key.indexOf('field=') === 0) {
+      target = row.querySelector('[name="' + key.slice(6) + '"]');
+    } else {
+      var parts = key.split('=');
+      var buttons = row.querySelectorAll('button[name="' + parts[0] + '"]');
+      Array.prototype.forEach.call(buttons, function (b) {
+        if (!target && b.value.replace(/_(on|off)$/, '') === parts[1]) { target = b; }
+      });
+      if (!target && (parts[1] === 'sold_out' || parts[1] === 'reactivate')) {
+        target = row.querySelector('button[value="sold_out"], button[value="reactivate"]');
+      }
+    }
+    if (!target && /stock_(inc|dec)/.test(key)) { target = row.querySelector('.stock-input'); }
+    if (target && !target.disabled) { target.focus({ preventScroll: true }); }
+  }
+
+  /* Estoque digitado salva sozinho ao sair do campo ou apertar Enter. */
+  document.addEventListener('change', function (event) {
+    var field = event.target;
+    if (field.matches && field.matches('[data-autosave]') && field.form && field.form.requestSubmit) {
+      field.form.requestSubmit();
+    }
+  });
 })();

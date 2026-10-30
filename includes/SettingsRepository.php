@@ -169,6 +169,15 @@ function setting(string $key, string $default = ''): string
 }
 
 /**
+ * "Estoque baixo" = este numero ou menos (Configuracoes; padrao 3, entre 1 e 99).
+ */
+function low_stock_threshold(): int
+{
+    $value = (int) SettingsRepository::get('low_stock_threshold', '3');
+    return $value >= 1 && $value <= 99 ? $value : 3;
+}
+
+/**
  * Numero de WhatsApp so com digitos ('' quando ainda nao configurado).
  */
 function whatsapp_number(): string

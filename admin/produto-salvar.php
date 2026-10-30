@@ -99,7 +99,38 @@ if (!$onRequest && $cents === null) {
     ps_redirect($voltarPara);
 }
 
+// --- estoque e promocao ---
+$stock = null; $saleCents = null; $saleEnds = null;
+if (ProductRepository::stockReady()) {
+    try {
+        $stock = ProductRepository::parseStock($_POST['stock_qty'] ?? '');
+        $saleText = (string) ($_POST['sale_price'] ?? '');
+        $pctText = (string) ($_POST['sale_percent'] ?? '');
+        $endsText = (string) ($_POST['sale_ends_on'] ?? '');
+        if (trim($saleText) !== '' || trim($pctText) !== '') {
+            $original = $editando ? ProductRepository::findAnyById($id) : null;
+            // Data final que ja passou e nao foi mexida: promocao encerrada fica registrada.
+            $keepExpired = $original !== null && $endsText !== '' && $endsText === (string) $original['sale_ends_on'] && $endsText < date('Y-m-d');
+            [$saleCents, $saleEnds] = ProductRepository::parseSale(
+                ['price_cents' => $cents, 'price_on_request' => $onRequest],
+                $saleText,
+                $pctText,
+                $keepExpired ? '' : $endsText
+            );
+            if ($keepExpired) { $saleEnds = $endsText; }
+        }
+    } catch (DomainException $e) {
+        flash_set('error', $e->getMessage() . ' Nada foi salvo.');
+        ps_redirect($voltarPara);
+    }
+}
+
 $dados = [
+    'stock_qty'         => $stock,
+    'show_stock'        => !empty($_POST['show_stock']),
+    'sold_out'          => !empty($_POST['sold_out']),
+    'sale_price_cents'  => $saleCents,
+    'sale_ends_on'      => $saleEnds,
     'category_id'       => $categoryId,
     'name'              => $name,
     'slug'              => $slug,
